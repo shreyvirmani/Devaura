@@ -15,6 +15,17 @@ from database.models.models import (
     User,
     VerificationRun,
 )
+from database.models.code_intelligence import (
+    CodeFile,
+    CodeSymbol,
+    CodeRelationship,
+    CodeImport,
+    CodeIndexRun,
+    CodeTestMapping,
+    SymbolKind,
+    RelationshipType,
+    IndexStatus,
+)
 
 __all__ = [
     "Base",
@@ -32,4 +43,13 @@ __all__ = [
     "ToolExecution",
     "User",
     "VerificationRun",
+    "CodeFile",
+    "CodeSymbol",
+    "CodeRelationship",
+    "CodeImport",
+    "CodeIndexRun",
+    "CodeTestMapping",
+    "SymbolKind",
+    "RelationshipType",
+    "IndexStatus",
 ]

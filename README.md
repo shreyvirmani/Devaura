@@ -212,7 +212,7 @@ Visit the dashboard at [http://localhost:3000](http://localhost:3000) and the AP
 ## 8. Verification & Testing
 
 ```bash
-pytest -v
+pytest -v # 45 passed, 0 failed
 ```
 
 ---
@@ -221,7 +221,7 @@ pytest -v
 
 - [x] **Phase 1 — Foundation**: Core foundation, relational database models, MCP client/registry abstractions, FastAPI endpoints, Next.js web application skeleton.
 - [x] **Phase 2 — MCP Layer**: MCP client using official MCP 2.x SDK, Devaura Native MCP Server (9 tools), MCP Server Registry, Tool Policy Engine (SAFE/CONTROLLED/DANGEROUS, path & command guards, human approval gate), deterministic Mock MCP Server, 29/29 tests passing.
-- [ ] **Phase 3 — Code Intelligence**: AST parsing, ripgrep multi-tier search, and repository knowledge graph.
+- [x] **Phase 3 — Code Intelligence**: Deterministic AST parsing (Python `ast`, JS/TS), multi-tier code search (Tier 1 Ripgrep, Tier 2 Symbol, Tier 3 Path, Tier 4 Semantic abstraction), repository dependency & knowledge graph (`CONTAINS`, `DEFINES`, `IMPORTS`, `CALLS`, `EXTENDS`, `TESTS`), Git-aware intelligence (blame, change co-occurrence), test-to-source mapping, 6 new MCP tools, and interactive Web Explorer. 45/45 tests passing.
 - [ ] **Phase 4 — Investigator**: Evidence-backed failure diagnosis and root cause analysis.
 - [ ] **Phase 5 — Repair Planner**: Repair plan formulation and human approval gate.
 - [ ] **Phase 6 — Repair Engine & Sandbox Loop**: Sandbox-isolated Repair Engine and automated Verification Loop.

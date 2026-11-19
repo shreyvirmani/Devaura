@@ -1824,13 +1824,14 @@ where appropriate.
 | Tool Policy Engine (`mcp/policy/`) | Phase 2 | `IMPLEMENTED` | SAFE/CONTROLLED/DANGEROUS, path & command guards |
 | Mock MCP Server (`mcp/mock_server.py`) | Phase 2 | `IMPLEMENTED` | Deterministic testing harness |
 | External GitHub MCP Server | Phase 2 | `PARTIAL` | Configured and supported via STDIO npx transport |
-| Code Intelligence (AST & Graph) | Phase 3 | `PLANNED` | Next milestone |
-| Investigator AI Subsystem | Phase 4 | `PLANNED` | Phase 4 |
+| Code Intelligence (AST & Graph) | Phase 3 | `IMPLEMENTED` | AST parsers (Python, JS, TS), Multi-tier search (Ripgrep, Symbol, Path), Repository graph, test mappings, 6 MCP tools, REST API |
+| Investigator AI Subsystem | Phase 4 | `PLANNED` | Next milestone |
 | Repair Planner | Phase 5 | `PLANNED` | Phase 5 |
 | Sandbox Isolated Repair Loop | Phase 6 | `PLANNED` | Phase 6 |
 
 - **Known Issues:** None
-- **Next Phase:** Phase 3 — Code Intelligence
+- **Current Completed Phase:** Phase 3 — Code Intelligence
+- **Next Phase:** Phase 4 — Autonomous Investigation & Root Cause Localization
 
 ---
 

@@ -69,6 +69,10 @@ async def get_db_session() -> AsyncGenerator[AsyncSession, None]:
             raise
 
 
+# Alias for dependency consistency
+get_db = get_db_session
+
+
 async def init_db() -> None:
     """Create all database tables on application startup."""
     engine = get_engine()

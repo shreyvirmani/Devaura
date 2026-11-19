@@ -12,11 +12,13 @@ import {
   Settings,
   ShieldCheck,
   CheckCircle2,
+  Network,
 } from "lucide-react";
 
 const navigation = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
   { name: "Repositories", href: "/repositories", icon: GitBranch },
+  { name: "Code Intelligence", href: "/code-intelligence", icon: Network },
   { name: "Investigations", href: "/investigations", icon: Search },
   { name: "Repair Workspace", href: "/repairs", icon: Wrench },
   { name: "MCP Hub", href: "/mcp", icon: Cpu },

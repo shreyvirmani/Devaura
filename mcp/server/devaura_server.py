@@ -7,6 +7,13 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from apps.api.logger import logger, redact_secrets
+from code_intelligence.graph.queries import GraphQueryEngine
+from code_intelligence.graph.relationship_builder import RelationshipBuilder
+from code_intelligence.indexer.file_indexer import FileIndexer
+from code_intelligence.indexer.repository_indexer import RepositoryIndexer
+from code_intelligence.search.ripgrep_search import RipgrepSearch
+from code_intelligence.search.symbol_search import SymbolSearch
+from code_intelligence.tests.test_relationships import TestRelationshipsEngine
 from mcp.models import RiskLevel
 from mcp.policy import policy_engine
 from mcp.server.mcpserver import MCPServer
@@ -71,7 +78,7 @@ def create_devaura_native_server() -> MCPServer:
     # --------------------------------------------------------------------------
     @server.tool(
         name="search_code",
-        description="Search repository source code for keyword or regex matches.",
+        description="Search repository source code for keyword or regex matches using multi-tier ripgrep.",
     )
     async def search_code(
         query: str,
@@ -80,63 +87,27 @@ def create_devaura_native_server() -> MCPServer:
         workspace: str = ".",
     ) -> str:
         """Searches files inside the workspace with result limits."""
-        search_root = policy_engine.validate_workspace_path(workspace, path)
+        try:
+            search_root = policy_engine.validate_workspace_path(workspace, path)
+        except Exception as e:
+            return f"Security Violation: Path traversal rejected: {str(e)}"
+
         if not search_root.exists():
             return f"Error: Search directory '{path}' does not exist."
 
-        # Attempt fast ripgrep if installed
-        matches: List[Dict[str, Any]] = []
-        try:
-            rg_cmd = ["rg", "--json", "-m", str(max_results), "--", query, str(search_root)]
-            proc = subprocess.run(rg_cmd, capture_output=True, text=True, timeout=10)
-            if proc.returncode in (0, 1) and proc.stdout:
-                for line in proc.stdout.splitlines():
-                    try:
-                        data = json.loads(line)
-                        if data.get("type") == "match":
-                            m = data.get("data", {})
-                            rel_path = os.path.relpath(m.get("path", {}).get("text", ""), str(Path(workspace).resolve()))
-                            line_num = m.get("line_number", 0)
-                            match_text = m.get("lines", {}).get("text", "").strip()
-                            matches.append({"file": rel_path, "line": line_num, "text": match_text})
-                            if len(matches) >= max_results:
-                                break
-                    except json.JSONDecodeError:
-                        continue
-        except (FileNotFoundError, subprocess.SubprocessError):
-            pass
-
-        # Python fallback search if ripgrep was unavailable or returned 0
-        if not matches:
-            regex = re.compile(re.escape(query), re.IGNORECASE)
-            extensions = {".py", ".ts", ".tsx", ".js", ".jsx", ".json", ".md", ".yml", ".yaml", ".toml"}
-            for root, dirs, files in os.walk(search_root):
-                # Prune noisy directories
-                dirs[:] = [d for d in dirs if d not in {".git", ".venv", "node_modules", "__pycache__", ".next"}]
-                for file in files:
-                    if any(file.endswith(ext) for ext in extensions):
-                        file_path = Path(root) / file
-                        rel_path = os.path.relpath(file_path, str(Path(workspace).resolve()))
-                        try:
-                            with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
-                                for idx, line_text in enumerate(f, start=1):
-                                    if regex.search(line_text):
-                                        matches.append({"file": rel_path, "line": idx, "text": line_text.strip()})
-                                        if len(matches) >= max_results:
-                                            break
-                        except Exception:
-                            continue
-                    if len(matches) >= max_results:
-                        break
-                if len(matches) >= max_results:
-                    break
+        rg_engine = RipgrepSearch(workspace_root=workspace)
+        matches = rg_engine.search(
+            query=query,
+            path_filter=path if path != "." else None,
+            max_results=max_results,
+        )
 
         if not matches:
             return f"No code occurrences found for query '{query}' in '{path}'."
 
         result_str = f"Found {len(matches)} matches for '{query}':\n"
         for m in matches:
-            result_str += f"{m['file']}:{m['line']} -> {m['text']}\n"
+            result_str += f"{m.file}:{m.line} -> {m.text}\n"
         return result_str
 
     search_code.risk_level = RiskLevel.SAFE
@@ -266,34 +237,169 @@ def create_devaura_native_server() -> MCPServer:
     )
     async def find_related_tests(target_file: str, workspace: str = ".") -> str:
         base = Path(workspace).resolve()
-        target_name = Path(target_file).stem
+        target_stem = Path(target_file).stem
         candidates: List[str] = []
 
-        # Look for test_*.py or *.test.ts
+        # 1. Try AST-based Test Relationships Engine
+        try:
+            indexer = FileIndexer(workspace_root=base)
+            parsed_files = indexer.index_workspace()
+            test_engine = TestRelationshipsEngine(workspace_root=base)
+            mappings = test_engine.discover_test_mappings(parsed_files)
+            for m in mappings:
+                if Path(m["source_file"]).stem == target_stem or target_file in m["source_file"]:
+                    if m["test_file"] not in candidates:
+                        candidates.append(m["test_file"])
+        except Exception:
+            pass
+
+        # 2. File pattern matching fallback
         patterns = [
-            f"test_{target_name}.py",
-            f"{target_name}_test.py",
-            f"{target_name}.test.ts",
-            f"{target_name}.spec.ts",
-            f"{target_name}.test.js",
+            f"test_{target_stem}.py",
+            f"{target_stem}_test.py",
+            f"{target_stem}.test.ts",
+            f"{target_stem}.spec.ts",
+            f"{target_stem}.test.js",
         ]
 
         for p in patterns:
             for match in base.glob(f"**/{p}"):
-                rel = os.path.relpath(match, base)
+                rel = os.path.relpath(match, base).replace("\\", "/")
                 if rel not in candidates:
                     candidates.append(rel)
 
         # General test directory fallback
         if not candidates:
             for test_file in base.glob("tests/**/test_*.py"):
-                candidates.append(os.path.relpath(test_file, base))
+                rel = os.path.relpath(test_file, base).replace("\\", "/")
+                if rel not in candidates:
+                    candidates.append(rel)
 
         if not candidates:
             return f"No related tests discovered for '{target_file}'."
         return json.dumps({"target": target_file, "related_tests": candidates}, indent=2)
 
     find_related_tests.risk_level = RiskLevel.SAFE
+
+    # --------------------------------------------------------------------------
+    # 6a. Tool: index_repository (SAFE)
+    # --------------------------------------------------------------------------
+    @server.tool(
+        name="index_repository",
+        description="Deterministically index repository source files, symbols, and relationship graphs.",
+    )
+    async def index_repository(workspace: str = ".", force_full: bool = False) -> str:
+        base = Path(workspace).resolve()
+        indexer = RepositoryIndexer(workspace_root=base)
+        res = await indexer.index_repository(force_full=force_full)
+        return json.dumps(res.model_dump(), indent=2)
+
+    index_repository.risk_level = RiskLevel.SAFE
+
+    # --------------------------------------------------------------------------
+    # 6b. Tool: search_symbol (SAFE)
+    # --------------------------------------------------------------------------
+    @server.tool(
+        name="search_symbol",
+        description="Search indexed symbols (functions, classes, methods, interfaces) by name or query.",
+    )
+    async def search_symbol(query: str, kind: str = "", workspace: str = ".") -> str:
+        base = Path(workspace).resolve()
+        file_indexer = FileIndexer(workspace_root=base)
+        parsed_files = file_indexer.index_workspace()
+        sym_search = SymbolSearch()
+        matches = sym_search.search_parsed_files(parsed_files, query=query, kind=kind if kind else None)
+        if not matches:
+            return f"No symbols found matching '{query}'."
+        results = [
+            {
+                "symbol": m.symbol_name,
+                "kind": m.kind,
+                "file": m.file,
+                "line": m.line,
+                "signature": m.text,
+            }
+            for m in matches
+        ]
+        return json.dumps(results, indent=2)
+
+    search_symbol.risk_level = RiskLevel.SAFE
+
+    # --------------------------------------------------------------------------
+    # 6c. Tool: get_symbol (SAFE)
+    # --------------------------------------------------------------------------
+    @server.tool(
+        name="get_symbol",
+        description="Get exact definition, signature, docstring, and line boundaries of a symbol.",
+    )
+    async def get_symbol(name: str, workspace: str = ".") -> str:
+        base = Path(workspace).resolve()
+        file_indexer = FileIndexer(workspace_root=base)
+        parsed_files = file_indexer.index_workspace()
+        for pf in parsed_files:
+            for s in pf.symbols:
+                if s.name == name or s.qualified_name == name:
+                    return json.dumps(
+                        {
+                            "name": s.name,
+                            "qualified_name": s.qualified_name,
+                            "kind": s.kind.value,
+                            "file": pf.path,
+                            "start_line": s.start_line,
+                            "end_line": s.end_line,
+                            "signature": s.signature,
+                            "docstring": s.docstring,
+                            "calls": s.calls,
+                            "extends": s.extends,
+                        },
+                        indent=2,
+                    )
+        return f"Symbol '{name}' not found in workspace."
+
+    get_symbol.risk_level = RiskLevel.SAFE
+
+    # --------------------------------------------------------------------------
+    # 6d. Tool: get_relationships (SAFE)
+    # --------------------------------------------------------------------------
+    @server.tool(
+        name="get_relationships",
+        description="Retrieve callers, callees, dependencies, and dependents for a symbol or file.",
+    )
+    async def get_relationships(target: str, workspace: str = ".") -> str:
+        base = Path(workspace).resolve()
+        file_indexer = FileIndexer(workspace_root=base)
+        parsed_files = file_indexer.index_workspace()
+        rel_builder = RelationshipBuilder()
+        graph = rel_builder.build_graph(parsed_files)
+        query_engine = GraphQueryEngine(graph)
+
+        if target.endswith(".py") or target.endswith(".ts") or target.endswith(".js"):
+            deps = query_engine.get_file_dependencies(target)
+            dependents = query_engine.get_file_dependents(target)
+            return json.dumps({"target_file": target, "imports": deps, "imported_by": dependents}, indent=2)
+        else:
+            callers = [c.metadata.get("qualified_name", c.label) for c in query_engine.get_callers(target)]
+            callees = [c.metadata.get("qualified_name", c.label) for c in query_engine.get_callees(target)]
+            return json.dumps({"target_symbol": target, "callers": callers, "callees": callees}, indent=2)
+
+    get_relationships.risk_level = RiskLevel.SAFE
+
+    # --------------------------------------------------------------------------
+    # 6e. Tool: get_repository_graph (SAFE)
+    # --------------------------------------------------------------------------
+    @server.tool(
+        name="get_repository_graph",
+        description="Generate topological dependency and symbol graph summary for workspace.",
+    )
+    async def get_repository_graph(workspace: str = ".") -> str:
+        base = Path(workspace).resolve()
+        file_indexer = FileIndexer(workspace_root=base)
+        parsed_files = file_indexer.index_workspace()
+        rel_builder = RelationshipBuilder()
+        graph = rel_builder.build_graph(parsed_files)
+        return json.dumps(graph.to_graph_data().model_dump(), indent=2)
+
+    get_repository_graph.risk_level = RiskLevel.SAFE
 
     # --------------------------------------------------------------------------
     # 7. Tool: run_tests (CONTROLLED)

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Network,
   Search,
@@ -15,6 +15,8 @@ import {
   Filter,
   Terminal,
   Zap,
+  ShieldAlert,
+  Info,
 } from "lucide-react";
 
 interface SymbolItem {
@@ -30,10 +32,23 @@ interface SymbolItem {
 }
 
 interface TestMappingItem {
+  id?: string;
   test_file: string;
   source_file: string;
   confidence: number;
   relationship_type: string;
+  evidence?: string;
+}
+
+interface GraphEdgeItem {
+  id: string;
+  source_id: string;
+  target_id: string;
+  type: string;
+  confidence: number;
+  resolution_status: string;
+  evidence?: string;
+  source_location?: { file: string; line: number };
 }
 
 interface SearchMatchItem {
@@ -46,115 +61,73 @@ interface SearchMatchItem {
   score: number;
 }
 
+interface IndexStats {
+  status: string;
+  files_indexed: number;
+  symbols_indexed: number;
+  relationships_indexed: number;
+  last_indexed_at?: string;
+  duration_ms?: number;
+}
+
 export default function CodeIntelligencePage() {
   const [activeTab, setActiveTab] = useState<"search" | "symbols" | "graph" | "tests" | "git">("search");
-  const [searchQuery, setSearchQuery] = useState("Calculator");
+  const [searchQuery, setSearchQuery] = useState("");
   const [searchTier, setSearchTier] = useState<"all" | "ripgrep" | "symbol" | "path">("all");
   const [isSearching, setIsSearching] = useState(false);
   const [isIndexing, setIsIndexing] = useState(false);
   const [symbolKindFilter, setSymbolKindFilter] = useState("all");
 
-  // Sample and loaded data
-  const [searchResults, setSearchResults] = useState<SearchMatchItem[]>([
-    {
-      tier: "symbol",
-      file: "calculator/core.py",
-      line: 10,
-      text: "class Calculator",
-      symbol_name: "Calculator",
-      kind: "class",
-      score: 1.0,
-    },
-    {
-      tier: "symbol",
-      file: "calculator/advanced.py",
-      line: 7,
-      text: "class ScientificCalculator(Calculator)",
-      symbol_name: "ScientificCalculator",
-      kind: "class",
-      score: 0.9,
-    },
-    {
-      tier: "ripgrep",
-      file: "tests/test_calculator.py",
-      line: 6,
-      text: "calc = Calculator()",
-      score: 0.85,
-    },
-  ]);
+  const [stats, setStats] = useState<IndexStats>({
+    status: "READY",
+    files_indexed: 0,
+    symbols_indexed: 0,
+    relationships_indexed: 0,
+  });
 
-  const [symbols] = useState<SymbolItem[]>([
-    {
-      id: "sym-1",
-      name: "Calculator",
-      qualified_name: "calculator.core.Calculator",
-      kind: "class",
-      file_path: "calculator/core.py",
-      start_line: 10,
-      end_line: 52,
-      signature: "class Calculator",
-      docstring: "Standard calculator performing basic arithmetic.",
-    },
-    {
-      id: "sym-2",
-      name: "add",
-      qualified_name: "Calculator.add",
-      kind: "method",
-      file_path: "calculator/core.py",
-      start_line: 16,
-      end_line: 21,
-      signature: "def add(self, a: Number, b: Number) -> Number",
-      docstring: "Adds two numbers.",
-    },
-    {
-      id: "sym-3",
-      name: "divide",
-      qualified_name: "Calculator.divide",
-      kind: "method",
-      file_path: "calculator/core.py",
-      start_line: 35,
-      end_line: 43,
-      signature: "def divide(self, a: Number, b: Number) -> Number",
-      docstring: "Divides a by b with zero-division safeguard.",
-    },
-    {
-      id: "sym-4",
-      name: "ScientificCalculator",
-      qualified_name: "calculator.advanced.ScientificCalculator",
-      kind: "class",
-      file_path: "calculator/advanced.py",
-      start_line: 7,
-      end_line: 25,
-      signature: "class ScientificCalculator(Calculator)",
-      docstring: "Scientific calculator extending core arithmetic.",
-    },
-    {
-      id: "sym-5",
-      name: "power",
-      qualified_name: "ScientificCalculator.power",
-      kind: "method",
-      file_path: "calculator/advanced.py",
-      start_line: 10,
-      end_line: 15,
-      signature: "def power(self, base: Number, exponent: Number) -> Number",
-      docstring: "Raises base to the power of exponent.",
-    },
-  ]);
+  const [searchResults, setSearchResults] = useState<SearchMatchItem[]>([]);
+  const [symbols, setSymbols] = useState<SymbolItem[]>([]);
+  const [testMappings, setTestMappings] = useState<TestMappingItem[]>([]);
+  const [graphEdges, setGraphEdges] = useState<GraphEdgeItem[]>([]);
 
-  const [testMappings] = useState<TestMappingItem[]>([
-    {
-      test_file: "tests/test_calculator.py",
-      source_file: "calculator/core.py",
-      confidence: 0.95,
-      relationship_type: "TESTS_FILE",
-    },
-    {
-      test_file: "tests/test_advanced.py",
-      source_file: "calculator/advanced.py",
-      confidence: 0.95,
-      relationship_type: "TESTS_FILE",
-    },
-  ]);
+  // Fetch real data on mount
+  useEffect(() => {
+    fetchIntelligenceData();
+  }, []);
+
+  const fetchIntelligenceData = async () => {
+    try {
+      // 1. Status
+      const statusRes = await fetch("/api/v1/code-intelligence/status/local-workspace");
+      if (statusRes.ok) {
+        const statusData = await statusRes.json();
+        setStats(statusData);
+      }
+
+      // 2. Symbols
+      const symRes = await fetch("/api/v1/code-intelligence/symbols/local-workspace?limit=100");
+      if (symRes.ok) {
+        const symData = await symRes.json();
+        setSymbols(symData);
+      }
+
+      // 3. Graph
+      const graphRes = await fetch("/api/v1/code-intelligence/graph/local-workspace");
+      if (graphRes.ok) {
+        const graphData = await graphRes.json();
+        setGraphEdges(graphData.edges || []);
+      }
+
+      // 4. Test Mappings
+      const testsRes = await fetch("/api/v1/code-intelligence/tests/local-workspace");
+      if (testsRes.ok) {
+        const testsData = await testsRes.json();
+        setTestMappings(testsData);
+      }
+    } catch {
+      // Fallback gracefully if API is offline during static prerender
+    }
+  };
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -167,7 +140,7 @@ export default function CodeIntelligencePage() {
         body: JSON.stringify({
           query: searchQuery,
           tier: searchTier,
-          max_results: 20,
+          max_results: 25,
         }),
       });
       if (res.ok) {
@@ -175,7 +148,7 @@ export default function CodeIntelligencePage() {
         setSearchResults(data.matches || []);
       }
     } catch {
-      // Keep existing matches if offline during dev
+      // Offline fallback
     } finally {
       setIsSearching(false);
     }
@@ -184,13 +157,16 @@ export default function CodeIntelligencePage() {
   const handleTriggerIndex = async () => {
     setIsIndexing(true);
     try {
-      await fetch("/api/v1/code-intelligence/index", {
+      const res = await fetch("/api/v1/code-intelligence/index", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ workspace: ".", force_full: true }),
       });
+      if (res.ok) {
+        await fetchIntelligenceData();
+      }
     } catch {
-      // Handled gracefully
+      // Offline fallback
     } finally {
       setIsIndexing(false);
     }
@@ -200,6 +176,20 @@ export default function CodeIntelligencePage() {
     ? symbols
     : symbols.filter((s) => s.kind.toLowerCase() === symbolKindFilter.toLowerCase());
 
+  const getResolutionBadge = (status: string) => {
+    switch (status) {
+      case "RESOLVED":
+        return "bg-emerald-500/10 text-emerald-400 border-emerald-500/30";
+      case "PARTIALLY_RESOLVED":
+        return "bg-yellow-500/10 text-yellow-400 border-yellow-500/30";
+      case "AMBIGUOUS":
+        return "bg-amber-500/10 text-amber-400 border-amber-500/30";
+      case "UNRESOLVED":
+      default:
+        return "bg-rose-500/10 text-rose-400 border-rose-500/30";
+    }
+  };
+
   return (
     <div className="space-y-8 max-w-7xl mx-auto">
       {/* Top Header */}
@@ -207,12 +197,18 @@ export default function CodeIntelligencePage() {
         <div>
           <div className="flex items-center gap-3">
             <h1 className="text-2xl font-bold tracking-tight text-white">Code Intelligence</h1>
-            <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-500/10 text-blue-400 border border-blue-500/30">
-              AST Knowledge Graph
+            <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold font-mono border ${
+              stats.status === "READY"
+                ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
+                : stats.status === "STALE"
+                ? "bg-amber-500/10 text-amber-400 border-amber-500/30"
+                : "bg-blue-500/10 text-blue-400 border-blue-500/30"
+            }`}>
+              {stats.status}
             </span>
           </div>
           <p className="text-sm text-gray-400 mt-1">
-            Deterministic AST symbol extraction, multi-tier search, call graph analysis, and test mapping.
+            Deterministic AST symbol extraction, multi-tier search, call graph analysis, and evidence-backed test mapping.
           </p>
         </div>
 
@@ -235,8 +231,8 @@ export default function CodeIntelligencePage() {
             <span className="text-xs font-medium text-gray-400 uppercase tracking-wider">Indexed Files</span>
             <FileCode className="w-5 h-5 text-blue-400" />
           </div>
-          <p className="text-2xl font-bold text-white mt-2">12</p>
-          <p className="text-xs text-gray-500 mt-1">Python, TypeScript, JS</p>
+          <p className="text-2xl font-bold text-white mt-2">{stats.files_indexed}</p>
+          <p className="text-xs text-gray-500 mt-1">Python, TypeScript, JavaScript</p>
         </div>
 
         <div className="bg-[#0f172a]/60 border border-[#1e293b] rounded-xl p-5">
@@ -244,7 +240,7 @@ export default function CodeIntelligencePage() {
             <span className="text-xs font-medium text-gray-400 uppercase tracking-wider">AST Symbols</span>
             <Code2 className="w-5 h-5 text-indigo-400" />
           </div>
-          <p className="text-2xl font-bold text-white mt-2">48</p>
+          <p className="text-2xl font-bold text-white mt-2">{stats.symbols_indexed}</p>
           <p className="text-xs text-gray-500 mt-1">Classes, Methods, Functions</p>
         </div>
 
@@ -253,17 +249,17 @@ export default function CodeIntelligencePage() {
             <span className="text-xs font-medium text-gray-400 uppercase tracking-wider">Graph Relationships</span>
             <Network className="w-5 h-5 text-purple-400" />
           </div>
-          <p className="text-2xl font-bold text-white mt-2">34</p>
-          <p className="text-xs text-gray-500 mt-1">Imports, Calls, Extends</p>
+          <p className="text-2xl font-bold text-white mt-2">{stats.relationships_indexed}</p>
+          <p className="text-xs text-gray-500 mt-1">Calls, Imports, Extends</p>
         </div>
 
         <div className="bg-[#0f172a]/60 border border-[#1e293b] rounded-xl p-5">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-gray-400 uppercase tracking-wider">Test Mappings</span>
+            <span className="text-xs font-medium text-gray-400 uppercase tracking-wider">Discovered Tests</span>
             <CheckCircle2 className="w-5 h-5 text-emerald-400" />
           </div>
-          <p className="text-2xl font-bold text-white mt-2">6</p>
-          <p className="text-xs text-gray-500 mt-1">Source-to-test links</p>
+          <p className="text-2xl font-bold text-white mt-2">{testMappings.length}</p>
+          <p className="text-xs text-gray-500 mt-1">Mapped test-to-source pairs</p>
         </div>
       </div>
 
@@ -305,7 +301,7 @@ export default function CodeIntelligencePage() {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search symbols, functions, or regex patterns..."
+                placeholder="Search functions, classes, regex, or file paths..."
                 className="w-full pl-10 pr-4 py-2.5 bg-[#0d131f] border border-[#1e293b] rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 transition-colors"
               />
             </div>
@@ -335,43 +331,55 @@ export default function CodeIntelligencePage() {
 
           {/* Results List */}
           <div className="space-y-3">
-            <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
-              Matches ({searchResults.length})
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                Matches ({searchResults.length})
+              </span>
+              <span className="text-xs text-gray-500 font-mono">
+                Tier 4 Semantic Search: <span className="text-amber-400">OPTIONAL / NOT ACTIVE</span>
+              </span>
             </div>
-            {searchResults.map((m, idx) => (
-              <div
-                key={idx}
-                className="bg-[#0f172a]/60 border border-[#1e293b] rounded-xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-3 hover:border-blue-500/40 transition-colors"
-              >
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <span
-                      className={`px-2 py-0.5 rounded text-[10px] font-mono font-semibold uppercase ${
-                        m.tier === "symbol"
-                          ? "bg-indigo-500/10 text-indigo-400 border border-indigo-500/30"
-                          : m.tier === "ripgrep"
-                          ? "bg-blue-500/10 text-blue-400 border border-blue-500/30"
-                          : "bg-amber-500/10 text-amber-400 border border-amber-500/30"
-                      }`}
-                    >
-                      {m.tier}
-                    </span>
-                    <span className="text-sm font-semibold text-white">{m.symbol_name || m.file}</span>
-                    {m.kind && <span className="text-xs text-gray-400 font-mono">({m.kind})</span>}
-                  </div>
-                  <div className="text-xs font-mono text-gray-400">
-                    {m.file}:{m.line}
-                  </div>
-                  <div className="text-xs font-mono text-gray-300 bg-[#090d16] px-3 py-1.5 rounded border border-[#1e293b] mt-1">
-                    {m.text}
-                  </div>
-                </div>
 
-                <div className="text-right shrink-0">
-                  <span className="text-xs font-mono text-gray-500">Score: {Math.round(m.score * 100)}%</span>
-                </div>
+            {searchResults.length === 0 ? (
+              <div className="p-8 text-center bg-[#0f172a]/30 border border-[#1e293b] rounded-xl text-gray-500 text-sm">
+                Enter a search query above to inspect code across AST symbols, Ripgrep matches, and paths.
               </div>
-            ))}
+            ) : (
+              searchResults.map((m, idx) => (
+                <div
+                  key={idx}
+                  className="bg-[#0f172a]/60 border border-[#1e293b] rounded-xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-3 hover:border-blue-500/40 transition-colors"
+                >
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={`px-2 py-0.5 rounded text-[10px] font-mono font-semibold uppercase ${
+                          m.tier === "symbol"
+                            ? "bg-indigo-500/10 text-indigo-400 border border-indigo-500/30"
+                            : m.tier === "ripgrep"
+                            ? "bg-blue-500/10 text-blue-400 border border-blue-500/30"
+                            : "bg-amber-500/10 text-amber-400 border border-amber-500/30"
+                        }`}
+                      >
+                        {m.tier}
+                      </span>
+                      <span className="text-sm font-semibold text-white">{m.symbol_name || m.file}</span>
+                      {m.kind && <span className="text-xs text-gray-400 font-mono">({m.kind})</span>}
+                    </div>
+                    <div className="text-xs font-mono text-gray-400">
+                      {m.file}:{m.line}
+                    </div>
+                    <div className="text-xs font-mono text-gray-300 bg-[#090d16] px-3 py-1.5 rounded border border-[#1e293b] mt-1">
+                      {m.text}
+                    </div>
+                  </div>
+
+                  <div className="text-right shrink-0">
+                    <span className="text-xs font-mono text-gray-500">Confidence: {Math.round(m.score * 100)}%</span>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </div>
       )}
@@ -392,42 +400,50 @@ export default function CodeIntelligencePage() {
                 <option value="class">Class</option>
                 <option value="method">Method</option>
                 <option value="function">Function</option>
+                <option value="interface">Interface</option>
+                <option value="type_alias">Type Alias</option>
               </select>
             </div>
             <span className="text-xs text-gray-500 font-mono">Showing {filteredSymbols.length} symbols</span>
           </div>
 
-          <div className="grid grid-cols-1 gap-3">
-            {filteredSymbols.map((sym) => (
-              <div
-                key={sym.id}
-                className="bg-[#0f172a]/60 border border-[#1e293b] rounded-xl p-5 hover:border-indigo-500/40 transition-colors space-y-2"
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="px-2 py-0.5 rounded text-[11px] font-mono bg-indigo-500/10 text-indigo-400 border border-indigo-500/30">
-                      {sym.kind}
+          {filteredSymbols.length === 0 ? (
+            <div className="p-8 text-center bg-[#0f172a]/30 border border-[#1e293b] rounded-xl text-gray-500 text-sm">
+              No symbols extracted yet. Click &quot;Index Repository&quot; to parse workspace symbols.
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-3">
+              {filteredSymbols.map((sym) => (
+                <div
+                  key={sym.id}
+                  className="bg-[#0f172a]/60 border border-[#1e293b] rounded-xl p-5 hover:border-indigo-500/40 transition-colors space-y-2"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="px-2 py-0.5 rounded text-[11px] font-mono bg-indigo-500/10 text-indigo-400 border border-indigo-500/30">
+                        {sym.kind}
+                      </span>
+                      <span className="text-base font-semibold text-white">{sym.name}</span>
+                      <span className="text-xs text-gray-400 font-mono">({sym.qualified_name})</span>
+                    </div>
+                    <span className="text-xs font-mono text-gray-500">
+                      {sym.file_path}:{sym.start_line}-{sym.end_line}
                     </span>
-                    <span className="text-base font-semibold text-white">{sym.name}</span>
-                    <span className="text-xs text-gray-400 font-mono">({sym.qualified_name})</span>
                   </div>
-                  <span className="text-xs font-mono text-gray-500">
-                    {sym.file_path}:{sym.start_line}-{sym.end_line}
-                  </span>
+
+                  {sym.signature && (
+                    <div className="text-xs font-mono text-blue-300 bg-[#090d16] px-3 py-2 rounded border border-[#1e293b]">
+                      {sym.signature}
+                    </div>
+                  )}
+
+                  {sym.docstring && (
+                    <p className="text-xs text-gray-400 italic pl-1">{sym.docstring}</p>
+                  )}
                 </div>
-
-                {sym.signature && (
-                  <div className="text-xs font-mono text-blue-300 bg-[#090d16] px-3 py-2 rounded border border-[#1e293b]">
-                    {sym.signature}
-                  </div>
-                )}
-
-                {sym.docstring && (
-                  <p className="text-xs text-gray-400 italic pl-1">{sym.docstring}</p>
-                )}
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
@@ -437,49 +453,51 @@ export default function CodeIntelligencePage() {
           <div className="flex items-center justify-between">
             <h3 className="text-base font-semibold text-white">Repository Knowledge Graph</h3>
             <span className="text-xs font-mono text-purple-400 bg-purple-500/10 px-2.5 py-1 rounded border border-purple-500/30">
-              34 Edges Resolved
+              {graphEdges.length} Edges Discovered
             </span>
           </div>
 
-          <div className="space-y-4">
-            <div className="p-4 bg-[#090d16] rounded-lg border border-[#1e293b] space-y-2">
-              <span className="text-xs font-mono text-gray-400 block uppercase tracking-wider">
-                Inheritance Hierarchy
-              </span>
-              <div className="flex items-center gap-3 text-sm font-mono text-gray-200">
-                <span className="text-blue-400">ScientificCalculator</span>
-                <ArrowRight className="w-4 h-4 text-gray-500" />
-                <span className="text-indigo-400">Calculator</span>
-                <span className="text-xs px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                  EXTENDS
-                </span>
-              </div>
+          {graphEdges.length === 0 ? (
+            <div className="p-8 text-center text-gray-500 text-sm">
+              No graph relationships loaded. Index repository to generate dependencies.
             </div>
+          ) : (
+            <div className="space-y-3">
+              {graphEdges.slice(0, 30).map((edge) => (
+                <div
+                  key={edge.id}
+                  className="p-4 bg-[#090d16] rounded-lg border border-[#1e293b] flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs font-mono"
+                >
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-3 text-gray-200">
+                      <span className="text-blue-400 font-semibold">{edge.source_id.split(":").slice(1).join(":") || edge.source_id}</span>
+                      <ArrowRight className="w-3.5 h-3.5 text-gray-500 shrink-0" />
+                      <span className="text-indigo-400 font-semibold">{edge.target_id.split(":").slice(1).join(":") || edge.target_id}</span>
+                      <span className="px-2 py-0.5 rounded text-[10px] bg-purple-500/10 text-purple-400 border border-purple-500/30">
+                        {edge.type}
+                      </span>
+                    </div>
 
-            <div className="p-4 bg-[#090d16] rounded-lg border border-[#1e293b] space-y-2">
-              <span className="text-xs font-mono text-gray-400 block uppercase tracking-wider">
-                Key Call Relationships
-              </span>
-              <div className="space-y-2 text-sm font-mono text-gray-200">
-                <div className="flex items-center gap-3">
-                  <span className="text-blue-400">Calculator.add</span>
-                  <ArrowRight className="w-4 h-4 text-gray-500" />
-                  <span className="text-purple-400">_validate_number</span>
-                  <span className="text-xs px-2 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20">
-                    CALLS
-                  </span>
+                    {edge.evidence && (
+                      <div className="text-[11px] text-gray-400 pl-1 flex items-center gap-1.5">
+                        <Info className="w-3 h-3 text-gray-500" />
+                        <span>Evidence: {edge.evidence}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className={`px-2 py-0.5 rounded text-[10px] font-semibold border ${getResolutionBadge(edge.resolution_status)}`}>
+                      {edge.resolution_status}
+                    </span>
+                    <span className="text-gray-500">
+                      {Math.round(edge.confidence * 100)}%
+                    </span>
+                  </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  <span className="text-blue-400">Calculator.divide</span>
-                  <ArrowRight className="w-4 h-4 text-gray-500" />
-                  <span className="text-purple-400">format_result</span>
-                  <span className="text-xs px-2 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20">
-                    CALLS
-                  </span>
-                </div>
-              </div>
+              ))}
             </div>
-          </div>
+          )}
         </div>
       )}
 
@@ -487,31 +505,40 @@ export default function CodeIntelligencePage() {
       {activeTab === "tests" && (
         <div className="space-y-4">
           <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
-            Discovered Source-to-Test Associations
+            Discovered Source-to-Test Associations ({testMappings.length})
           </div>
-          {testMappings.map((tm, idx) => (
-            <div
-              key={idx}
-              className="bg-[#0f172a]/60 border border-[#1e293b] rounded-xl p-5 flex flex-col md:flex-row md:items-center justify-between gap-4"
-            >
-              <div className="space-y-1">
-                <div className="flex items-center gap-3">
-                  <span className="text-sm font-mono text-emerald-400 font-semibold">{tm.test_file}</span>
-                  <ArrowRight className="w-4 h-4 text-gray-500" />
-                  <span className="text-sm font-mono text-blue-400 font-semibold">{tm.source_file}</span>
-                </div>
-                <span className="text-xs text-gray-500 font-mono">
-                  Relationship: {tm.relationship_type}
-                </span>
-              </div>
 
-              <div className="flex items-center gap-2">
-                <span className="px-2.5 py-1 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 text-xs font-mono font-semibold">
-                  Confidence: {Math.round(tm.confidence * 100)}%
-                </span>
-              </div>
+          {testMappings.length === 0 ? (
+            <div className="p-8 text-center bg-[#0f172a]/30 border border-[#1e293b] rounded-xl text-gray-500 text-sm">
+              No test relationships discovered. Index repository to map test suites to implementation sources.
             </div>
-          ))}
+          ) : (
+            testMappings.map((tm, idx) => (
+              <div
+                key={idx}
+                className="bg-[#0f172a]/60 border border-[#1e293b] rounded-xl p-5 flex flex-col md:flex-row md:items-center justify-between gap-4"
+              >
+                <div className="space-y-1">
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm font-mono text-emerald-400 font-semibold">{tm.test_file}</span>
+                    <ArrowRight className="w-4 h-4 text-gray-500" />
+                    <span className="text-sm font-mono text-blue-400 font-semibold">{tm.source_file}</span>
+                  </div>
+                  {tm.evidence && (
+                    <div className="text-xs text-gray-400 font-mono">
+                      Evidence: <span className="text-gray-300">{tm.evidence}</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span className="px-2.5 py-1 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 text-xs font-mono font-semibold">
+                    Confidence: {Math.round(tm.confidence * 100)}%
+                  </span>
+                </div>
+              </div>
+            ))
+          )}
         </div>
       )}
 
@@ -519,27 +546,34 @@ export default function CodeIntelligencePage() {
       {activeTab === "git" && (
         <div className="bg-[#0f172a]/60 border border-[#1e293b] rounded-xl p-6 space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-base font-semibold text-white">Recent Git History & Attribution</h3>
-            <span className="text-xs text-gray-500 font-mono">Analyzed from local branch</span>
+            <h3 className="text-base font-semibold text-white">Recent Git History & Provenance</h3>
+            <span className="text-xs text-gray-500 font-mono">Commit Log</span>
+          </div>
+
+          <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg text-xs text-amber-300 flex items-center gap-2">
+            <Info className="w-4 h-4 shrink-0 text-amber-400" />
+            <span>
+              <strong>Note:</strong> Git commit co-occurrence measures historical correlation only. It does not establish structural dependency or causal relationships.
+            </span>
           </div>
 
           <div className="space-y-3">
             {[
               {
+                hash: "1e645b1",
+                msg: "feat(code-intelligence): implement AST indexing, multi-tier search, repository graph, and MCP tools",
+                author: "Devaura Agent",
+                date: "Phase 3",
+              },
+              {
                 hash: "1506bf6",
                 msg: "feat(mcp): complete Phase 2 MCP client, native server, registry, and policy engine",
                 author: "Devaura Agent",
-                date: "Recent",
+                date: "Phase 2",
               },
               {
                 hash: "86ae99d",
                 msg: "feat(frontend): implement Next.js developer portal and interactive pages",
-                author: "Devaura Agent",
-                date: "Phase 1",
-              },
-              {
-                hash: "66da821",
-                msg: "feat(backend): implement FastAPI core routes, database models, and secret redaction",
                 author: "Devaura Agent",
                 date: "Phase 1",
               },

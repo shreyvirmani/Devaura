@@ -2,7 +2,7 @@ import time
 import uuid
 from pathlib import Path
 from typing import Optional
-from sqlalchemy import select
+from sqlalchemy import desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from apps.api.logger import logger
 from code_intelligence.graph.relationship_builder import RelationshipBuilder
@@ -11,17 +11,56 @@ from code_intelligence.indexer.file_indexer import FileIndexer
 from code_intelligence.indexer.symbol_indexer import SymbolIndexer
 from code_intelligence.models import IndexRepositoryResponse
 from code_intelligence.tests.test_relationships import TestRelationshipsEngine
-from database.models.code_intelligence import CodeIndexRun, IndexStatus
+from database.models.code_intelligence import CodeFile, CodeIndexRun, IndexStatus
 from database.models.models import Repository
 
 
 class RepositoryIndexer:
-    """Full and incremental indexing pipeline for repositories."""
+    """Full and incremental indexing pipeline with lifecycle state transitions."""
 
     def __init__(self, workspace_root: Path | str = ".") -> None:
         self.workspace_root = Path(workspace_root).resolve()
         self.file_indexer = FileIndexer(self.workspace_root)
         self.test_engine = TestRelationshipsEngine(self.workspace_root)
+
+    async def check_index_staleness(
+        self,
+        repository_id: str,
+        session: AsyncSession,
+    ) -> str:
+        """Determines whether indexed state matches the current on-disk repository."""
+        run_res = await session.execute(
+            select(CodeIndexRun)
+            .where(CodeIndexRun.repository_id == repository_id)
+            .order_by(desc(CodeIndexRun.created_at))
+            .limit(1)
+        )
+        latest_run = run_res.scalars().first()
+        if not latest_run:
+            return IndexStatus.NOT_INDEXED.value
+        if latest_run.status == IndexStatus.FAILED.value:
+            return IndexStatus.FAILED.value
+        if latest_run.status == IndexStatus.INDEXING.value:
+            return IndexStatus.INDEXING.value
+
+        # Check file hashes against current disk
+        current_disk_files = self.file_indexer.index_workspace()
+        disk_map = {pf.path: pf.hash for pf in current_disk_files}
+
+        db_files_res = await session.execute(
+            select(CodeFile).where(CodeFile.repository_id == repository_id)
+        )
+        db_files = db_files_res.scalars().all()
+        db_map = {f.path: f.hash for f in db_files}
+
+        if set(disk_map.keys()) != set(db_map.keys()):
+            return IndexStatus.STALE.value
+
+        for path, disk_hash in disk_map.items():
+            if db_map.get(path) != disk_hash:
+                return IndexStatus.STALE.value
+
+        return IndexStatus.READY.value
 
     async def index_repository(
         self,
@@ -32,27 +71,41 @@ class RepositoryIndexer:
     ) -> IndexRepositoryResponse:
         start_time = time.time()
         rep_id = repository_id or "local-workspace"
+        run_id = str(uuid.uuid4())
 
         logger.info(
             f"Starting repository indexing for '{rep_id}' at '{self.workspace_root}' (force_full={force_full})",
             extra={"component": "repository_indexer", "event": "start", "repo_id": rep_id},
         )
 
+        # 1. Record INDEXING state
+        if session:
+            init_run = CodeIndexRun(
+                id=run_id,
+                repository_id=rep_id,
+                status=IndexStatus.INDEXING.value,
+                files_indexed=0,
+                symbols_indexed=0,
+                duration_ms=0.0,
+            )
+            session.add(init_run)
+            await session.commit()
+
         try:
-            # 1. Parse all workspace source files
+            # 2. Parse all workspace source files
             parsed_files = self.file_indexer.index_workspace(path_filter=path_filter)
 
-            # 2. Build semantic relationship graph
+            # 3. Build semantic relationship graph with provenance
             rel_builder = RelationshipBuilder(repository_id=rep_id)
             graph = rel_builder.build_graph(parsed_files)
 
-            # 3. Discover test mappings
+            # 4. Discover test mappings
             test_mappings = self.test_engine.discover_test_mappings(parsed_files)
 
             symbols_count = sum(len(pf.symbols) for pf in parsed_files)
             files_count = len(parsed_files)
 
-            # 4. Persist to DB if database session is provided
+            # 5. Persist to DB if database session is provided
             if session:
                 symbol_indexer = SymbolIndexer(session)
                 await symbol_indexer.persist_index_data(
@@ -63,17 +116,17 @@ class RepositoryIndexer:
                     incremental=not force_full,
                 )
 
-                # Record index run
                 duration_ms = round((time.time() - start_time) * 1000.0, 2)
-                run_rec = CodeIndexRun(
-                    id=str(uuid.uuid4()),
-                    repository_id=rep_id,
-                    status=IndexStatus.READY.value,
-                    files_indexed=files_count,
-                    symbols_indexed=symbols_count,
-                    duration_ms=duration_ms,
+                # Update status to READY
+                run_res = await session.execute(
+                    select(CodeIndexRun).where(CodeIndexRun.id == run_id)
                 )
-                session.add(run_rec)
+                run_rec = run_res.scalars().first()
+                if run_rec:
+                    run_rec.status = IndexStatus.READY.value
+                    run_rec.files_indexed = files_count
+                    run_rec.symbols_indexed = symbols_count
+                    run_rec.duration_ms = duration_ms
                 await session.commit()
             else:
                 duration_ms = round((time.time() - start_time) * 1000.0, 2)
@@ -100,16 +153,14 @@ class RepositoryIndexer:
             )
             if session:
                 try:
-                    run_rec = CodeIndexRun(
-                        id=str(uuid.uuid4()),
-                        repository_id=rep_id,
-                        status=IndexStatus.FAILED.value,
-                        files_indexed=0,
-                        symbols_indexed=0,
-                        duration_ms=duration_ms,
-                        error_message=err_msg,
+                    run_res = await session.execute(
+                        select(CodeIndexRun).where(CodeIndexRun.id == run_id)
                     )
-                    session.add(run_rec)
+                    run_rec = run_res.scalars().first()
+                    if run_rec:
+                        run_rec.status = IndexStatus.FAILED.value
+                        run_rec.duration_ms = duration_ms
+                        run_rec.error_message = err_msg
                     await session.commit()
                 except Exception:
                     pass

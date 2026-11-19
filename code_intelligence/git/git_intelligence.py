@@ -129,6 +129,8 @@ class GitIntelligence:
                     "file": f,
                     "co_occurrence_count": count,
                     "confidence": round(count / max(1, total_analyzed), 2),
+                    "relationship_type": "HISTORICAL_CO_CHANGE",
+                    "note": f"Changed together with '{rel_target}' in {count} commits. Historical correlation only; does not prove structural dependency.",
                 }
                 for f, count in counter.most_common(10)
             ]

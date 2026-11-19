@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 from pydantic import BaseModel, Field
 
 
@@ -29,6 +29,39 @@ class RelationshipKindEnum(str, Enum):
     TESTS = "TESTS"
 
 
+class ResolutionStatusEnum(str, Enum):
+    RESOLVED = "RESOLVED"
+    PARTIALLY_RESOLVED = "PARTIALLY_RESOLVED"
+    UNRESOLVED = "UNRESOLVED"
+    AMBIGUOUS = "AMBIGUOUS"
+
+
+class TestEvidenceKind(str, Enum):
+    IMPORT = "IMPORT"
+    DIRECT_CALL = "DIRECT_CALL"
+    SYMBOL_REFERENCE = "SYMBOL_REFERENCE"
+    NAME_MATCH = "NAME_MATCH"
+    PATH_MATCH = "PATH_MATCH"
+    HEURISTIC = "HEURISTIC"
+
+
+@dataclass
+class ParsedCall:
+    name: str
+    line_number: int = 1
+    callee_expr: str = ""
+
+    def __eq__(self, other: Any) -> bool:
+        if isinstance(other, str):
+            return self.name == other or self.callee_expr == other
+        if isinstance(other, ParsedCall):
+            return self.name == other.name and self.line_number == other.line_number
+        return False
+
+    def __str__(self) -> str:
+        return self.name
+
+
 @dataclass
 class ParsedSymbol:
     name: str
@@ -39,7 +72,7 @@ class ParsedSymbol:
     signature: Optional[str] = None
     docstring: Optional[str] = None
     parent_name: Optional[str] = None
-    calls: List[str] = field(default_factory=list)
+    calls: List[ParsedCall] = field(default_factory=list)
     extends: List[str] = field(default_factory=list)
     metadata: Dict[str, Any] = field(default_factory=dict)
 
@@ -123,6 +156,8 @@ class GraphEdge(BaseModel):
     type: str  # CONTAINS, DEFINES, IMPORTS, CALLS, EXTENDS, TESTS
     confidence: float = 1.0
     resolution_status: str = "RESOLVED"
+    evidence: str = ""
+    source_location: Optional[Dict[str, Any]] = None
     metadata: Dict[str, Any] = Field(default_factory=dict)
 
 

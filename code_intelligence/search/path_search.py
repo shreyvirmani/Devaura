@@ -43,6 +43,11 @@ class PathSearch:
                 if extension and not f.endswith(extension):
                     continue
 
+                # Exclude sensitive files
+                f_lower_check = f.lower()
+                if f_lower_check.startswith(".env") or f_lower_check.endswith((".key", ".pem", ".p12", ".pfx")):
+                    continue
+
                 full_path = Path(root) / f
                 rel_path = os.path.relpath(full_path, str(self.workspace_root)).replace("\\", "/")
                 rel_lower = rel_path.lower()

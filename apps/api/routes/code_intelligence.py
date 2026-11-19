@@ -93,9 +93,14 @@ async def get_index_status(
         select(func.count(CodeRelationship.id)).where(CodeRelationship.repository_id == repository_id)
     ) or 0
 
+    status_val = latest_run.status if latest_run else IndexStatus.NOT_INDEXED.value
+    if status_val == IndexStatus.READY.value and files_count > 0:
+        indexer = RepositoryIndexer()
+        status_val = await indexer.check_index_staleness(repository_id, db)
+
     return {
         "repository_id": repository_id,
-        "status": latest_run.status if latest_run else IndexStatus.NOT_INDEXED.value,
+        "status": status_val,
         "last_indexed_at": latest_run.created_at.isoformat() if latest_run else None,
         "duration_ms": latest_run.duration_ms if latest_run else 0.0,
         "files_indexed": files_count,
@@ -304,6 +309,7 @@ async def get_repository_graph(
         )
 
     for r in relationships:
+        r_meta = r.metadata_json or {}
         edges.append(
             GraphEdge(
                 id=r.id,
@@ -312,7 +318,9 @@ async def get_repository_graph(
                 type=r.relationship_type,
                 confidence=r.confidence,
                 resolution_status=r.resolution_status,
-                metadata=r.metadata_json,
+                evidence=r_meta.get("evidence", ""),
+                source_location=r_meta.get("source_location"),
+                metadata=r_meta,
             )
         )
 
@@ -361,6 +369,7 @@ async def get_test_mappings(
             "source_file": source_path,
             "relationship_type": tm.relationship_type,
             "confidence": tm.confidence,
+            "evidence": "IMPORT + DIRECT_CALL" if tm.confidence >= 0.95 else ("IMPORT" if tm.confidence >= 0.8 else "HEURISTIC"),
             "created_at": tm.created_at.isoformat(),
         })
 

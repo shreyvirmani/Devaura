@@ -1,5 +1,5 @@
 import uuid
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Set
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from code_intelligence.graph.repository_graph import RepositoryGraph
@@ -27,12 +27,13 @@ class SymbolIndexer:
         test_mappings: Optional[List[dict]] = None,
         incremental: bool = False,
     ) -> Dict[str, int]:
-        """Saves all extracted intelligence into the database."""
+        """Saves all extracted intelligence into the database with incremental deletion handling."""
         stats = {
             "files_indexed": 0,
             "symbols_indexed": 0,
             "relationships_indexed": 0,
             "imports_indexed": 0,
+            "deleted_files": 0,
         }
 
         # If not incremental, clear previous index for this repository
@@ -41,6 +42,21 @@ class SymbolIndexer:
 
         file_id_map: Dict[str, str] = {}  # file_path -> db_file_id
         symbol_id_map: Dict[str, str] = {}  # f"{file_path}:{qualname}" -> db_symbol_id
+
+        # In incremental mode, handle deleted files
+        current_disk_paths: Set[str] = {pf.path for pf in parsed_files}
+        if incremental:
+            existing_files_res = await self.session.execute(
+                select(CodeFile).where(CodeFile.repository_id == repository_id)
+            )
+            existing_db_files = existing_files_res.scalars().all()
+            for db_f in existing_db_files:
+                if db_f.path not in current_disk_paths:
+                    await self.session.execute(delete(CodeTestMapping).where(
+                        (CodeTestMapping.source_file_id == db_f.id) | (CodeTestMapping.test_file_id == db_f.id)
+                    ))
+                    await self.session.execute(delete(CodeFile).where(CodeFile.id == db_f.id))
+                    stats["deleted_files"] += 1
 
         # 1. Persist CodeFile and CodeImport records
         for pf in parsed_files:
@@ -59,13 +75,21 @@ class SymbolIndexer:
                 if file_record.hash == pf.hash:
                     # Unchanged file in incremental mode
                     file_id_map[pf.path] = file_record.id
+                    # Populate symbol_id_map for existing unchanged symbols
+                    sym_res = await self.session.execute(
+                        select(CodeSymbol).where(CodeSymbol.file_id == file_record.id)
+                    )
+                    for s in sym_res.scalars().all():
+                        symbol_id_map[f"{pf.path}:{s.qualified_name}"] = s.id
+                        symbol_id_map[f"{pf.path}:{s.name}"] = s.id
                     continue
+
                 # Update existing file record
                 file_record.hash = pf.hash
                 file_record.size_bytes = pf.size_bytes
                 file_record.line_count = pf.line_count
                 db_file_id = file_record.id
-                # Remove stale symbols & imports for this file
+                # Remove stale symbols & imports for this modified file
                 await self.session.execute(delete(CodeSymbol).where(CodeSymbol.file_id == db_file_id))
                 await self.session.execute(delete(CodeImport).where(CodeImport.file_id == db_file_id))
             else:
@@ -146,7 +170,15 @@ class SymbolIndexer:
 
         # 2. Persist Graph Edges as CodeRelationship records
         if graph:
+            # Refresh relationships for repository
+            await self.session.execute(delete(CodeRelationship).where(CodeRelationship.repository_id == repository_id))
             for edge in graph.edges:
+                rel_meta = dict(edge.metadata or {})
+                if edge.evidence:
+                    rel_meta["evidence"] = edge.evidence
+                if edge.source_location:
+                    rel_meta["source_location"] = edge.source_location
+
                 rel_rec = CodeRelationship(
                     repository_id=repository_id,
                     source_type="symbol" if "symbol:" in edge.source_id else "file",
@@ -156,13 +188,14 @@ class SymbolIndexer:
                     relationship_type=edge.type,
                     confidence=edge.confidence,
                     resolution_status=edge.resolution_status,
-                    metadata_json=edge.metadata,
+                    metadata_json=rel_meta,
                 )
                 self.session.add(rel_rec)
                 stats["relationships_indexed"] += 1
 
         # 3. Persist Test Mappings
         if test_mappings:
+            await self.session.execute(delete(CodeTestMapping).where(CodeTestMapping.repository_id == repository_id))
             for tm in test_mappings:
                 test_fid = file_id_map.get(tm.get("test_file"))
                 src_fid = file_id_map.get(tm.get("source_file"))
@@ -184,5 +217,8 @@ class SymbolIndexer:
         await self.session.execute(delete(CodeTestMapping).where(CodeTestMapping.repository_id == repository_id))
         await self.session.execute(delete(CodeRelationship).where(CodeRelationship.repository_id == repository_id))
         await self.session.execute(delete(CodeSymbol).where(CodeSymbol.repository_id == repository_id))
+        await self.session.execute(delete(CodeImport).where(CodeImport.file_id.in_(
+            select(CodeFile.id).where(CodeFile.repository_id == repository_id)
+        )))
         await self.session.execute(delete(CodeFile).where(CodeFile.repository_id == repository_id))
         await self.session.commit()

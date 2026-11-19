@@ -1,11 +1,11 @@
 import os
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Set
 from code_intelligence.models import ParsedFile, ParsedSymbol
 
 
 class TestRelationshipsEngine:
-    """Discovers and maps test files and test symbols to target implementation sources."""
+    """Discovers and maps test files and test symbols to target implementation sources with provenance."""
     __test__ = False
 
     def __init__(self, workspace_root: Path | str = ".") -> None:
@@ -20,44 +20,82 @@ class TestRelationshipsEngine:
                 continue
 
             test_file_path = pf.path
-            source_candidates: List[str] = []
-
-            # 1. Match by file naming convention
             stem = Path(pf.path).stem
-            # strip "test_" or "_test"
             clean_stem = stem
             if clean_stem.startswith("test_"):
                 clean_stem = clean_stem[5:]
             elif clean_stem.endswith("_test"):
                 clean_stem = clean_stem[:-5]
 
+            # Candidate evaluation per source file
             for other_path, other_pf in file_map.items():
                 if other_path == test_file_path or self._is_test_file(other_path):
                     continue
+
+                evidence_tags: List[str] = []
                 other_stem = Path(other_path).stem
-                if other_stem == clean_stem or clean_stem.endswith(other_stem):
-                    source_candidates.append(other_path)
 
-            # 2. Match by imports within test file
-            for imp in pf.imports:
-                for other_path, other_pf in file_map.items():
-                    if other_path == test_file_path or self._is_test_file(other_path):
-                        continue
-                    other_stem = Path(other_path).stem
-                    if imp.module.endswith(other_stem) or imp.module.split(".")[-1] == other_stem:
-                        if other_path not in source_candidates:
-                            source_candidates.append(other_path)
+                # Check 1: Import evidence
+                has_import = False
+                for imp in pf.imports:
+                    mod = imp.module
+                    if (
+                        mod == other_stem
+                        or mod.endswith(f".{other_stem}")
+                        or mod.replace(".", "/") in other_path
+                        or other_stem in mod.split(".")
+                    ):
+                        has_import = True
+                        break
+                if has_import:
+                    evidence_tags.append("IMPORT")
 
-            for src in source_candidates:
-                # Find symbol-level mappings
-                src_pf = file_map.get(src)
-                src_symbols = src_pf.symbols if src_pf else []
+                # Check 2: Symbol matching & direct calls in test functions
+                src_symbols = other_pf.symbols
                 symbol_matches = self._match_test_symbols(pf.symbols, src_symbols)
+                has_direct_call = False
+
+                src_symbol_names = {s.name for s in src_symbols}
+                for ts in pf.symbols:
+                    for call in ts.calls:
+                        c_name = call.name.split(".")[-1]
+                        if c_name in src_symbol_names:
+                            has_direct_call = True
+                            break
+
+                if has_direct_call:
+                    evidence_tags.append("DIRECT_CALL")
+                elif symbol_matches:
+                    evidence_tags.append("SYMBOL_REFERENCE")
+
+                # Check 3: Name / Path heuristics
+                has_name_match = (other_stem == clean_stem or clean_stem.endswith(other_stem))
+                if has_name_match:
+                    evidence_tags.append("NAME_MATCH")
+
+                # Compute calibrated confidence
+                if not evidence_tags:
+                    continue
+
+                confidence = 0.50
+                if "IMPORT" in evidence_tags and "DIRECT_CALL" in evidence_tags:
+                    confidence = 0.98
+                elif "IMPORT" in evidence_tags and "SYMBOL_REFERENCE" in evidence_tags:
+                    confidence = 0.95
+                elif "IMPORT" in evidence_tags:
+                    confidence = 0.82
+                elif "DIRECT_CALL" in evidence_tags or "SYMBOL_REFERENCE" in evidence_tags:
+                    confidence = 0.75
+                elif "NAME_MATCH" in evidence_tags:
+                    confidence = 0.55
+
+                evidence_str = " + ".join(evidence_tags)
 
                 mappings.append({
                     "test_file": test_file_path,
-                    "source_file": src,
-                    "confidence": 0.95 if symbol_matches else 0.8,
+                    "source_file": other_path,
+                    "confidence": confidence,
+                    "evidence": evidence_str,
                     "symbol_mappings": symbol_matches,
                 })
 

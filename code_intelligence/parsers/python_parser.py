@@ -3,6 +3,7 @@ import hashlib
 import sys
 from typing import Any, List, Optional, Set
 from code_intelligence.models import (
+    ParsedCall,
     ParsedFile,
     ParsedImport,
     ParsedSymbol,
@@ -131,6 +132,7 @@ class PythonASTParser(BaseParser):
             qualname = f"{parent_qualname}.{node.name}" if parent_qualname else node.name
             docstring = ast.get_docstring(node)
             sig = self._format_signature(node, is_async=is_async)
+            decorators = [self._get_expr_name(d) for d in getattr(node, "decorator_list", [])]
 
             # Collect calls inside this function body
             calls = self._collect_calls(node)
@@ -145,6 +147,7 @@ class PythonASTParser(BaseParser):
                 docstring=docstring,
                 parent_name=parent_name,
                 calls=calls,
+                metadata={"decorators": decorators} if decorators else {},
             )
             parsed_file.symbols.append(func_symbol)
 
@@ -193,15 +196,20 @@ class PythonASTParser(BaseParser):
             sig += f" -> {ast.unparse(node.returns)}"
         return sig
 
-    def _collect_calls(self, node: ast.AST) -> List[str]:
-        """Extracts names of called functions or methods inside a node."""
-        calls: Set[str] = set()
+    def _collect_calls(self, node: ast.AST) -> List[ParsedCall]:
+        """Extracts names, line numbers, and expressions of called functions or methods inside a node."""
+        calls: List[ParsedCall] = []
+        seen = set()
         for child in ast.walk(node):
             if isinstance(child, ast.Call):
                 name = self._get_expr_name(child.func)
+                line_no = getattr(child, "lineno", getattr(node, "lineno", 1))
                 if name and name not in {"print", "len", "range", "isinstance", "getattr", "setattr"}:
-                    calls.add(name)
-        return sorted(list(calls))
+                    key = (name, line_no)
+                    if key not in seen:
+                        seen.add(key)
+                        calls.append(ParsedCall(name=name, line_number=line_no, callee_expr=name))
+        return calls
 
     def _get_expr_name(self, expr: ast.AST) -> str:
         """Converts an AST expression to a qualified string name (e.g. self.helper, os.path.join)."""

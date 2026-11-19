@@ -62,7 +62,12 @@ class RipgrepSearch:
 
         # 1. Try Ripgrep CLI if available
         try:
-            cmd = ["rg", "--json", "-m", str(max_results)]
+            cmd = [
+                "rg", "--json", "-m", str(max_results),
+                "-g", "!.env*",
+                "-g", "!*.key",
+                "-g", "!*.pem",
+            ]
             if not case_sensitive:
                 cmd.append("-i")
             cmd.extend(["--", query, str(search_dir)])
@@ -124,6 +129,8 @@ class RipgrepSearch:
             for root, dirs, files in os.walk(search_dir):
                 dirs[:] = [d for d in dirs if d not in _DEFAULT_IGNORED_DIRS]
                 for f in files:
+                    if f.startswith(".env") or f.endswith((".key", ".pem", ".p12", ".pfx")):
+                        continue
                     ext = Path(f).suffix.lower()
                     if ext in _CODE_EXTENSIONS or not ext:
                         target_files.append(Path(root) / f)

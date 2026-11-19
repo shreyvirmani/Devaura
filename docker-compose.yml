@@ -1,0 +1,55 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: devaura-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: devaura
+      POSTGRES_PASSWORD: devaura_password
+      POSTGRES_DB: devaura
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U devaura -d devaura"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    container_name: devaura-api
+    restart: unless-stopped
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://devaura:devaura_password@postgres:5432/devaura
+      - APP_ENV=production
+      - LOG_LEVEL=INFO
+      - LLM_PROVIDER=gemini
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - GITHUB_TOKEN=${GITHUB_TOKEN:-}
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./storage:/app/storage
+
+  web:
+    build:
+      context: apps/web
+      dockerfile: Dockerfile
+    container_name: devaura-web
+    restart: unless-stopped
+    environment:
+      - NEXT_PUBLIC_API_URL=http://api:8000
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api
+
+volumes:
+  postgres_data:

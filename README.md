@@ -1,0 +1,229 @@
+# Devaura — AI Software Repair & Maintenance Platform
+
+> **Devaura — From failure to verified fix.**
+
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
+[![Python](https://img.shields.io/badge/Python-3.12-blue.svg)](https://www.python.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-009688.svg)](https://fastapi.tiangolo.com/)
+[![Next.js](https://img.shields.io/badge/Next.js-15-black.svg)](https://nextjs.org/)
+[![MCP Native](https://img.shields.io/badge/MCP-Native%20Host%20%26%20Client-orange.svg)](https://modelcontextprotocol.io/)
+
+---
+
+## 1. What is Devaura?
+
+**Devaura** is an **MCP-native AI software maintenance and repair agent**. Rather than functioning as a conversational chatbot or a simple prompt wrapper, Devaura connects natively to code repositories, CI/CD systems, and issue trackers via the open **Model Context Protocol (MCP)** standard.
+
+When an issue, test failure, or bug is reported, Devaura executes a rigorous automated lifecycle:
+
+```text
+Software Failure
+      ↓
+Context Collection (Issues, PRs, CI logs, Git history via MCP)
+      ↓
+Root Cause Analysis (AST, Code Search, Evidence-backed)
+      ↓
+Structured Repair Plan
+      ↓
+Human Approval Gate (Plan Sign-off)
+      ↓
+Patch Generation (Minimal unified diff)
+      ↓
+Isolated Execution (Ephemeral Sandbox)
+      ↓
+Testing & Verification (Pytest/Jest, Linter, Typecheck)
+      ↓
+Failure Analysis & Iteration (Max 3 repair loops)
+      ↓
+Independent Review
+      ↓
+Human Approval Gate (PR Sign-off)
+      ↓
+Pull Request Creation
+```
+
+---
+
+## 2. Core Problem & Solution
+
+### The Problem
+Traditional AI coding assistants are reactive and unverified:
+- They require developers to manually hunt down context, copy-paste stack traces, and guess affected files.
+- They propose unchecked code changes directly to developers without running regression tests.
+- They lack architectural awareness and make hallucinated claims without traceable evidence.
+- They operate with unrestricted shell access or opaque single-vendor lock-in.
+
+### The Devaura Solution
+Devaura treats software maintenance as a closed-loop engineering process:
+- **MCP-Native Host & Client**: Integrates seamlessly with GitHub MCP, native file and AST tools, and external MCP servers.
+- **Evidence-Backed Root Cause Analysis**: Identifies exact failure locations with commit history, AST symbols, and test references.
+- **Deterministic Sandboxing**: Executes patches and test suites inside isolated environments with memory/CPU bounds.
+- **Strict Verification Protocol**: Verifies test pass rates, linting, and type checking, reporting structured status before touching Git remotes.
+- **Human In The Loop**: Zero dangerous actions (pushing commits, opening PRs) can execute without explicit developer authorization.
+
+---
+
+## 3. High-Level Architecture
+
+```mermaid
+flowchart TD
+    subgraph UI ["Devaura Web Dashboard (Next.js 15 / Tailwind)"]
+        Dash["Dashboard & Health"]
+        Repo["Repositories & Issues"]
+        Workspace["Repair Studio & Diffs"]
+        MCPHub["MCP Servers & Tools"]
+    end
+
+    subgraph Core ["Devaura Orchestrator (FastAPI / Python 3.12)"]
+        FSM["Finite State Machine"]
+        Investigator["Investigator Subsystem"]
+        Planner["Repair Planner"]
+        Repair["Repair Engine"]
+        Verifier["Verification Engine"]
+        Reviewer["Reviewer Subsystem"]
+    end
+
+    subgraph MCPLayer ["MCP Integration Layer"]
+        Registry["MCPServerRegistry"]
+        Policy["Security & Policy Gate (SAFE/CONTROLLED/DANGEROUS)"]
+        ClientPool["MCP Client Pool"]
+    end
+
+    subgraph Tooling ["MCP Servers & Environments"]
+        GitHubMCP["GitHub MCP Server"]
+        DevauraMCP["Devaura Native MCP Server"]
+        Sandbox["Ephemeral Sandbox Runner"]
+    end
+
+    UI <--> Core
+    Core --> FSM
+    Core <--> MCPLayer
+    MCPLayer --> Registry
+    Registry --> Policy
+    Policy --> ClientPool
+    ClientPool <--> GitHubMCP
+    ClientPool <--> DevauraMCP
+    Repair --> Sandbox
+    Verifier --> Sandbox
+```
+
+---
+
+## 4. MCP Architecture & Native Server
+
+Devaura complies with the official **Model Context Protocol** specification:
+
+### Native Server Capabilities:
+- `analyze_repository`: Analyzes languages, frameworks, package managers, and test runners.
+- `search_code`: Multi-tier search combining exact substring, keyword ripgrep, and AST token lookups.
+- `read_file`: Line-windowed file reading with path-traversal guards.
+- `git_history`: Traces blame, commit diffs, and historical file modifications.
+- `inspect_diff`: Computes unified diffs and changes between base and repair workspaces.
+- `find_related_tests`: Heuristically maps source files to unit and integration test fixtures.
+- `run_tests`: Executes sandbox test commands with exit code and stdout/stderr capture.
+- `run_linter`: Runs ruff, flake8, or eslint with normalized diagnostic output.
+- `run_typecheck`: Runs mypy or tsc.
+
+---
+
+## 5. Security Model
+
+All operations are governed by a three-tier risk classification:
+- **`SAFE`**: Read-only tools (`read_file`, `search_code`, `git_history`). Always allowed.
+- **`CONTROLLED`**: Sandboxed mutations (`apply_patch`, `run_tests`, `create_branch`). Monitored and constrained.
+- **`DANGEROUS`**: Upstream mutations (`push_branch`, `create_pull_request`). Strictly blocked until explicit human approval.
+
+---
+
+## 6. Repository Structure
+
+```text
+devaura/
+├── apps/
+│   ├── api/                   # FastAPI Backend
+│   │   ├── main.py
+│   │   ├── config.py
+│   │   ├── routes/
+│   │   └── requirements.txt
+│   └── web/                   # Next.js 15 Web Application
+│       ├── src/
+│       ├── package.json
+│       └── tailwind.config.ts
+├── agent/                     # Core Agent Orchestration & State Machine
+│   ├── orchestrator/
+│   ├── investigator/
+│   ├── planner/
+│   ├── repair/
+│   ├── verifier/
+│   └── reviewer/
+├── mcp/                       # Model Context Protocol Implementation
+│   ├── client/
+│   ├── registry/
+│   ├── policy/
+│   └── server/
+├── integrations/              # GitHub & External Providers
+│   └── github/
+├── code_intelligence/         # AST Parsing, Code Search & Git Analysis
+├── sandbox/                   # Isolated Execution & Verification Runners
+├── database/                  # SQLAlchemy Relational Models & Storage
+├── evaluation/                # Benchmarking Engine & Datasets
+├── tests/                     # Unit, Integration & E2E Suites
+├── docs/                      # Technical Documentation
+├── docker-compose.yml
+├── .env.example
+└── README.md
+```
+
+---
+
+## 7. Getting Started
+
+### Local Setup (Quickstart)
+
+```bash
+# 1. Clone repository
+git clone https://github.com/shreyvirmani/Devaura.git
+cd Devaura
+
+# 2. Setup Python environment
+python -m venv .venv
+# On Windows: .\.venv\Scripts\activate
+# On Linux/macOS: source .venv/bin/activate
+
+# 3. Install API dependencies
+pip install -r apps/api/requirements.txt
+
+# 4. Copy environment variables
+cp .env.example .env
+
+# 5. Run API
+python -m uvicorn apps.api.main:app --reload --port 8000
+
+# 6. In a new terminal, run Next.js web application
+cd apps/web
+npm install
+npm run dev
+```
+
+Visit the dashboard at [http://localhost:3000](http://localhost:3000) and the API docs at [http://localhost:8000/docs](http://localhost:8000/docs).
+
+---
+
+## 8. Verification & Testing
+
+```bash
+pytest -v
+```
+
+---
+
+## 9. Roadmap
+
+- [x] **Phase 1**: Core foundation, relational database models, MCP client/registry abstractions, FastAPI endpoints, Next.js web application skeleton.
+- [ ] **Phase 2**: MCP native server implementation, transport adapters, and policy engine.
+- [ ] **Phase 3**: Code intelligence layer (AST parsing, ripgrep multi-tier search, repository knowledge graph).
+- [ ] **Phase 4**: Evidence-backed Investigator subsystem.
+- [ ] **Phase 5**: Repair Planner and Human Approval Gate.
+- [ ] **Phase 6**: Sandbox-isolated Repair Engine and automated Verification Loop.
+- [ ] **Phase 7**: GitHub MCP PR publishing with review summaries.
+- [ ] **Phase 8**: Evaluation benchmark suite with reproducible bug datasets.

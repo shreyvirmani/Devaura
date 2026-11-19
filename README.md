@@ -219,11 +219,11 @@ pytest -v
 
 ## 9. Roadmap
 
-- [x] **Phase 1**: Core foundation, relational database models, MCP client/registry abstractions, FastAPI endpoints, Next.js web application skeleton.
-- [ ] **Phase 2**: MCP native server implementation, transport adapters, and policy engine.
-- [ ] **Phase 3**: Code intelligence layer (AST parsing, ripgrep multi-tier search, repository knowledge graph).
-- [ ] **Phase 4**: Evidence-backed Investigator subsystem.
-- [ ] **Phase 5**: Repair Planner and Human Approval Gate.
-- [ ] **Phase 6**: Sandbox-isolated Repair Engine and automated Verification Loop.
-- [ ] **Phase 7**: GitHub MCP PR publishing with review summaries.
-- [ ] **Phase 8**: Evaluation benchmark suite with reproducible bug datasets.
+- [x] **Phase 1 — Foundation**: Core foundation, relational database models, MCP client/registry abstractions, FastAPI endpoints, Next.js web application skeleton.
+- [x] **Phase 2 — MCP Layer**: MCP client using official MCP 2.x SDK, Devaura Native MCP Server (9 tools), MCP Server Registry, Tool Policy Engine (SAFE/CONTROLLED/DANGEROUS, path & command guards, human approval gate), deterministic Mock MCP Server, 29/29 tests passing.
+- [ ] **Phase 3 — Code Intelligence**: AST parsing, ripgrep multi-tier search, and repository knowledge graph.
+- [ ] **Phase 4 — Investigator**: Evidence-backed failure diagnosis and root cause analysis.
+- [ ] **Phase 5 — Repair Planner**: Repair plan formulation and human approval gate.
+- [ ] **Phase 6 — Repair Engine & Sandbox Loop**: Sandbox-isolated Repair Engine and automated Verification Loop.
+- [ ] **Phase 7 — Reviewer & GitHub PR**: Independent review pass and authorized pull request creation.
+- [ ] **Phase 8 — Evaluation & Benchmarks**: Benchmark dataset runner and accuracy metrics.

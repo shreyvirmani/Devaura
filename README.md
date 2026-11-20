@@ -212,7 +212,7 @@ Visit the dashboard at [http://localhost:3000](http://localhost:3000) and the AP
 ## 8. Verification & Testing
 
 ```bash
-pytest -v # 50 passed, 0 failed (100% pass rate)
+pytest -v # 60 passed, 0 failed (100% pass rate)
 ```
 
 ---
@@ -223,7 +223,7 @@ pytest -v # 50 passed, 0 failed (100% pass rate)
 - [x] **Phase 2 — MCP Layer**: MCP client using official MCP 2.x SDK, Devaura Native MCP Server (9 tools), MCP Server Registry, Tool Policy Engine (SAFE/CONTROLLED/DANGEROUS, path & command guards, human approval gate), deterministic Mock MCP Server, 29/29 tests passing.
 - [x] **Phase 3 — Code Intelligence**: Deterministic AST parsing (Python `ast`, JS/TS), multi-tier code search (Tier 1 Ripgrep, Tier 2 Symbol, Tier 3 Path, Tier 4 Semantic abstraction), repository dependency & knowledge graph (`CONTAINS`, `DEFINES`, `IMPORTS`, `CALLS`, `EXTENDS`, `TESTS`), Git-aware intelligence (blame, change co-occurrence), test-to-source mapping, 6 new MCP tools, and interactive Web Explorer. 45/45 tests passing.
 - [x] **Phase 3.5 — Code Intelligence Validation & Hardening**: Dedicated deterministic multi-language fixture repository (`tests/fixtures/validation_repo/`), scoped symbol call resolution eliminating false-positive collisions, full edge provenance metadata (`evidence`, `source_location`, `confidence`, `resolution_status`), test mapping confidence calibration, bounded blast radius traversal, incremental indexing deletion handling and hash-based index staleness detection (`READY` -> `STALE`), sensitive file exclusions (`.env*`, `*.key`), and ground-truth benchmark suite (100% precision across symbols, imports, inheritance, tests, and search). 50/50 tests passing.
-- [ ] **Phase 4 — Investigator**: Evidence-backed failure diagnosis and root cause analysis.
+- [x] **Phase 4 — Investigator**: Evidence-driven root cause localization, deterministic stack-trace & test failure parsers, change locality ranker, bounded 5-step loop, multi-candidate synthesis, evidence sufficiency evaluator (`SUFFICIENT`, `PARTIALLY_SUFFICIENT`, `INSUFFICIENT`), 6 REST APIs, and interactive Web UI. 60/60 tests passing (100% localization accuracy on benchmark).
 - [ ] **Phase 5 — Repair Planner**: Repair plan formulation and human approval gate.
 - [ ] **Phase 6 — Repair Engine & Sandbox Loop**: Sandbox-isolated Repair Engine and automated Verification Loop.
 - [ ] **Phase 7 — Reviewer & GitHub PR**: Independent review pass and authorized pull request creation.

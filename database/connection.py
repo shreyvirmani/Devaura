@@ -79,6 +79,47 @@ async def init_db() -> None:
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 
+        # SQLite lightweight schema sync for Phase 4 columns
+        if "sqlite" in str(engine.url):
+            def sync_columns(connection):
+                cursor = connection.connection.cursor()
+                try:
+                    cursor.execute("PRAGMA table_info(investigations)")
+                    existing_cols = {row[1] for row in cursor.fetchall()}
+                    new_cols = [
+                        ("title", "VARCHAR(255)"),
+                        ("failure_type", "VARCHAR(50) DEFAULT 'UNKNOWN'"),
+                        ("error_message", "TEXT"),
+                        ("stack_trace", "TEXT"),
+                        ("failed_tests", "JSON DEFAULT '[]'"),
+                        ("ci_run_id", "VARCHAR(100)"),
+                        ("commit_sha", "VARCHAR(64)"),
+                        ("branch", "VARCHAR(100) DEFAULT 'main'"),
+                        ("evidence_sufficiency", "VARCHAR(50) DEFAULT 'INSUFFICIENT'"),
+                    ]
+                    for col_name, col_type in new_cols:
+                        if col_name not in existing_cols:
+                            cursor.execute(f"ALTER TABLE investigations ADD COLUMN {col_name} {col_type}")
+
+                    cursor.execute("PRAGMA table_info(evidence)")
+                    ev_cols = {row[1] for row in cursor.fetchall()}
+                    new_ev_cols = [
+                        ("repository_path", "VARCHAR(500)"),
+                        ("symbol_id", "VARCHAR(255)"),
+                        ("line_start", "INTEGER"),
+                        ("line_end", "INTEGER"),
+                        ("commit_sha", "VARCHAR(64)"),
+                        ("confidence", "FLOAT DEFAULT 1.0"),
+                        ("relevance", "FLOAT DEFAULT 0.5"),
+                    ]
+                    for col_name, col_type in new_ev_cols:
+                        if col_name not in ev_cols:
+                            cursor.execute(f"ALTER TABLE evidence ADD COLUMN {col_name} {col_type}")
+                except Exception:
+                    pass
+
+            await conn.run_sync(sync_columns)
+
 
 async def close_db() -> None:
     """Close the database engine."""

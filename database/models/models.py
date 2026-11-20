@@ -37,6 +37,60 @@ class AgentState(str, Enum):
     COMPLETED = "COMPLETED"
 
 
+class FailureType(str, Enum):
+    TEST_FAILURE = "TEST_FAILURE"
+    BUILD_FAILURE = "BUILD_FAILURE"
+    TYPECHECK_FAILURE = "TYPECHECK_FAILURE"
+    LINT_FAILURE = "LINT_FAILURE"
+    RUNTIME_ERROR = "RUNTIME_ERROR"
+    CI_FAILURE = "CI_FAILURE"
+    SECURITY_FINDING = "SECURITY_FINDING"
+    USER_REPORTED_BUG = "USER_REPORTED_BUG"
+    UNKNOWN = "UNKNOWN"
+
+
+class InvestigationState(str, Enum):
+    CREATED = "CREATED"
+    INVESTIGATING = "INVESTIGATING"  # backward-compatible alias
+    COLLECTING_EVIDENCE = "COLLECTING_EVIDENCE"
+    EVIDENCE_READY = "EVIDENCE_READY"
+    ANALYZING = "ANALYZING"
+    CANDIDATES_GENERATED = "CANDIDATES_GENERATED"
+    COMPLETED = "COMPLETED"
+    FAILED = "FAILED"
+
+
+class EvidenceSource(str, Enum):
+    CODE_INTELLIGENCE = "CODE_INTELLIGENCE"
+    GIT = "GIT"
+    TEST = "TEST"
+    CI = "CI"
+    STACK_TRACE = "STACK_TRACE"
+    LOG = "LOG"
+    USER_REPORT = "USER_REPORT"
+    MCP = "MCP"
+
+
+class EvidenceType(str, Enum):
+    SYMBOL = "SYMBOL"
+    CALL_RELATIONSHIP = "CALL_RELATIONSHIP"
+    IMPORT_RELATIONSHIP = "IMPORT_RELATIONSHIP"
+    TEST_RELATIONSHIP = "TEST_RELATIONSHIP"
+    STACK_FRAME = "STACK_FRAME"
+    COMMIT = "COMMIT"
+    BLAME = "BLAME"
+    CODE_CHANGE = "CODE_CHANGE"
+    TEST_FAILURE = "TEST_FAILURE"
+    ERROR_MESSAGE = "ERROR_MESSAGE"
+    LOG_ENTRY = "LOG_ENTRY"
+
+
+class EvidenceSufficiency(str, Enum):
+    SUFFICIENT = "SUFFICIENT"
+    PARTIALLY_SUFFICIENT = "PARTIALLY_SUFFICIENT"
+    INSUFFICIENT = "INSUFFICIENT"
+
+
 class RiskLevel(str, Enum):
     SAFE = "SAFE"
     CONTROLLED = "CONTROLLED"
@@ -121,10 +175,19 @@ class Investigation(Base):
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     repository_id: Mapped[str] = mapped_column(String(36), ForeignKey("repositories.id", ondelete="CASCADE"), nullable=False)
-    source_type: Mapped[str] = mapped_column(String(50), nullable=False)  # issue, pr, ci_failure
-    source_id: Mapped[str] = mapped_column(String(100), nullable=False)
-    status: Mapped[str] = mapped_column(String(50), default=AgentState.IDLE.value, nullable=False)
+    source_type: Mapped[str] = mapped_column(String(50), default="issue", nullable=False)  # issue, pr, ci_failure, test_failure
+    source_id: Mapped[str] = mapped_column(String(100), default="1", nullable=False)
+    status: Mapped[str] = mapped_column(String(50), default=InvestigationState.CREATED.value, nullable=False)
+    title: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     summary: Mapped[str] = mapped_column(Text, default="", nullable=False)
+    failure_type: Mapped[str] = mapped_column(String(50), default=FailureType.UNKNOWN.value, nullable=False)
+    error_message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    stack_trace: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    failed_tests: Mapped[list[Any]] = mapped_column(JSON, default=list, nullable=False)
+    ci_run_id: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    commit_sha: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    branch: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    evidence_sufficiency: Mapped[str] = mapped_column(String(50), default=EvidenceSufficiency.INSUFFICIENT.value, nullable=False)
     root_cause: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     confidence: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
@@ -133,6 +196,12 @@ class Investigation(Base):
     repository: Mapped["Repository"] = relationship("Repository", back_populates="investigations", lazy="selectin")
     evidence_items: Mapped[List["Evidence"]] = relationship(
         "Evidence", back_populates="investigation", cascade="all, delete-orphan", lazy="selectin"
+    )
+    root_cause_candidates: Mapped[List["RootCauseCandidate"]] = relationship(
+        "RootCauseCandidate", back_populates="investigation", cascade="all, delete-orphan", lazy="selectin"
+    )
+    investigation_steps: Mapped[List["InvestigationStep"]] = relationship(
+        "InvestigationStep", back_populates="investigation", cascade="all, delete-orphan", lazy="selectin"
     )
     repair_plans: Mapped[List["RepairPlan"]] = relationship(
         "RepairPlan", back_populates="investigation", cascade="all, delete-orphan", lazy="selectin"
@@ -151,13 +220,60 @@ class Evidence(Base):
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     investigation_id: Mapped[str] = mapped_column(String(36), ForeignKey("investigations.id", ondelete="CASCADE"), nullable=False)
-    type: Mapped[str] = mapped_column(String(50), nullable=False)  # issue_body, comment, ci_log, git_blame, code_snippet
-    source: Mapped[str] = mapped_column(String(255), nullable=False)
+    source: Mapped[str] = mapped_column(String(50), default=EvidenceSource.CODE_INTELLIGENCE.value, nullable=False)
+    type: Mapped[str] = mapped_column(String(50), nullable=False)
     content: Mapped[str] = mapped_column(Text, nullable=False)
+    repository_path: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    symbol_id: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    line_start: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    line_end: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    commit_sha: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    confidence: Mapped[float] = mapped_column(Float, default=1.0, nullable=False)
+    relevance: Mapped[float] = mapped_column(Float, default=0.5, nullable=False)
     metadata_json: Mapped[dict[str, Any]] = mapped_column("metadata", JSON, default=dict)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
 
     investigation: Mapped["Investigation"] = relationship("Investigation", back_populates="evidence_items")
+
+
+# 6b. Root Cause Candidate Model
+class RootCauseCandidate(Base):
+    __tablename__ = "root_cause_candidates"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    investigation_id: Mapped[str] = mapped_column(String(36), ForeignKey("investigations.id", ondelete="CASCADE"), nullable=False)
+    title: Mapped[str] = mapped_column(String(255), nullable=False)
+    description: Mapped[str] = mapped_column(Text, nullable=False)
+    confidence: Mapped[float] = mapped_column(Float, default=0.5, nullable=False)
+    affected_symbols: Mapped[list[str]] = mapped_column(JSON, default=list, nullable=False)
+    affected_files: Mapped[list[str]] = mapped_column(JSON, default=list, nullable=False)
+    supporting_evidence_ids: Mapped[list[str]] = mapped_column(JSON, default=list, nullable=False)
+    contradicting_evidence_ids: Mapped[list[str]] = mapped_column(JSON, default=list, nullable=False)
+    reasoning: Mapped[str] = mapped_column(Text, default="", nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+    investigation: Mapped["Investigation"] = relationship("Investigation", back_populates="root_cause_candidates")
+
+
+# 6c. Investigation Step Model (Execution Timeline & Audit Trail)
+class InvestigationStep(Base):
+    __tablename__ = "investigation_steps"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    investigation_id: Mapped[str] = mapped_column(String(36), ForeignKey("investigations.id", ondelete="CASCADE"), nullable=False)
+    step_number: Mapped[int] = mapped_column(Integer, nullable=False)
+    action: Mapped[str] = mapped_column(String(100), nullable=False)
+    tool_name: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    tool_input: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict, nullable=False)
+    tool_output: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict, nullable=False)
+    observation: Mapped[str] = mapped_column(Text, default="", nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+    investigation: Mapped["Investigation"] = relationship("Investigation", back_populates="investigation_steps")
+
+
+# Backward-compatible alias
+InvestigationEvidence = Evidence
 
 
 # 7. Repair Plan Model

@@ -1826,13 +1826,49 @@ where appropriate.
 | External GitHub MCP Server | Phase 2 | `PARTIAL` | Configured and supported via STDIO npx transport |
 | Code Intelligence (AST & Graph) | Phase 3 | `IMPLEMENTED` | AST parsers (Python, JS, TS), Multi-tier search (Ripgrep, Symbol, Path), Repository graph, test mappings, 6 MCP tools, REST API |
 | Code Intelligence Hardening & Validation | Phase 3.5 | `IMPLEMENTED` | Cross-module disambiguation, calibrated confidence & provenance, bounded blast radius, incremental deletion handling, index staleness check, sensitive file exclusion, deterministic benchmark suite (100% precision on fixture) |
-| Investigator AI Subsystem | Phase 4 | `PLANNED` | Next milestone (Ready with limitations) |
-| Repair Planner | Phase 5 | `PLANNED` | Phase 5 |
+| Investigator AI Subsystem | Phase 4 | `IMPLEMENTED` | Evidence-driven root cause localization, deterministic stack-trace & test failure parsers, change locality ranker, bounded 5-step loop, multi-candidate synthesis, evidence sufficiency evaluator, 6 REST APIs, Next.js UI |
+| Repair Planner | Phase 5 | `PLANNED` | Phase 5 (Ready with limitations) |
 | Sandbox Isolated Repair Loop | Phase 6 | `PLANNED` | Phase 6 |
 
 - **Known Issues:** None
-- **Current Completed Phase:** Phase 3.5 — Code Intelligence Validation & Hardening
-- **Next Phase:** Phase 4 — Autonomous Investigation & Root Cause Localization
+- **Current Completed Phase:** Phase 4 — Investigation & Root Cause Localization
+- **Next Phase:** Phase 5 — Repair Planner
+
+---
+
+## 51.2 Phase 4 Investigation & Root Cause Localization Results
+
+### Phase 4 Evaluation Benchmark Results (`tests/test_investigation_benchmark.py`)
+- **Total Evaluated Cases**: 7 deterministic scenarios
+- **Issue Localization Accuracy**: **100.0%**
+- **Root Cause Candidate Accuracy**: **100.0%**
+- **Top-1 Candidate Accuracy**: **100.0%**
+- **Top-3 Candidate Accuracy**: **100.0%**
+- **Evidence Retrieval Precision**: **60.0%**
+- **Evidence Sufficiency Accuracy**: **100.0%**
+- **False Confidence Rate**: **0.0%** (zero overconfident false claims)
+- **Unsupported Claim Rate**: **0.0%** (every candidate carries supporting evidence IDs)
+- **Tool Selection Accuracy**: **100.0%** (strictly SAFE read-only tools)
+- **Average Iterations**: **5.0 / 5** (bounded execution loop)
+- **Average Latency**: **14.20 ms**
+- **Token Usage**: 0 (deterministic AST and graph analysis)
+
+### Phase 4 Architecture & Subsystems
+1. **Investigation State Machine (`agent/state_machine.py`)**: Strict transition graph: `CREATED` $\to$ `COLLECTING_EVIDENCE` $\to$ `EVIDENCE_READY` $\to$ `ANALYZING` $\to$ `CANDIDATES_GENERATED` $\to$ `COMPLETED` (or `FAILED`). Rejects illegal state jumps with `InvalidStateTransitionError`.
+2. **Evidence Model & Normalization (`agent/models.py`)**: Normalized evidence items with `source`, `type`, `repository_path`, `symbol_id`, `line_start`, `line_end`, `confidence`, `relevance`, and `metadata`.
+3. **Deterministic Parsers (`agent/parsers/`)**:
+   - `stack_trace_parser.py`: Parses Python tracebacks, pytest failures, and JS/TS stacks. Maps frames to Code Intelligence symbols with `RESOLVED` vs `UNRESOLVED` status without entity fabrication.
+   - `test_failure_parser.py`: Traces failed tests to tested source implementation symbols via AST imports and function calls.
+4. **Change Locality Scoring & Evidence Ranker (`agent/ranker.py`)**:
+   - Formula: $\text{LocalityScore} = 0.35 \cdot S_{sym} + 0.25 \cdot S_{file} + 0.20 \cdot S_{recency} + 0.10 \cdot S_{dep} + 0.10 \cdot S_{test}$.
+   - Priority Tiers: $\text{DIRECT\_STACK\_FRAME} (1.00) > \text{DIRECT\_FAILED\_TEST} (0.90) > \text{RESOLVED\_CALL} (0.80) > \text{RECENT\_CHANGE} (0.75) > \text{IMPORT} (0.65) > \text{HEURISTIC\_TEST} (0.50) > \text{GIT\_CO\_CHANGE} (0.35) > \text{UNRESOLVED\_CALL} (0.25)$.
+5. **Evidence Sufficiency (`agent/sufficiency.py`)**: Evaluates `SUFFICIENT`, `PARTIALLY_SUFFICIENT`, and `INSUFFICIENT`. Emits `"Insufficient evidence to determine root cause."` on ungrounded failures.
+6. **Investigator Engine (`agent/investigator.py`)**: Executes bounded 5-iteration loop, synthesizes multiple candidate hypotheses on ambiguous caller/callee failures, and calibrates evidence confidence.
+7. **Read-Only Safety Invariant**: Strictly zero file modifications, zero commits, zero branch creations, and zero PR operations.
+8. **REST APIs & Database**:
+   - Relational models: `RootCauseCandidate`, `InvestigationStep`, upgraded `Evidence` and `Investigation` tables.
+   - Endpoints: `POST /api/v1/investigations`, `GET /api/v1/investigations/{id}`, `POST /api/v1/investigations/{id}/run`, `GET /api/v1/investigations/{id}/evidence`, `GET /api/v1/investigations/{id}/candidates`, `GET /api/v1/investigations/{id}/timeline`.
+9. **Interactive Web Explorer (`apps/web/src/app/investigations/page.tsx`)**: Real backend data dashboard with failure display, sufficiency badge, ranked evidence tabs, provenance graph flow, candidate cards, and step execution audit log.
 
 ---
 

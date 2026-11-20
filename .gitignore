@@ -51,6 +51,7 @@ out/
 .coverage
 .coverage.*
 .pytest_cache/
+.devaura_sandboxes/
 htmlcov/
 coverage.xml
 *.cover

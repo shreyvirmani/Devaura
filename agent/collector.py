@@ -281,19 +281,20 @@ class EvidenceCollector:
         if failing_file and Path(self.workspace_root, ".git").exists():
             # Recent commits touching failing file
             commits = self.git_intel.get_commit_history(
-                self.workspace_root, file_path=failing_file, max_count=5
+                path=failing_file, limit=5
             )
             for idx, c in enumerate(commits):
                 is_recent = (idx == 0)
+                sha = c.get("commit_hash") or c.get("sha", "")
                 evidence_list.append(
                     NormalizedEvidence(
                         evidence_id=self._next_evidence_id(),
                         investigation_id=self.investigation_id,
                         source=EvidenceSource.GIT,
                         type=EvidenceType.COMMIT,
-                        content=f"Commit {c.get('sha', '')[:7]} by {c.get('author', '')}: {c.get('message', '')}",
+                        content=f"Commit {sha[:7]} by {c.get('author', '')}: {c.get('message', '')}",
                         repository_path=failing_file,
-                        commit_sha=c.get("sha"),
+                        commit_sha=sha,
                         confidence=1.0,
                         relevance=0.75 if is_recent else 0.50,
                         metadata={
@@ -308,29 +309,30 @@ class EvidenceCollector:
             if parsed_trace and parsed_trace.failing_frame:
                 line_no = parsed_trace.failing_frame.line
                 blame_lines = self.git_intel.get_file_blame(
-                    self.workspace_root, failing_file, start_line=line_no, end_line=line_no
+                    path=failing_file, start_line=line_no, end_line=line_no
                 )
                 if blame_lines:
                     b = blame_lines[0]
+                    b_sha = b.get("commit_hash") or b.get("commit_sha", "")
                     evidence_list.append(
                         NormalizedEvidence(
                             evidence_id=self._next_evidence_id(),
                             investigation_id=self.investigation_id,
                             source=EvidenceSource.GIT,
                             type=EvidenceType.BLAME,
-                            content=f"Line {line_no} modified in commit {b.get('commit_sha', '')[:7]} by {b.get('author', '')}: {b.get('line_content', '')}",
+                            content=f"Line {line_no} modified in commit {b_sha[:7]} by {b.get('author', '')}: {b.get('code', '')}",
                             repository_path=failing_file,
-                            commit_sha=b.get("commit_sha"),
+                            commit_sha=b_sha,
                             line_start=line_no,
                             line_end=line_no,
                             confidence=1.0,
                             relevance=0.75,
-                            metadata={"author": b.get("author"), "date": b.get("date")},
+                            metadata={"author": b.get("author"), "date": b.get("timestamp")},
                         )
                     )
 
             # Co-change correlation
-            co_changes = self.git_intel.get_change_co_occurrence(self.workspace_root, failing_file)
+            co_changes = self.git_intel.get_change_co_occurrence(path=failing_file)
             for cc in co_changes[:3]:
                 evidence_list.append(
                     NormalizedEvidence(

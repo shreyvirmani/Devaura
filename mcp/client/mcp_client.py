@@ -436,7 +436,7 @@ class DevauraMCPClient:
         """Deterministic risk classifier based on tool name semantics."""
         name = tool_name.lower()
         # DANGEROUS operations
-        if any(keyword in name for keyword in ["push", "merge", "delete", "deploy", "drop", "destroy"]):
+        if any(keyword in name for keyword in ["push", "merge", "delete", "deploy", "drop", "destroy", "approve_repair", "apply_approved_patch"]):
             return RiskLevel.DANGEROUS
         # CONTROLLED mutations
         if any(keyword in name for keyword in ["run_", "test", "patch", "apply", "commit", "branch", "execute", "write"]):

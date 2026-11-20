@@ -34,6 +34,19 @@ from database.models.code_intelligence import (
     RelationshipType,
     IndexStatus,
 )
+from database.models.repair import (
+    ApprovalStatus,
+    PatchRecord,
+    PatchRiskLevel,
+    PatchRiskRecord,
+    RepairApprovalRecord,
+    RepairContextRecord,
+    RepairEventRecord,
+    RepairPlanRecord,
+    RepairRecord,
+    RepairState,
+    RepairWorkspaceRecord,
+)
 
 __all__ = [
     "Base",
@@ -68,4 +81,15 @@ __all__ = [
     "SymbolKind",
     "RelationshipType",
     "IndexStatus",
+    "RepairState",
+    "PatchRiskLevel",
+    "ApprovalStatus",
+    "RepairRecord",
+    "RepairContextRecord",
+    "RepairPlanRecord",
+    "PatchRecord",
+    "PatchRiskRecord",
+    "RepairApprovalRecord",
+    "RepairWorkspaceRecord",
+    "RepairEventRecord",
 ]

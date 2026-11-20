@@ -7,6 +7,22 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from apps.api.logger import logger, redact_secrets
+from agent.repair.models import (
+    ApprovalStatus,
+    PatchResult,
+    PatchRisk,
+    ProposedChange,
+    RepairApproval,
+    RepairContext,
+    RepairExecutionResult,
+    RepairPlan,
+)
+from agent.repair.context_builder import RepairContextBuilder
+from agent.repair.planner import RepairPlanner
+from agent.repair.patch_generator import PatchGenerator
+from agent.repair.risk_analyzer import PatchRiskAnalyzer
+from agent.repair.approval_gate import HumanApprovalGate
+from sandbox.isolated_runner import IsolatedRunner
 from code_intelligence.graph.queries import GraphQueryEngine
 from code_intelligence.graph.relationship_builder import RelationshipBuilder
 from code_intelligence.indexer.file_indexer import FileIndexer
@@ -17,6 +33,9 @@ from code_intelligence.tests.test_relationships import TestRelationshipsEngine
 from mcp.models import RiskLevel
 from mcp.policy import policy_engine
 from mcp.server.mcpserver import MCPServer
+
+# In-memory registry for MCP repair operations
+_REPAIR_CACHE: Dict[str, Dict[str, Any]] = {}
 
 
 def create_devaura_native_server() -> MCPServer:
@@ -508,6 +527,247 @@ def create_devaura_native_server() -> MCPServer:
             return json.dumps({"command": command, "status": "error", "error": str(e)}, indent=2)
 
     run_typecheck.risk_level = RiskLevel.CONTROLLED
+
+    # --------------------------------------------------------------------------
+    # 10. Tool: create_repair_context (SAFE)
+    # --------------------------------------------------------------------------
+    @server.tool(
+        name="create_repair_context",
+        description="Validate investigation findings and build an immutable RepairContext contract.",
+    )
+    async def create_repair_context(
+        investigation_data: str,
+        candidate_id: str = "",
+        workspace: str = ".",
+        repair_id: str = "",
+    ) -> str:
+        try:
+            inv_dict = json.loads(investigation_data) if isinstance(investigation_data, str) else investigation_data
+            builder = RepairContextBuilder(workspace_root=workspace)
+            valid, ctx, err = builder.validate_and_build(
+                investigation=inv_dict,
+                selected_candidate_id=candidate_id or None,
+                repair_id=repair_id or None,
+            )
+            if not valid or not ctx:
+                return json.dumps({"status": "REPAIR_BLOCKED_INSUFFICIENT_EVIDENCE", "error": err}, indent=2)
+            _REPAIR_CACHE[ctx.repair_id] = {"context": ctx}
+            return ctx.model_dump_json(indent=2)
+        except Exception as e:
+            return json.dumps({"status": "error", "error": str(e)}, indent=2)
+
+    create_repair_context.risk_level = RiskLevel.SAFE
+
+    # --------------------------------------------------------------------------
+    # 11. Tool: get_repair_context (SAFE)
+    # --------------------------------------------------------------------------
+    @server.tool(
+        name="get_repair_context",
+        description="Retrieve an existing RepairContext by repair_id.",
+    )
+    async def get_repair_context(repair_id: str) -> str:
+        record = _REPAIR_CACHE.get(repair_id)
+        if not record or "context" not in record:
+            return json.dumps({"error": f"Repair context not found for id: {repair_id}"}, indent=2)
+        return record["context"].model_dump_json(indent=2)
+
+    get_repair_context.risk_level = RiskLevel.SAFE
+
+    # --------------------------------------------------------------------------
+    # 12. Tool: generate_repair_plan (SAFE)
+    # --------------------------------------------------------------------------
+    @server.tool(
+        name="generate_repair_plan",
+        description="Formulate an evidence-backed RepairPlan strictly bounded by RepairContext.",
+    )
+    async def generate_repair_plan(
+        repair_id: str = "",
+        context_json: str = "",
+    ) -> str:
+        try:
+            if context_json:
+                ctx_dict = json.loads(context_json)
+                ctx = RepairContext.model_validate(ctx_dict)
+            elif repair_id and repair_id in _REPAIR_CACHE and "context" in _REPAIR_CACHE[repair_id]:
+                ctx = _REPAIR_CACHE[repair_id]["context"]
+            else:
+                return json.dumps({"error": "Valid RepairContext or registered repair_id required"}, indent=2)
+
+            planner = RepairPlanner()
+            plan = planner.create_plan(ctx)
+            if ctx.repair_id not in _REPAIR_CACHE:
+                _REPAIR_CACHE[ctx.repair_id] = {}
+            _REPAIR_CACHE[ctx.repair_id]["plan"] = plan
+            return plan.model_dump_json(indent=2)
+        except Exception as e:
+            return json.dumps({"status": "PLAN_FAILED", "error": str(e)}, indent=2)
+
+    generate_repair_plan.risk_level = RiskLevel.SAFE
+
+    # --------------------------------------------------------------------------
+    # 13. Tool: generate_patch (SAFE)
+    # --------------------------------------------------------------------------
+    @server.tool(
+        name="generate_patch",
+        description="Generate a unified diff and cryptographic hash for a repair plan.",
+    )
+    async def generate_patch(
+        repair_id: str = "",
+        plan_json: str = "",
+        context_json: str = "",
+        workspace: str = ".",
+    ) -> str:
+        try:
+            record = _REPAIR_CACHE.get(repair_id, {})
+            if plan_json:
+                plan = RepairPlan.model_validate(json.loads(plan_json))
+            elif "plan" in record:
+                plan = record["plan"]
+            else:
+                return json.dumps({"error": "RepairPlan required"}, indent=2)
+
+            if context_json:
+                ctx = RepairContext.model_validate(json.loads(context_json))
+            elif "context" in record:
+                ctx = record["context"]
+            else:
+                return json.dumps({"error": "RepairContext required"}, indent=2)
+
+            generator = PatchGenerator(workspace_root=workspace)
+            patch = generator.generate_defensive_patch(plan, ctx)
+            record["patch"] = patch
+            _REPAIR_CACHE[plan.repair_id] = record
+            return patch.model_dump_json(indent=2)
+        except Exception as e:
+            return json.dumps({"status": "PATCH_FAILED", "error": str(e)}, indent=2)
+
+    generate_patch.risk_level = RiskLevel.SAFE
+
+    # --------------------------------------------------------------------------
+    # 14. Tool: analyze_patch_risk (SAFE)
+    # --------------------------------------------------------------------------
+    @server.tool(
+        name="analyze_patch_risk",
+        description="Perform static risk analysis on proposed patch diff across 5 dimensions.",
+    )
+    async def analyze_patch_risk(
+        repair_id: str = "",
+        patch_json: str = "",
+        plan_json: str = "",
+        context_json: str = "",
+    ) -> str:
+        try:
+            record = _REPAIR_CACHE.get(repair_id, {})
+            patch = PatchResult.model_validate(json.loads(patch_json)) if patch_json else record.get("patch")
+            plan = RepairPlan.model_validate(json.loads(plan_json)) if plan_json else record.get("plan")
+            ctx = RepairContext.model_validate(json.loads(context_json)) if context_json else record.get("context")
+
+            if not patch or not plan or not ctx:
+                return json.dumps({"error": "patch, plan, and context required for risk analysis"}, indent=2)
+
+            analyzer = PatchRiskAnalyzer()
+            risk = analyzer.analyze(patch, plan, ctx)
+            record["risk"] = risk
+            _REPAIR_CACHE[plan.repair_id] = record
+            return risk.model_dump_json(indent=2)
+        except Exception as e:
+            return json.dumps({"error": str(e)}, indent=2)
+
+    analyze_patch_risk.risk_level = RiskLevel.SAFE
+
+    # --------------------------------------------------------------------------
+    # 15. Tool: approve_repair (DANGEROUS)
+    # --------------------------------------------------------------------------
+    @server.tool(
+        name="approve_repair",
+        description="Human Approval Gate: Grant authorization bound to patch SHA-256 hash.",
+    )
+    async def approve_repair(
+        repair_id: str,
+        patch_hash: str,
+        approver_id: str = "human-developer",
+    ) -> str:
+        try:
+            gate = HumanApprovalGate()
+            record = _REPAIR_CACHE.get(repair_id, {})
+            patch = record.get("patch")
+            diff = patch.unified_diff if patch else "placeholder-diff"
+            approval = gate.create_approval(
+                repair_id=repair_id,
+                unified_diff=diff,
+                user_identity=approver_id,
+            )
+            if patch_hash:
+                approval.patch_hash = patch_hash
+            record["approval"] = approval
+            _REPAIR_CACHE[repair_id] = record
+            return approval.model_dump_json(indent=2)
+        except Exception as e:
+            return json.dumps({"status": "REJECTED", "error": str(e)}, indent=2)
+
+    approve_repair.risk_level = RiskLevel.DANGEROUS
+
+    # --------------------------------------------------------------------------
+    # 16. Tool: apply_approved_patch (DANGEROUS)
+    # --------------------------------------------------------------------------
+    @server.tool(
+        name="apply_approved_patch",
+        description="Apply an approved patch strictly inside an isolated sandbox workspace.",
+    )
+    async def apply_approved_patch(
+        repair_id: str,
+        approval_token: str = "",
+        workspace: str = ".",
+    ) -> str:
+        try:
+            record = _REPAIR_CACHE.get(repair_id, {})
+            approval = record.get("approval")
+            patch = record.get("patch")
+            ctx = record.get("context")
+
+            if not approval or not patch:
+                return json.dumps({"status": "APPLICATION_FAILED", "error": "Approved patch not found in cache"}, indent=2)
+
+            gate = HumanApprovalGate()
+            gate.verify_authorization(approval, patch.unified_diff)
+
+            runner = IsolatedRunner()
+            result = runner.run_patch_application(
+                repair_id=repair_id,
+                investigation_id=ctx.investigation_id if ctx else "inv-unknown",
+                repository_id=ctx.repository_id if ctx else "repo-default",
+                source_repo_path=workspace,
+                patch=patch,
+            )
+            record["execution_result"] = result
+            return result.model_dump_json(indent=2)
+        except Exception as e:
+            return json.dumps({"status": "APPLICATION_FAILED", "error": str(e)}, indent=2)
+
+    apply_approved_patch.risk_level = RiskLevel.DANGEROUS
+
+    # --------------------------------------------------------------------------
+    # 17. Tool: get_repair_diff (SAFE)
+    # --------------------------------------------------------------------------
+    @server.tool(
+        name="get_repair_diff",
+        description="Inspect the unified diff and changed files for a repair.",
+    )
+    async def get_repair_diff(repair_id: str) -> str:
+        record = _REPAIR_CACHE.get(repair_id, {})
+        patch = record.get("patch")
+        if not patch:
+            return json.dumps({"error": f"Patch not found for repair {repair_id}"}, indent=2)
+        return json.dumps({
+            "repair_id": repair_id,
+            "patch_hash": patch.patch_hash,
+            "changed_files": patch.changed_files,
+            "lines_added": patch.lines_added,
+            "lines_removed": patch.lines_removed,
+            "unified_diff": patch.unified_diff,
+        }, indent=2)
+
+    get_repair_diff.risk_level = RiskLevel.SAFE
 
     # --------------------------------------------------------------------------
     # Standardized Prompts

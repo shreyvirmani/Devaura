@@ -212,7 +212,7 @@ Visit the dashboard at [http://localhost:3000](http://localhost:3000) and the AP
 ## 8. Verification & Testing
 
 ```bash
-pytest -v # 60 passed, 0 failed (100% pass rate)
+pytest -v # 76 passed, 0 failed (100% pass rate)
 ```
 
 ---
@@ -224,7 +224,7 @@ pytest -v # 60 passed, 0 failed (100% pass rate)
 - [x] **Phase 3 — Code Intelligence**: Deterministic AST parsing (Python `ast`, JS/TS), multi-tier code search (Tier 1 Ripgrep, Tier 2 Symbol, Tier 3 Path, Tier 4 Semantic abstraction), repository dependency & knowledge graph (`CONTAINS`, `DEFINES`, `IMPORTS`, `CALLS`, `EXTENDS`, `TESTS`), Git-aware intelligence (blame, change co-occurrence), test-to-source mapping, 6 new MCP tools, and interactive Web Explorer. 45/45 tests passing.
 - [x] **Phase 3.5 — Code Intelligence Validation & Hardening**: Dedicated deterministic multi-language fixture repository (`tests/fixtures/validation_repo/`), scoped symbol call resolution eliminating false-positive collisions, full edge provenance metadata (`evidence`, `source_location`, `confidence`, `resolution_status`), test mapping confidence calibration, bounded blast radius traversal, incremental indexing deletion handling and hash-based index staleness detection (`READY` -> `STALE`), sensitive file exclusions (`.env*`, `*.key`), and ground-truth benchmark suite (100% precision across symbols, imports, inheritance, tests, and search). 50/50 tests passing.
 - [x] **Phase 4 — Investigator**: Evidence-driven root cause localization, deterministic stack-trace & test failure parsers, change locality ranker, bounded 5-step loop, multi-candidate synthesis, evidence sufficiency evaluator (`SUFFICIENT`, `PARTIALLY_SUFFICIENT`, `INSUFFICIENT`), 6 REST APIs, and interactive Web UI. 60/60 tests passing (100% localization accuracy on benchmark).
-- [ ] **Phase 5 — Repair Planner**: Repair plan formulation and human approval gate.
-- [ ] **Phase 6 — Repair Engine & Sandbox Loop**: Sandbox-isolated Repair Engine and automated Verification Loop.
+- [x] **Phase 5 — Repair Planning & Patch Generation**: Evidence-backed repair context contracts, bounded repair planner, scoped unified diff patch generator, 5-dimension static risk analyzer (structural, behavioral, test coverage, evidence scope, security), cryptographic human approval gate (SHA-256 bound), isolated sandbox workspace runner (`.devaura_sandboxes/{id}`), 8 new Native MCP tools, 11 REST endpoints, and interactive Next.js Repair Studio. 76/76 tests passing (100% provenance, 100% scope adherence, 100% hash integrity, 100% risk recall).
+- [ ] **Phase 6 — Repair Engine & Sandbox Verification Loop**: Isolated test/lint/typecheck verification loop and bounded retry engine.
 - [ ] **Phase 7 — Reviewer & GitHub PR**: Independent review pass and authorized pull request creation.
 - [ ] **Phase 8 — Evaluation & Benchmarks**: Benchmark dataset runner and accuracy metrics.

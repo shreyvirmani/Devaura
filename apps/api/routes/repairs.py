@@ -16,6 +16,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from agent.repair.approval_gate import (
     ApprovalRequiredError,
@@ -25,11 +26,18 @@ from agent.repair.approval_gate import (
 from agent.repair.context_builder import RepairContextBuilder
 from agent.repair.models import (
     ApprovalStatus,
+    CheckStatus,
+    CheckType,
+    FailureAnalysisReport,
+    FailureClassification,
+    OverallVerificationStatus,
     PatchRiskLevel,
     RepairContext,
     RepairExecutionResult,
     RepairPlan,
     RepairState,
+    VerificationRun,
+    VerifiedRepairResult,
 )
 from agent.repair.patch_generator import PatchGenerator, ScopeViolationError
 from agent.repair.planner import RepairPlanner
@@ -38,19 +46,32 @@ from agent.repair.state_machine import (
     InvalidRepairStateTransitionError,
     RepairStateMachine,
 )
+from agent.repair.loop_coordinator import (
+    LoopLimitExceededError,
+    NoProgressError,
+    RepairLoopCoordinator,
+)
+from agent.verification.analyzer import VerificationAnalyzer
+from agent.verification.normalizer import OutputNormalizer
+from agent.verification.runner import VerificationRunner
 from apps.api.auth import CurrentUser, get_current_user
 from apps.api.logger import logger
 from database.connection import get_db_session
 from database.models import (
+    FailureSignatureRecord,
     Investigation,
     PatchRecord,
     PatchRiskRecord,
     RepairApprovalRecord,
+    RepairAttemptRecord,
     RepairContextRecord,
     RepairEventRecord,
     RepairPlanRecord,
     RepairRecord,
+    RepairWorkspaceRecord,
     Repository,
+    VerificationCheckRecord,
+    VerificationRunRecord,
 )
 from sandbox.isolated_runner import IsolatedRunner
 from sandbox.workspace import PatchApplicationError
@@ -86,6 +107,16 @@ class RepairApproveRequest(BaseModel):
 
 class RepairRejectRequest(BaseModel):
     reason: Optional[str] = "Rejected by reviewer"
+
+
+class VerifyRequest(BaseModel):
+    custom_commands: Optional[Dict[str, str]] = None
+    timeout_seconds: Optional[int] = 120
+
+
+class RepairRetryRequest(BaseModel):
+    custom_modified_contents: Optional[Dict[str, str]] = None
+    reason: Optional[str] = "Retrying repair after verification failure"
 
 
 class RepairResponse(BaseModel):
@@ -197,6 +228,64 @@ def serialize_repair(record: RepairRecord) -> Dict[str, Any]:
         }
         if record.workspace
         else None,
+        "current_attempt": record.current_attempt,
+        "max_attempts": record.max_attempts,
+        "latest_verification_id": record.latest_verification_id,
+    }
+
+
+def serialize_verification_check(check: VerificationCheckRecord) -> Dict[str, Any]:
+    return {
+        "id": check.id,
+        "verification_run_id": check.verification_run_id,
+        "check_type": check.check_type,
+        "command": check.command,
+        "status": check.status,
+        "exit_code": check.exit_code,
+        "duration_ms": check.duration_ms,
+        "stdout": check.stdout,
+        "stderr": check.stderr,
+        "parsed_errors": check.parsed_errors_json,
+        "resource_usage": check.resource_usage_json,
+        "created_at": check.created_at,
+    }
+
+
+def serialize_verification_run(
+    run: VerificationRunRecord,
+    checks: Optional[List[VerificationCheckRecord]] = None,
+) -> Dict[str, Any]:
+    raw_checks = checks
+    if raw_checks is None:
+        try:
+            raw_checks = run.checks
+        except Exception:
+            raw_checks = []
+
+    return {
+        "id": run.id,
+        "repair_id": run.repair_id,
+        "attempt_number": run.attempt_number,
+        "workspace_id": run.workspace_id,
+        "status": run.status,
+        "overall_result": run.overall_result,
+        "failure_analysis": run.failure_analysis_json,
+        "started_at": run.started_at,
+        "completed_at": run.completed_at,
+        "checks": [serialize_verification_check(c) for c in (raw_checks or [])],
+    }
+
+
+def serialize_repair_attempt(attempt: RepairAttemptRecord) -> Dict[str, Any]:
+    return {
+        "id": attempt.id,
+        "repair_id": attempt.repair_id,
+        "attempt_number": attempt.attempt_number,
+        "patch_hash": attempt.patch_hash,
+        "unified_diff": attempt.unified_diff,
+        "approval_token": attempt.approval_token,
+        "status": attempt.status,
+        "created_at": attempt.created_at,
     }
 
 
@@ -830,15 +919,20 @@ async def apply_approved_patch(
     sm.transition(RepairState.PATCH_APPLIED_PENDING_VERIFICATION)
     repair.status = sm.current_state.value
 
-    # Persist workspace record
-    from database.models import RepairWorkspaceRecord
-    ws_rec = RepairWorkspaceRecord(
-        repair_id=repair.id,
-        isolated_path=exec_res.isolated_path,
-        base_revision=exec_res.base_revision,
-        status="APPLIED",
-    )
-    session.add(ws_rec)
+    # Persist or update workspace record
+    if repair.workspace:
+        repair.workspace.isolated_path = exec_res.isolated_path
+        repair.workspace.base_revision = exec_res.base_revision
+        repair.workspace.status = "APPLIED"
+    else:
+        from database.models import RepairWorkspaceRecord
+        ws_rec = RepairWorkspaceRecord(
+            repair_id=repair.id,
+            isolated_path=exec_res.isolated_path,
+            base_revision=exec_res.base_revision,
+            status="APPLIED",
+        )
+        session.add(ws_rec)
 
     await record_event(
         session,
@@ -852,4 +946,528 @@ async def apply_approved_patch(
     return {
         "repair": serialize_repair(repair),
         "execution_result": exec_res.model_dump(mode="json"),
+    }
+
+
+# -----------------------------------------------------------------------------
+# Phase 6: Verification & Bounded Repair Loop Endpoints
+# -----------------------------------------------------------------------------
+@router.post("/{repair_id}/verify", response_model=Dict[str, Any])
+async def verify_repair(
+    repair_id: str,
+    body: Optional[VerifyRequest] = None,
+    session: AsyncSession = Depends(get_db_session),
+    user: CurrentUser = Depends(get_current_user),
+) -> Dict[str, Any]:
+    """Execute tests, linter, and typechecker strictly inside the sandbox workspace.
+
+    Evaluates outcomes, normalizes errors, computes failure signatures, and
+    determines whether retry is eligible or bounded attempts are exhausted.
+    """
+    result = await session.execute(
+        select(RepairRecord).where(RepairRecord.id == repair_id)
+    )
+    repair = result.scalar_one_or_none()
+    if not repair:
+        raise HTTPException(status_code=404, detail="Repair not found")
+
+    if not repair.workspace or not os.path.exists(repair.workspace.isolated_path):
+        raise HTTPException(
+            status_code=400,
+            detail="Cannot verify: Sandbox workspace does not exist or patch has not been applied.",
+        )
+
+    # 1. State machine transition to VERIFYING
+    sm = RepairStateMachine(repair.status)
+    try:
+        sm.transition(RepairState.VERIFYING)
+        repair.status = sm.current_state.value
+        await session.commit()
+    except InvalidRepairStateTransitionError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    # 2. Run verification suite inside sandbox runner
+    workspace_root = os.getcwd()
+    runner = VerificationRunner(
+        workspace_path=repair.workspace.isolated_path,
+        source_repo_root=workspace_root,
+    )
+
+    custom_cmds = body.custom_commands if body else None
+    timeout_secs = body.timeout_seconds if body else None
+
+    v_run: VerificationRun = runner.run_verification_suite(
+        repair_id=repair.id,
+        attempt_number=repair.current_attempt,
+        custom_commands=custom_cmds,
+        timeout_seconds=timeout_secs,
+    )
+
+    # 3. Persist verification run record
+    run_rec = VerificationRunRecord(
+        id=v_run.verification_id,
+        repair_id=repair.id,
+        attempt_number=repair.current_attempt,
+        workspace_id=v_run.workspace_id,
+        status="COMPLETED",
+        overall_result=v_run.overall_result,
+        failure_analysis_json={},
+        started_at=v_run.started_at,
+        completed_at=datetime.now(),
+    )
+    session.add(run_rec)
+
+    # 4. Persist individual check records
+    created_check_records = []
+    for c in v_run.checks:
+        chk_rec = VerificationCheckRecord(
+            verification_run_id=v_run.verification_id,
+            check_type=c.check_type.value,
+            command=c.command,
+            status=c.status.value,
+            exit_code=c.exit_code,
+            duration_ms=c.duration_ms,
+            stdout=c.stdout,
+            stderr=c.stderr,
+            parsed_errors_json=[pe.model_dump(mode="json") for pe in c.parsed_errors],
+            resource_usage_json=c.resource_usage,
+        )
+        session.add(chk_rec)
+        created_check_records.append(chk_rec)
+
+    # 5. Process Outcome
+    if v_run.overall_result == "PASSED":
+        sm.transition(RepairState.VERIFIED)
+        repair.status = sm.current_state.value
+        await record_event(
+            session,
+            repair.id,
+            "VERIFICATION_PASSED",
+            f"All verification checks passed in attempt {repair.current_attempt}. Ready for Phase 7 PR handoff.",
+        )
+    else:
+        sm.transition(RepairState.VERIFICATION_FAILED)
+        sm.transition(RepairState.ANALYZING_FAILURE)
+
+        # Retrieve prior failure signatures and patch hashes for this repair (strictly from prior attempts)
+        prev_sigs_query = await session.execute(
+            select(FailureSignatureRecord.signature_hash).where(
+                FailureSignatureRecord.repair_id == repair.id,
+                FailureSignatureRecord.attempt_number < repair.current_attempt,
+            )
+        )
+        prev_sigs = list(prev_sigs_query.scalars().all())
+
+        prev_hashes_query = await session.execute(
+            select(RepairAttemptRecord.patch_hash).where(
+                RepairAttemptRecord.repair_id == repair.id,
+                RepairAttemptRecord.attempt_number < repair.current_attempt,
+            )
+        )
+        prev_hashes = list(prev_hashes_query.scalars().all())
+
+        analyzer = VerificationAnalyzer()
+        current_patch_hash = repair.patch.patch_hash if repair.patch else ""
+
+        analysis: FailureAnalysisReport = analyzer.analyze(
+            verification_run=v_run,
+            previous_signatures=prev_sigs,
+            previous_patch_hashes=prev_hashes,
+            current_patch_hash=current_patch_hash,
+        )
+        run_rec.failure_analysis_json = analysis.model_dump(mode="json")
+
+        # Persist signature if computed
+        if analysis.failure_signature and analysis.failure_signature != "no_failures_detected":
+            sig_file = analysis.affected_files[0] if analysis.affected_files else ""
+            sig_test = analysis.affected_symbols[0] if analysis.affected_symbols else None
+            sig_check_type = "unknown"
+            for c in v_run.checks:
+                if c.status in {CheckStatus.FAILED, CheckStatus.INFRASTRUCTURE_ERROR, CheckStatus.TIMEOUT, CheckStatus.BLOCKED}:
+                    sig_check_type = c.check_type.value
+                    break
+
+            sig_rec = FailureSignatureRecord(
+                repair_id=repair.id,
+                attempt_number=repair.current_attempt,
+                signature_hash=analysis.failure_signature,
+                check_type=sig_check_type,
+                error_summary=analysis.root_cause_summary,
+                file_path=sig_file,
+                test_name=sig_test,
+            )
+            session.add(sig_rec)
+
+        # State resolution
+        if repair.current_attempt >= repair.max_attempts:
+            sm.transition(RepairState.REPAIR_EXHAUSTED)
+            repair.status = sm.current_state.value
+            await record_event(
+                session,
+                repair.id,
+                "REPAIR_EXHAUSTED",
+                f"Maximum allowed repair attempts ({repair.max_attempts}) exhausted. Bounded loop stopped.",
+            )
+        elif analysis.failure_type == FailureClassification.INFRASTRUCTURE_FAILURE:
+            sm.transition(RepairState.INFRASTRUCTURE_FAILURE)
+            repair.status = sm.current_state.value
+            await record_event(
+                session,
+                repair.id,
+                "INFRASTRUCTURE_FAILURE",
+                f"Infrastructure failure: {analysis.root_cause_summary}",
+            )
+        elif analysis.failure_type == FailureClassification.SECURITY_BLOCK:
+            sm.transition(RepairState.VERIFICATION_BLOCKED)
+            repair.status = sm.current_state.value
+            await record_event(
+                session,
+                repair.id,
+                "VERIFICATION_BLOCKED",
+                f"Verification command blocked by policy: {analysis.root_cause_summary}",
+            )
+        elif not analysis.can_retry and "Identical" in (analysis.retry_block_reason or ""):
+            sm.transition(RepairState.NO_PROGRESS)
+            repair.status = sm.current_state.value
+            await record_event(
+                session,
+                repair.id,
+                "NO_PROGRESS",
+                "Identical failure signature observed with no progress. Halting repair loop.",
+            )
+        elif analysis.can_retry:
+            sm.transition(RepairState.REPAIR_RETRY_ELIGIBLE)
+            repair.status = sm.current_state.value
+            await record_event(
+                session,
+                repair.id,
+                "RETRY_ELIGIBLE",
+                f"Verification failed on attempt {repair.current_attempt}. Eligible for retry {repair.current_attempt + 1}/{repair.max_attempts}.",
+            )
+        else:
+            repair.status = RepairState.VERIFICATION_FAILED.value
+            await record_event(
+                session,
+                repair.id,
+                "VERIFICATION_FAILED",
+                f"Verification failed: {analysis.root_cause_summary}",
+            )
+
+    repair.latest_verification_id = run_rec.id
+
+    # Update or add attempt record
+    att_res = await session.execute(
+        select(RepairAttemptRecord).where(
+            RepairAttemptRecord.repair_id == repair.id,
+            RepairAttemptRecord.attempt_number == repair.current_attempt,
+        )
+    )
+    att = att_res.scalar_one_or_none()
+    if not att:
+        att = RepairAttemptRecord(
+            repair_id=repair.id,
+            attempt_number=repair.current_attempt,
+            patch_hash=repair.patch.patch_hash if repair.patch else "unknown",
+            unified_diff=repair.patch.unified_diff if repair.patch else "",
+            approval_token=repair.approval.approval_token if repair.approval else None,
+            status=repair.status,
+        )
+        session.add(att)
+    else:
+        att.status = repair.status
+
+    await session.commit()
+    await session.refresh(repair)
+
+    return {
+        "repair": serialize_repair(repair),
+        "verification_run": serialize_verification_run(run_rec, checks=created_check_records),
+    }
+
+
+@router.get("/{repair_id}/verification", response_model=Dict[str, Any])
+async def get_latest_verification(
+    repair_id: str,
+    session: AsyncSession = Depends(get_db_session),
+    user: CurrentUser = Depends(get_current_user),
+) -> Dict[str, Any]:
+    """Retrieve latest sandbox verification run and checks for repair."""
+    result = await session.execute(
+        select(VerificationRunRecord)
+        .options(selectinload(VerificationRunRecord.checks))
+        .where(VerificationRunRecord.repair_id == repair_id)
+        .order_by(desc(VerificationRunRecord.started_at))
+    )
+    run = result.scalars().first()
+    if not run:
+        raise HTTPException(status_code=404, detail="No verification run found for this repair")
+    return serialize_verification_run(run)
+
+
+@router.get("/{repair_id}/verification/history", response_model=List[Dict[str, Any]])
+async def get_verification_history(
+    repair_id: str,
+    session: AsyncSession = Depends(get_db_session),
+    user: CurrentUser = Depends(get_current_user),
+) -> List[Dict[str, Any]]:
+    """Retrieve full history of verification runs for repair across all attempts."""
+    result = await session.execute(
+        select(VerificationRunRecord)
+        .options(selectinload(VerificationRunRecord.checks))
+        .where(VerificationRunRecord.repair_id == repair_id)
+        .order_by(VerificationRunRecord.started_at.asc())
+    )
+    runs = result.scalars().all()
+    return [serialize_verification_run(r) for r in runs]
+
+
+@router.get("/{repair_id}/attempts", response_model=List[Dict[str, Any]])
+async def get_repair_attempts(
+    repair_id: str,
+    session: AsyncSession = Depends(get_db_session),
+    user: CurrentUser = Depends(get_current_user),
+) -> List[Dict[str, Any]]:
+    """Retrieve all repair loop attempts with patch hashes and statuses."""
+    result = await session.execute(
+        select(RepairAttemptRecord)
+        .where(RepairAttemptRecord.repair_id == repair_id)
+        .order_by(RepairAttemptRecord.attempt_number.asc())
+    )
+    attempts = result.scalars().all()
+    return [serialize_repair_attempt(a) for a in attempts]
+
+
+@router.post("/{repair_id}/retry", response_model=Dict[str, Any])
+async def retry_repair(
+    repair_id: str,
+    body: Optional[RepairRetryRequest] = None,
+    session: AsyncSession = Depends(get_db_session),
+    user: CurrentUser = Depends(get_current_user),
+) -> Dict[str, Any]:
+    """Initiate a bounded retry attempt (Attempt N+1, up to maximum 3 attempts).
+
+    Formulates an updated repair plan and non-identical patch informed by verification
+    failures, evaluates risk, and resets the mandatory human approval gate.
+    """
+    result = await session.execute(
+        select(RepairRecord).where(RepairRecord.id == repair_id)
+    )
+    repair = result.scalar_one_or_none()
+    if not repair:
+        raise HTTPException(status_code=404, detail="Repair not found")
+
+    # 1. Enforce strict maximum attempt limit
+    if repair.current_attempt >= repair.max_attempts:
+        sm = RepairStateMachine(repair.status)
+        try:
+            sm.transition(RepairState.REPAIR_EXHAUSTED)
+            repair.status = sm.current_state.value
+            await session.commit()
+        except Exception:
+            pass
+        raise HTTPException(
+            status_code=400,
+            detail=f"Maximum repair attempts ({repair.max_attempts}) exhausted. Cannot initiate retry.",
+        )
+
+    # 2. Check retry eligibility state
+    if repair.status not in {
+        RepairState.REPAIR_RETRY_ELIGIBLE.value,
+        RepairState.VERIFICATION_FAILED.value,
+    }:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Repair in status '{repair.status}' is not eligible for retry.",
+        )
+
+    if not repair.context:
+        raise HTTPException(status_code=400, detail="Repair context missing.")
+
+    # 3. Retrieve latest verification run diagnosis
+    run_res = await session.execute(
+        select(VerificationRunRecord)
+        .where(VerificationRunRecord.repair_id == repair.id)
+        .order_by(desc(VerificationRunRecord.started_at))
+    )
+    latest_run = run_res.scalars().first()
+    if latest_run and latest_run.failure_analysis_json:
+        failure_report = FailureAnalysisReport(**latest_run.failure_analysis_json)
+    else:
+        failure_report = FailureAnalysisReport(
+            failure_signature="manual_retry",
+            root_cause_summary="Previous verification checks failed.",
+            can_retry=True,
+        )
+
+    # 4. Gather previous patch hashes
+    hashes_res = await session.execute(
+        select(RepairAttemptRecord.patch_hash).where(
+            RepairAttemptRecord.repair_id == repair.id
+        )
+    )
+    prev_hashes = list(hashes_res.scalars().all())
+    if repair.patch and repair.patch.patch_hash not in prev_hashes:
+        prev_hashes.append(repair.patch.patch_hash)
+
+    # 5. Formulate retry attempt via LoopCoordinator
+    from agent.repair.models import RepairContext as DomainContext
+
+    inv_res = await session.execute(
+        select(Investigation).where(Investigation.id == repair.investigation_id)
+    )
+    inv = inv_res.scalar_one_or_none()
+    failure_dict = {}
+    if repair.context and repair.context.context_data:
+        failure_dict = repair.context.context_data.get("failure", {})
+    if not failure_dict and inv and hasattr(inv, "failure_json") and inv.failure_json:
+        failure_dict = inv.failure_json
+    if not failure_dict:
+        failure_dict = {"error_message": "Verification failure retry"}
+
+    if repair.context and repair.context.context_data:
+        ctx_data = dict(repair.context.context_data)
+        ctx_data["repository_path"] = os.getcwd()
+        if not ctx_data.get("failure"):
+            ctx_data["failure"] = failure_dict
+        domain_context = DomainContext(**ctx_data)
+    else:
+        domain_context = DomainContext(
+            repair_id=repair.id,
+            investigation_id=repair.investigation_id,
+            repository_id=repair.repository_id,
+            repository_path=os.getcwd(),
+            failure=failure_dict,
+            affected_files=repair.context.affected_files if repair.context else [],
+            affected_symbols=repair.context.affected_symbols if repair.context else [],
+            supporting_evidence_ids=repair.context.supporting_evidence_ids if repair.context else [],
+            related_tests=repair.context.related_tests if repair.context else [],
+        )
+
+    coordinator = RepairLoopCoordinator(workspace_root=os.getcwd())
+    try:
+        plan, patch, risk = coordinator.prepare_retry_attempt(
+            current_attempt=repair.current_attempt,
+            context=domain_context,
+            failure_report=failure_report,
+            previous_patch_hashes=prev_hashes,
+            custom_modified_contents=body.custom_modified_contents if body else None,
+        )
+    except LoopLimitExceededError as lle:
+        raise HTTPException(status_code=400, detail=str(lle))
+    except NoProgressError as npe:
+        sm = RepairStateMachine(repair.status)
+        try:
+            sm.transition(RepairState.NO_PROGRESS)
+            repair.status = sm.current_state.value
+            await session.commit()
+        except Exception:
+            pass
+        raise HTTPException(status_code=422, detail=str(npe))
+
+    # 6. Update database models with new attempt
+    next_attempt_number = repair.current_attempt + 1
+    repair.current_attempt = next_attempt_number
+
+    if repair.plan:
+        repair.plan.objective = plan.objective
+        repair.plan.root_cause = plan.root_cause
+        repair.plan.proposed_changes = [pc.model_dump(mode="json") for pc in plan.proposed_changes]
+        repair.plan.tests_to_run = plan.tests_to_run
+        repair.plan.risks = plan.risks
+        repair.plan.assumptions = plan.assumptions
+        repair.plan.confidence = plan.confidence
+
+    if repair.patch:
+        repair.patch.unified_diff = patch.unified_diff
+        repair.patch.patch_hash = patch.patch_hash
+        repair.patch.changed_files = patch.changed_files
+        repair.patch.lines_added = patch.lines_added
+        repair.patch.lines_removed = patch.lines_removed
+        repair.patch.explanation = patch.explanation
+
+    if repair.risk:
+        repair.risk.score = risk.score
+        repair.risk.level = risk.level.value if hasattr(risk.level, "value") else str(risk.level)
+        repair.risk.findings = [f.model_dump(mode="json") for f in risk.findings]
+        repair.risk.blocking_findings = risk.blocking_findings
+        repair.risk.rationale = risk.rationale
+
+    # Reset human approval gate: Approval on Attempt 1 never carries over to Attempt 2/3
+    import uuid
+    new_token = str(uuid.uuid4())
+    if repair.approval:
+        repair.approval.patch_hash = patch.patch_hash
+        repair.approval.status = ApprovalStatus.PENDING.value
+        repair.approval.approved_by = None
+        repair.approval.approval_token = new_token
+        repair.approval.approved_at = None
+        repair.approval.rejection_reason = None
+    else:
+        repair.approval = RepairApprovalRecord(
+            repair_id=repair.id,
+            patch_hash=patch.patch_hash,
+            status=ApprovalStatus.PENDING.value,
+            approval_token=new_token,
+        )
+        session.add(repair.approval)
+
+    # 7. State transitions: PLANNING -> PLAN_READY -> PATCH_GENERATING -> PATCH_READY -> RISK_ANALYZED -> AWAITING_APPROVAL
+    sm = RepairStateMachine(repair.status)
+    sm.transition(RepairState.PLANNING)
+    sm.transition(RepairState.PLAN_READY)
+    sm.transition(RepairState.PATCH_GENERATING)
+    sm.transition(RepairState.PATCH_READY)
+    sm.transition(RepairState.RISK_ANALYZED)
+    sm.transition(RepairState.AWAITING_APPROVAL)
+    repair.status = sm.current_state.value
+
+    # Record new attempt
+    new_attempt_rec = RepairAttemptRecord(
+        repair_id=repair.id,
+        attempt_number=next_attempt_number,
+        patch_hash=patch.patch_hash,
+        unified_diff=patch.unified_diff,
+        approval_token=new_token,
+        status="AWAITING_APPROVAL",
+    )
+    session.add(new_attempt_rec)
+
+    await record_event(
+        session,
+        repair.id,
+        "REPAIR_RETRY_INITIATED",
+        f"Initiated retry attempt {next_attempt_number}/{repair.max_attempts}. Human approval required for new patch ({patch.patch_hash[:8]}).",
+    )
+
+    await session.commit()
+    await session.refresh(repair)
+
+    return serialize_repair(repair)
+
+
+@router.get("/{repair_id}/status", response_model=Dict[str, Any])
+async def get_repair_status(
+    repair_id: str,
+    session: AsyncSession = Depends(get_db_session),
+    user: CurrentUser = Depends(get_current_user),
+) -> Dict[str, Any]:
+    """Summary status endpoint reporting attempt count, verification status, and Phase 7 eligibility."""
+    result = await session.execute(
+        select(RepairRecord).where(RepairRecord.id == repair_id)
+    )
+    repair = result.scalar_one_or_none()
+    if not repair:
+        raise HTTPException(status_code=404, detail="Repair not found")
+
+    return {
+        "repair_id": repair.id,
+        "status": repair.status,
+        "current_attempt": repair.current_attempt,
+        "max_attempts": repair.max_attempts,
+        "can_retry": repair.status == RepairState.REPAIR_RETRY_ELIGIBLE.value and repair.current_attempt < repair.max_attempts,
+        "is_exhausted": repair.status == RepairState.REPAIR_EXHAUSTED.value or repair.current_attempt >= repair.max_attempts,
+        "is_verified": repair.status == RepairState.VERIFIED.value,
+        "patch_applied": repair.workspace is not None,
+        "approval_status": repair.approval.status if repair.approval else "NONE",
+        "phase7_ready": repair.status == RepairState.VERIFIED.value,
     }

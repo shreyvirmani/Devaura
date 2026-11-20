@@ -115,6 +115,17 @@ async def init_db() -> None:
                     for col_name, col_type in new_ev_cols:
                         if col_name not in ev_cols:
                             cursor.execute(f"ALTER TABLE evidence ADD COLUMN {col_name} {col_type}")
+
+                    cursor.execute("PRAGMA table_info(repairs)")
+                    rep_cols = {row[1] for row in cursor.fetchall()}
+                    new_rep_cols = [
+                        ("current_attempt", "INTEGER DEFAULT 1"),
+                        ("max_attempts", "INTEGER DEFAULT 3"),
+                        ("latest_verification_id", "VARCHAR(36)"),
+                    ]
+                    for col_name, col_type in new_rep_cols:
+                        if col_name not in rep_cols:
+                            cursor.execute(f"ALTER TABLE repairs ADD COLUMN {col_name} {col_type}")
                 except Exception:
                     pass
 

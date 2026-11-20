@@ -74,7 +74,44 @@ class RepairStateMachine:
             RepairState.APPLICATION_FAILED,
             RepairState.PATCH_CHANGED,
         },
-        RepairState.PATCH_APPLIED_PENDING_VERIFICATION: set(),  # Terminal in Phase 5
+        RepairState.PATCH_APPLIED_PENDING_VERIFICATION: {
+            RepairState.VERIFYING,
+            RepairState.VERIFICATION_BLOCKED,
+            RepairState.INFRASTRUCTURE_FAILURE,
+        },
+        RepairState.VERIFYING: {
+            RepairState.VERIFIED,
+            RepairState.VERIFICATION_FAILED,
+            RepairState.INFRASTRUCTURE_FAILURE,
+            RepairState.VERIFICATION_BLOCKED,
+        },
+        RepairState.VERIFICATION_FAILED: {
+            RepairState.ANALYZING_FAILURE,
+            RepairState.REPAIR_EXHAUSTED,
+            RepairState.NO_PROGRESS,
+            RepairState.INFRASTRUCTURE_FAILURE,
+        },
+        RepairState.ANALYZING_FAILURE: {
+            RepairState.REPAIR_RETRY_ELIGIBLE,
+            RepairState.REPAIR_BLOCKED,
+            RepairState.REPAIR_EXHAUSTED,
+            RepairState.NO_PROGRESS,
+            RepairState.INFRASTRUCTURE_FAILURE,
+            RepairState.VERIFICATION_BLOCKED,
+        },
+        RepairState.REPAIR_RETRY_ELIGIBLE: {
+            RepairState.PLANNING,
+            RepairState.PLAN_READY,
+            RepairState.PATCH_GENERATING,
+            RepairState.REPAIR_BLOCKED,
+            RepairState.REPAIR_EXHAUSTED,
+        },
+        # Terminal / Success States
+        RepairState.VERIFIED: set(),
+        RepairState.REPAIR_EXHAUSTED: set(),
+        RepairState.NO_PROGRESS: set(),
+        RepairState.VERIFICATION_BLOCKED: set(),
+        RepairState.INFRASTRUCTURE_FAILURE: set(),
         # Failure / Terminal States
         RepairState.REPAIR_BLOCKED: set(),
         RepairState.REPAIR_BLOCKED_INSUFFICIENT_EVIDENCE: set(),

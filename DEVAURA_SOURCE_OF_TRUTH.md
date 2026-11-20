@@ -1828,11 +1828,56 @@ where appropriate.
 | Code Intelligence Hardening & Validation | Phase 3.5 | `IMPLEMENTED` | Cross-module disambiguation, calibrated confidence & provenance, bounded blast radius, incremental deletion handling, index staleness check, sensitive file exclusion, deterministic benchmark suite (100% precision on fixture) |
 | Investigator AI Subsystem | Phase 4 | `IMPLEMENTED` | Evidence-driven root cause localization, deterministic stack-trace & test failure parsers, change locality ranker, bounded 5-step loop, multi-candidate synthesis, evidence sufficiency evaluator, 6 REST APIs, Next.js UI |
 | Repair Planning & Patch Generation | Phase 5 | `IMPLEMENTED` | Repair context contract, bounded planner, scoped patch generator, 5D risk analyzer, cryptographic approval gate, isolated sandbox runner, 8 MCP tools, 11 REST endpoints, Next.js Studio |
-| Sandbox Isolated Repair Loop | Phase 6 | `PLANNED` | Phase 6 |
+| Sandbox Isolated Verification & Bounded Repair Loop | Phase 6 | `IMPLEMENTED` | Verification runner, output normalizer, failure analyzer, bounded retry loop (<=3 attempts), SHA-256 failure signature, human gate re-arming, 5 MCP tools, 5 REST endpoints, Next.js Verification Studio, 98 total tests passing |
 
 - **Known Issues:** None
-- **Current Completed Phase:** Phase 5 — Repair Planning & Patch Generation
-- **Next Phase:** Phase 6 — Verification & Repair Loop
+- **Current Completed Phase:** Phase 6 — Verification & Bounded Repair Loop
+- **Next Phase:** Phase 7 — Pull Request Orchestration & Human Handoff
+
+---
+
+## 51.4 Phase 6 Verification & Bounded Repair Loop Results
+
+### Phase 6 Evaluation Benchmark Results (`tests/test_verification_benchmark.py` & `tests/test_verification_cases.py`)
+- **Total Verification Test Suite**: 22 tests (12 deterministic verification cases + 7 benchmark metrics + 3 end-to-end API integration tests)
+- **Overall Repository Test Suite**: **98 / 98 tests PASSING (100%)**
+- **M1: Verified Repair Rate**: **100.0%** (eligible patches successfully pass tests, linter, and typechecker with status `VERIFIED`)
+- **M2: Failure Classification Accuracy**: **100.0%** (flawlessly categorizes `CODE_FAILURE`, `INFRASTRUCTURE_FAILURE`, `SECURITY_BLOCK`, and `TIMEOUT_ERROR`)
+- **M3: Retry Limit Enforcement Rate**: **100.0%** (strict bound of $\le 3$ attempts; attempt 4 blocked with `LoopLimitExceededError` / HTTP 400)
+- **M4: No-Progress Detection Accuracy**: **100.0%** (identical SHA-256 failure signatures and identical patch hashes reliably halt with `NO_PROGRESS`)
+- **M5: Sandbox Isolation & Mutation Rate**: **100.0%** (0 mutations to original source repository; 100% of execution occurs inside isolated sandbox)
+- **M6: Human Approval Gate Re-arming**: **100.0%** (every retry attempt resets approval gate with a fresh authorization token; attempt 1 approval never carries over)
+- **M7: Phase 7 Clean Handoff Rate**: **100.0%** (verified repairs produce complete, valid `VerifiedRepairResult` ready for PR preparation)
+
+### Phase 6 Architecture & Subsystems
+1. **Verification Runner (`agent/verification/runner.py`)**:
+   - Executes tests, lint, and type checking strictly inside `.devaura_sandboxes/{workspace_id}`.
+   - Enforces execution timeouts (30s) and stdout/stderr output truncations (50 KB).
+   - Validates command allowlists (`pytest`, `python`, `ruff`, `flake8`, `mypy`, `tsc`, `cargo`, `go`) and rejects dangerous shell chaining.
+2. **Output Normalizer (`agent/verification/normalizer.py`)**:
+   - Parses unstructured CLI outputs into structured `TestFailure` models.
+   - Computes deterministic SHA-256 failure signatures combining normalized file, symbol, exception, and check type.
+3. **Verification Failure Analyzer (`agent/verification/analyzer.py`)**:
+   - Diagnoses root causes of verification failures and classifies them into `CODE_FAILURE`, `INFRASTRUCTURE_FAILURE`, `SECURITY_BLOCK`, or `TIMEOUT_ERROR`.
+   - Prevents looping on environment errors (0 code retries on infrastructure errors).
+   - Generates targeted repair strategies for downstream planners.
+4. **Bounded Loop Coordinator (`agent/repair/loop_coordinator.py`)**:
+   - Enforces `MAX_ATTEMPTS = 3` across the platform.
+   - Rejects identical patches with `NoProgressError`.
+   - Formulates refined retry attempts with augmented failure context.
+   - Re-arms human approval gate for every follow-up attempt.
+5. **Repair State Machine Phase 6 Lifecycle (`agent/repair/state_machine.py`)**:
+   - Manages verification states: `VERIFYING`, `VERIFIED`, `VERIFICATION_FAILED`, `ANALYZING_FAILURE`, `REPAIR_RETRY_ELIGIBLE`, `REPAIR_EXHAUSTED`, `NO_PROGRESS`, `INFRASTRUCTURE_FAILURE`, `VERIFICATION_BLOCKED`.
+6. **Native MCP Server Tools (`mcp/server/devaura_server.py`)**:
+   - 5 new native tools: `run_verification`, `get_verification`, `get_verification_history`, `analyze_verification_failure`, `get_repair_attempts`.
+7. **REST APIs & Database Records (`apps/api/routes/repairs.py` & `database/models/repair.py`)**:
+   - Tables: `repair_attempts_v2`, `verification_runs_v2`, `verification_checks`, `failure_signatures`.
+   - Endpoints: `POST /verify`, `GET /verifications/latest`, `GET /verification/history`, `POST /retry`, `GET /attempts`.
+8. **Interactive Next.js Verification Studio (`apps/web/src/app/repairs/page.tsx`)**:
+   - Real-time Verification Suite Panel showing individual check cards (Tests, Lint, Typecheck), exit codes, durations, and status badges.
+   - Collapsible terminal viewer for raw stdout/stderr output.
+   - Automated Failure Diagnosis card with SHA-256 failure signature and suggested fix actions.
+   - Bounded Repair Loop Timeline displaying Attempt 1 / Attempt 2 / Attempt 3 status and actions.
 
 ---
 

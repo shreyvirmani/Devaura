@@ -439,7 +439,7 @@ class DevauraMCPClient:
         if any(keyword in name for keyword in ["push", "merge", "delete", "deploy", "drop", "destroy", "approve_repair", "apply_approved_patch"]):
             return RiskLevel.DANGEROUS
         # CONTROLLED mutations
-        if any(keyword in name for keyword in ["run_", "test", "patch", "apply", "commit", "branch", "execute", "write"]):
+        if any(keyword in name for keyword in ["run_", "test", "patch", "apply", "commit", "branch", "execute", "write", "verification"]):
             return RiskLevel.CONTROLLED
         # SAFE read-only operations
         return RiskLevel.SAFE

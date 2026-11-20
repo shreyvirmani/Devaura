@@ -36,16 +36,20 @@ from database.models.code_intelligence import (
 )
 from database.models.repair import (
     ApprovalStatus,
+    FailureSignatureRecord,
     PatchRecord,
     PatchRiskLevel,
     PatchRiskRecord,
     RepairApprovalRecord,
+    RepairAttemptRecord,
     RepairContextRecord,
     RepairEventRecord,
     RepairPlanRecord,
     RepairRecord,
     RepairState,
     RepairWorkspaceRecord,
+    VerificationCheckRecord,
+    VerificationRunRecord,
 )
 
 __all__ = [
@@ -92,4 +96,8 @@ __all__ = [
     "RepairApprovalRecord",
     "RepairWorkspaceRecord",
     "RepairEventRecord",
+    "RepairAttemptRecord",
+    "VerificationRunRecord",
+    "VerificationCheckRecord",
+    "FailureSignatureRecord",
 ]

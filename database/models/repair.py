@@ -75,6 +75,9 @@ class RepairRecord(Base):
     status: Mapped[str] = mapped_column(String(60), default=RepairState.CREATED.value, nullable=False, index=True)
     target_branch: Mapped[str] = mapped_column(String(100), default="main", nullable=False)
     base_revision: Mapped[str] = mapped_column(String(64), default="HEAD", nullable=False)
+    current_attempt: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
+    max_attempts: Mapped[int] = mapped_column(Integer, default=3, nullable=False)
+    latest_verification_id: Mapped[Optional[str]] = mapped_column(String(36), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
 
@@ -99,6 +102,15 @@ class RepairRecord(Base):
     )
     events: Mapped[List["RepairEventRecord"]] = relationship(
         "RepairEventRecord", back_populates="repair", cascade="all, delete-orphan", lazy="selectin"
+    )
+    attempts: Mapped[List["RepairAttemptRecord"]] = relationship(
+        "RepairAttemptRecord", back_populates="repair", cascade="all, delete-orphan", lazy="selectin"
+    )
+    verification_runs: Mapped[List["VerificationRunRecord"]] = relationship(
+        "VerificationRunRecord", back_populates="repair", cascade="all, delete-orphan", lazy="selectin"
+    )
+    failure_signatures: Mapped[List["FailureSignatureRecord"]] = relationship(
+        "FailureSignatureRecord", back_populates="repair", cascade="all, delete-orphan", lazy="selectin"
     )
 
 
@@ -210,3 +222,74 @@ class RepairEventRecord(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
 
     repair: Mapped["RepairRecord"] = relationship("RepairRecord", back_populates="events")
+
+
+class RepairAttemptRecord(Base):
+    __tablename__ = "repair_attempts_v2"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    repair_id: Mapped[str] = mapped_column(String(36), ForeignKey("repairs.id", ondelete="CASCADE"), nullable=False, index=True)
+    attempt_number: Mapped[int] = mapped_column(Integer, nullable=False)
+    patch_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    unified_diff: Mapped[str] = mapped_column(Text, default="", nullable=False)
+    approval_token: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    status: Mapped[str] = mapped_column(String(50), default="STARTED", nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+    repair: Mapped["RepairRecord"] = relationship("RepairRecord", back_populates="attempts")
+
+
+class VerificationRunRecord(Base):
+    __tablename__ = "verification_runs_v2"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    repair_id: Mapped[str] = mapped_column(String(36), ForeignKey("repairs.id", ondelete="CASCADE"), nullable=False, index=True)
+    attempt_number: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
+    workspace_id: Mapped[str] = mapped_column(String(100), nullable=False)
+    status: Mapped[str] = mapped_column(String(30), default="RUNNING", nullable=False)
+    overall_result: Mapped[str] = mapped_column(String(30), default="FAILED", nullable=False)
+    failure_analysis_json: Mapped[Dict[str, Any]] = mapped_column(JSON, default=dict, nullable=False)
+    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    repair: Mapped["RepairRecord"] = relationship("RepairRecord", back_populates="verification_runs")
+    checks: Mapped[List["VerificationCheckRecord"]] = relationship(
+        "VerificationCheckRecord", back_populates="run", cascade="all, delete-orphan", lazy="selectin"
+    )
+
+
+class VerificationCheckRecord(Base):
+    __tablename__ = "verification_checks"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    verification_run_id: Mapped[str] = mapped_column(String(36), ForeignKey("verification_runs_v2.id", ondelete="CASCADE"), nullable=False, index=True)
+    check_type: Mapped[str] = mapped_column(String(20), nullable=False)
+    command: Mapped[str] = mapped_column(String(500), nullable=False)
+    status: Mapped[str] = mapped_column(String(30), default="NOT_RUN", nullable=False)
+    exit_code: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    duration_ms: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
+    stdout: Mapped[str] = mapped_column(Text, default="", nullable=False)
+    stderr: Mapped[str] = mapped_column(Text, default="", nullable=False)
+    parsed_errors_json: Mapped[List[Dict[str, Any]]] = mapped_column(JSON, default=list, nullable=False)
+    resource_usage_json: Mapped[Dict[str, Any]] = mapped_column(JSON, default=dict, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+    run: Mapped["VerificationRunRecord"] = relationship("VerificationRunRecord", back_populates="checks")
+
+
+class FailureSignatureRecord(Base):
+    __tablename__ = "failure_signatures"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    repair_id: Mapped[str] = mapped_column(String(36), ForeignKey("repairs.id", ondelete="CASCADE"), nullable=False, index=True)
+    attempt_number: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
+    signature_hash: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    check_type: Mapped[str] = mapped_column(String(20), nullable=False)
+    error_summary: Mapped[str] = mapped_column(Text, default="", nullable=False)
+    file_path: Mapped[str] = mapped_column(String(500), default="", nullable=False)
+    line_number: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    test_name: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+    repair: Mapped["RepairRecord"] = relationship("RepairRecord", back_populates="failure_signatures")
+

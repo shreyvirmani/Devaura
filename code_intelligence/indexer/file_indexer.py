@@ -18,6 +18,7 @@ _DEFAULT_IGNORED_DIRS: Set[str] = {
     ".gemini",
     ".idea",
     ".vscode",
+    ".devaura_sandboxes",
 }
 
 _SENSITIVE_FILE_PATTERNS: Set[str] = {

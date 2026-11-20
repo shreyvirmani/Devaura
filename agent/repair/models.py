@@ -7,6 +7,7 @@ PatchResult, PatchRisk, RepairApproval, and Phase 6 Handoff contract.
 from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Dict, List, Optional
+import uuid
 from pydantic import BaseModel, ConfigDict, Field
 
 
@@ -28,6 +29,13 @@ class RepairState(str, Enum):
     APPLYING = "APPLYING"
     PATCH_APPLIED_PENDING_VERIFICATION = "PATCH_APPLIED_PENDING_VERIFICATION"
 
+    # Phase 6 Verification & Bounded Loop States
+    VERIFYING = "VERIFYING"
+    VERIFIED = "VERIFIED"
+    VERIFICATION_FAILED = "VERIFICATION_FAILED"
+    ANALYZING_FAILURE = "ANALYZING_FAILURE"
+    REPAIR_RETRY_ELIGIBLE = "REPAIR_RETRY_ELIGIBLE"
+
     # Terminal failure states
     REPAIR_BLOCKED = "REPAIR_BLOCKED"
     REPAIR_BLOCKED_INSUFFICIENT_EVIDENCE = "REPAIR_BLOCKED_INSUFFICIENT_EVIDENCE"
@@ -38,6 +46,43 @@ class RepairState(str, Enum):
     APPROVAL_EXPIRED = "APPROVAL_EXPIRED"
     PATCH_CHANGED = "PATCH_CHANGED"
     APPLICATION_FAILED = "APPLICATION_FAILED"
+    REPAIR_EXHAUSTED = "REPAIR_EXHAUSTED"
+    NO_PROGRESS = "NO_PROGRESS"
+    VERIFICATION_BLOCKED = "VERIFICATION_BLOCKED"
+    INFRASTRUCTURE_FAILURE = "INFRASTRUCTURE_FAILURE"
+
+
+class CheckType(str, Enum):
+    TESTS = "TESTS"
+    LINT = "LINT"
+    TYPECHECK = "TYPECHECK"
+
+
+class CheckStatus(str, Enum):
+    NOT_RUN = "NOT_RUN"
+    RUNNING = "RUNNING"
+    PASSED = "PASSED"
+    FAILED = "FAILED"
+    TIMEOUT = "TIMEOUT"
+    INFRASTRUCTURE_ERROR = "INFRASTRUCTURE_ERROR"
+    BLOCKED = "BLOCKED"
+    UNSUPPORTED = "UNSUPPORTED"
+
+
+class OverallVerificationStatus(str, Enum):
+    PASSED = "PASSED"
+    FAILED = "FAILED"
+    PARTIAL = "PARTIAL"
+    BLOCKED = "BLOCKED"
+    INFRASTRUCTURE_ERROR = "INFRASTRUCTURE_ERROR"
+
+
+class FailureClassification(str, Enum):
+    CODE_FAILURE = "CODE_FAILURE"
+    INFRASTRUCTURE_FAILURE = "INFRASTRUCTURE_FAILURE"
+    SECURITY_BLOCK = "SECURITY_BLOCK"
+    TIMEOUT_ERROR = "TIMEOUT_ERROR"
+    UNKNOWN = "UNKNOWN"
 
 
 class PatchRiskLevel(str, Enum):
@@ -175,3 +220,107 @@ class RepairExecutionResult(BaseModel):
     diff: str
     application_status: str = "APPLIED"
     verification_status: str = "PENDING"
+
+
+class TestFailure(BaseModel):
+    """Normalized structured failure from test/lint/typecheck execution."""
+    model_config = ConfigDict(extra="ignore")
+
+    test_name: str
+    file: str
+    line: Optional[int] = None
+    error_type: str = "AssertionError"
+    message: str = ""
+    traceback: Optional[str] = None
+    expected: Optional[str] = None
+    actual: Optional[str] = None
+    confidence: float = 1.0
+
+
+class VerificationCheck(BaseModel):
+    """Execution outcome of a single verification check (tests, lint, typecheck)."""
+    model_config = ConfigDict(extra="ignore")
+
+    check_type: CheckType
+    command: str
+    status: CheckStatus = CheckStatus.NOT_RUN
+    exit_code: int = 0
+    duration_ms: float = 0.0
+    stdout: str = ""
+    stderr: str = ""
+    parsed_errors: List[TestFailure] = Field(default_factory=list)
+    resource_usage: Dict[str, Any] = Field(default_factory=dict)
+
+
+class FailureSignature(BaseModel):
+    """Deterministic cryptographic fingerprint of a failure condition."""
+    model_config = ConfigDict(extra="ignore")
+
+    signature_hash: str
+    check_type: str
+    error_summary: str
+    file_path: str
+    line_number: Optional[int] = None
+    test_name: Optional[str] = None
+
+
+class FailureAnalysisReport(BaseModel):
+    """Failure diagnosis for verification failure informing retry decisions."""
+    model_config = ConfigDict(extra="ignore")
+
+    failure_type: FailureClassification = FailureClassification.CODE_FAILURE
+    failure_signature: str
+    root_cause_summary: str
+    affected_files: List[str] = Field(default_factory=list)
+    affected_symbols: List[str] = Field(default_factory=list)
+    can_retry: bool = True
+    retry_block_reason: Optional[str] = None
+    suggested_changes: List[str] = Field(default_factory=list)
+
+
+class VerificationRun(BaseModel):
+    """Comprehensive record of a verification execution across configured checks."""
+    model_config = ConfigDict(extra="ignore")
+
+    verification_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    repair_id: str
+    attempt_number: int = 1
+    workspace_id: str
+    commit_or_base_revision: str = "HEAD"
+    started_at: datetime = Field(default_factory=utc_now)
+    completed_at: Optional[datetime] = None
+    status: OverallVerificationStatus = OverallVerificationStatus.PARTIAL
+    checks: List[VerificationCheck] = Field(default_factory=list)
+    overall_result: str = "FAILED"
+    failure_analysis: Optional[FailureAnalysisReport] = None
+
+
+class RepairAttemptInfo(BaseModel):
+    """Audit record for an attempt in the bounded repair loop."""
+    model_config = ConfigDict(extra="ignore")
+
+    attempt_number: int
+    patch_hash: str
+    unified_diff: str
+    approval_status: str
+    verification_status: str
+    created_at: datetime = Field(default_factory=utc_now)
+
+
+class VerifiedRepairResult(BaseModel):
+    """Phase 7 Handoff Contract: Verified repair ready for PR preparation."""
+    model_config = ConfigDict(extra="ignore")
+
+    repair_id: str
+    investigation_id: str
+    repository: str
+    base_revision: str
+    final_workspace_id: str
+    final_patch_hash: str
+    changed_files: List[str] = Field(default_factory=list)
+    verification_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    verification_status: str = "VERIFIED"
+    checks: List[Dict[str, Any]] = Field(default_factory=list)
+    attempts: List[Dict[str, Any]] = Field(default_factory=list)
+    final_diff: str
+

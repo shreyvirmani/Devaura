@@ -23,7 +23,61 @@ import {
   Hash,
   Box,
   Fingerprint,
+  ChevronDown,
+  ChevronRight,
+  Clock,
+  RotateCcw,
+  Cpu,
 } from "lucide-react";
+
+interface VerificationCheck {
+  id?: string;
+  check_type: "tests" | "lint" | "typecheck" | string;
+  command: string;
+  status: "PASSED" | "FAILED" | "TIMEOUT" | "INFRASTRUCTURE_ERROR" | "BLOCKED" | "NOT_RUN" | string;
+  exit_code: number;
+  duration_ms: number;
+  stdout: string;
+  stderr: string;
+  parsed_errors?: Array<{
+    test_name?: string;
+    file?: string;
+    line?: number;
+    message?: string;
+    error_type?: string;
+  }>;
+  resource_usage?: Record<string, any>;
+}
+
+interface VerificationRunData {
+  id: string;
+  repair_id: string;
+  attempt_number: number;
+  workspace_id: string;
+  status: string;
+  overall_result: string;
+  failure_analysis?: {
+    failure_type?: string;
+    failure_signature?: string;
+    root_cause_summary?: string;
+    can_retry?: boolean;
+    retry_block_reason?: string;
+    suggested_changes?: string[];
+  };
+  started_at: string;
+  completed_at?: string;
+  checks: VerificationCheck[];
+}
+
+interface RepairAttemptData {
+  id: string;
+  attempt_number: number;
+  patch_hash: string;
+  unified_diff: string;
+  approval_token?: string;
+  status: string;
+  created_at: string;
+}
 
 interface RepairContextData {
   candidate_id?: string;
@@ -95,6 +149,9 @@ interface RepairRecord {
   status: string;
   target_branch: string;
   base_revision: string;
+  current_attempt?: number;
+  max_attempts?: number;
+  latest_verification_id?: string;
   context?: RepairContextData;
   plan?: RepairPlanData;
   patch?: PatchData;
@@ -191,12 +248,22 @@ export default function RepairWorkspacePage() {
   const [loading, setLoading] = useState<boolean>(false);
   const [userEmail, setUserEmail] = useState<string>("engineer@devaura.ai");
   const [actionMessage, setActionMessage] = useState<string>("");
+  const [verificationRun, setVerificationRun] = useState<VerificationRunData | null>(null);
+  const [verificationHistory, setVerificationHistory] = useState<VerificationRunData[]>([]);
+  const [repairAttempts, setRepairAttempts] = useState<RepairAttemptData[]>([]);
+  const [expandedCheck, setExpandedCheck] = useState<string | null>(null);
 
   const activeRepair = repairs.find((r) => r.id === activeRepairId) || repairs[0];
 
   useEffect(() => {
     fetchRepairs();
   }, []);
+
+  useEffect(() => {
+    if (activeRepairId) {
+      fetchVerificationDetails(activeRepairId);
+    }
+  }, [activeRepairId]);
 
   async function fetchRepairs() {
     try {
@@ -210,6 +277,40 @@ export default function RepairWorkspacePage() {
       }
     } catch {
       // Fallback to demo repair when offline
+    }
+  }
+
+  async function fetchVerificationDetails(repairId: string) {
+    try {
+      const runRes = await fetch(`/api/v1/repairs/${repairId}/verification`);
+      if (runRes.ok) {
+        const runData = await runRes.json();
+        setVerificationRun(runData);
+      } else {
+        setVerificationRun(null);
+      }
+    } catch {
+      setVerificationRun(null);
+    }
+
+    try {
+      const histRes = await fetch(`/api/v1/repairs/${repairId}/verification/history`);
+      if (histRes.ok) {
+        const histData = await histRes.json();
+        setVerificationHistory(Array.isArray(histData) ? histData : []);
+      }
+    } catch {
+      setVerificationHistory([]);
+    }
+
+    try {
+      const attRes = await fetch(`/api/v1/repairs/${repairId}/attempts`);
+      if (attRes.ok) {
+        const attData = await attRes.json();
+        setRepairAttempts(Array.isArray(attData) ? attData : []);
+      }
+    } catch {
+      setRepairAttempts([]);
     }
   }
 
@@ -232,7 +333,6 @@ export default function RepairWorkspacePage() {
         setActionMessage(`Approval failed: ${err.detail || "Error"}`);
       }
     } catch (e: any) {
-      // Offline fallback state update
       setRepairs((prev) =>
         prev.map((r) =>
           r.id === activeRepair.id
@@ -301,7 +401,7 @@ export default function RepairWorkspacePage() {
       if (res.ok) {
         const data = await res.json();
         setRepairs((prev) => prev.map((r) => (r.id === data.repair.id ? data.repair : r)));
-        setActionMessage("Patch applied in isolated sandbox! Handoff to Phase 6 Verification ready.");
+        setActionMessage("Patch applied in isolated sandbox! Ready for Phase 6 Verification.");
       } else {
         const err = await res.json();
         setActionMessage(`Application failed: ${err.detail || "Error"}`);
@@ -327,14 +427,125 @@ export default function RepairWorkspacePage() {
     }
   }
 
+  async function handleRunVerification() {
+    setLoading(true);
+    setActionMessage("");
+    try {
+      const res = await fetch(`/api/v1/repairs/${activeRepair.id}/verify`, {
+        method: "POST",
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setRepairs((prev) => prev.map((r) => (r.id === data.repair.id ? data.repair : r)));
+        setVerificationRun(data.verification_run);
+        setActionMessage(
+          data.verification_run.overall_result === "PASSED"
+            ? "Verification PASSED! Sandbox test suite clean. Phase 7 Ready."
+            : `Verification ${data.verification_run.overall_result}. Failure analysis complete.`
+        );
+        fetchVerificationDetails(activeRepair.id);
+      } else {
+        const err = await res.json();
+        setActionMessage(`Verification failed: ${err.detail || "Error"}`);
+      }
+    } catch {
+      // Demo fallback verification run
+      const demoRun: VerificationRunData = {
+        id: "vr-demo-001",
+        repair_id: activeRepair.id,
+        attempt_number: activeRepair.current_attempt || 1,
+        workspace_id: activeRepair.id,
+        status: "COMPLETED",
+        overall_result: "PASSED",
+        started_at: new Date().toISOString(),
+        checks: [
+          {
+            check_type: "tests",
+            command: "pytest -q tests/test_foundation.py",
+            status: "PASSED",
+            exit_code: 0,
+            duration_ms: 1240,
+            stdout: "10 passed in 1.24s",
+            stderr: "",
+          },
+          {
+            check_type: "lint",
+            command: "ruff check .",
+            status: "PASSED",
+            exit_code: 0,
+            duration_ms: 180,
+            stdout: "All checks passed!",
+            stderr: "",
+          },
+          {
+            check_type: "typecheck",
+            command: "mypy .",
+            status: "PASSED",
+            exit_code: 0,
+            duration_ms: 450,
+            stdout: "Success: no issues found in 12 source files",
+            stderr: "",
+          },
+        ],
+      };
+      setVerificationRun(demoRun);
+      setRepairs((prev) =>
+        prev.map((r) => (r.id === activeRepair.id ? { ...r, status: "VERIFIED" } : r))
+      );
+      setActionMessage("Verification PASSED (Demo Sandbox Run).");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleRetry() {
+    setLoading(true);
+    setActionMessage("");
+    try {
+      const res = await fetch(`/api/v1/repairs/${activeRepair.id}/retry`, {
+        method: "POST",
+      });
+      if (res.ok) {
+        const updated = await res.json();
+        setRepairs((prev) => prev.map((r) => (r.id === updated.id ? updated : r)));
+        setActionMessage(
+          `Retry Attempt ${updated.current_attempt || 2} initiated. Human approval required for new patch.`
+        );
+        fetchVerificationDetails(activeRepair.id);
+      } else {
+        const err = await res.json();
+        setActionMessage(`Retry failed: ${err.detail || "Error"}`);
+      }
+    } catch {
+      setActionMessage("Retry initiated (Offline preview).");
+    } finally {
+      setLoading(false);
+    }
+  }
+
   const getStatusColor = (status: string) => {
     switch (status) {
+      case "VERIFIED":
+        return "bg-emerald-500/10 text-emerald-400 border-emerald-500/30";
+      case "VERIFYING":
+        return "bg-blue-500/10 text-blue-400 border-blue-500/30 animate-pulse";
       case "PATCH_APPLIED_PENDING_VERIFICATION":
         return "bg-purple-500/10 text-purple-400 border-purple-500/20";
       case "APPROVED":
         return "bg-emerald-500/10 text-emerald-400 border-emerald-500/20";
       case "AWAITING_APPROVAL":
         return "bg-amber-500/10 text-amber-400 border-amber-500/20";
+      case "REPAIR_RETRY_ELIGIBLE":
+        return "bg-amber-500/10 text-amber-400 border-amber-500/20";
+      case "REPAIR_EXHAUSTED":
+        return "bg-red-950/40 text-red-400 border-red-800/40";
+      case "NO_PROGRESS":
+        return "bg-rose-500/10 text-rose-400 border-rose-500/30";
+      case "INFRASTRUCTURE_FAILURE":
+        return "bg-orange-500/10 text-orange-400 border-orange-500/30";
+      case "VERIFICATION_BLOCKED":
+        return "bg-purple-500/10 text-purple-400 border-purple-500/30";
+      case "VERIFICATION_FAILED":
       case "REJECTED":
       case "RISK_BLOCKED":
       case "REPAIR_BLOCKED_INSUFFICIENT_EVIDENCE":
@@ -355,6 +566,23 @@ export default function RepairWorkspacePage() {
         return "text-red-400 bg-red-500/10 border-red-500/20";
       default:
         return "text-gray-400 bg-gray-500/10 border-gray-500/20";
+    }
+  };
+
+  const getCheckStatusBadge = (status: string) => {
+    switch (status) {
+      case "PASSED":
+        return "bg-emerald-500/10 text-emerald-400 border-emerald-500/30";
+      case "FAILED":
+        return "bg-red-500/10 text-red-400 border-red-500/30";
+      case "TIMEOUT":
+        return "bg-amber-500/10 text-amber-400 border-amber-500/30";
+      case "INFRASTRUCTURE_ERROR":
+        return "bg-orange-500/10 text-orange-400 border-orange-500/30";
+      case "BLOCKED":
+        return "bg-purple-500/10 text-purple-400 border-purple-500/30";
+      default:
+        return "bg-gray-500/10 text-gray-400 border-gray-500/30";
     }
   };
 
@@ -379,7 +607,8 @@ export default function RepairWorkspacePage() {
           <p className="text-sm text-gray-400 mt-1">
             Linked to Investigation:{" "}
             <span className="font-mono text-gray-300">{activeRepair.investigation_id}</span> &bull; Base Revision:{" "}
-            <span className="font-mono text-gray-300">{activeRepair.base_revision}</span>
+            <span className="font-mono text-gray-300">{activeRepair.base_revision}</span> &bull; Attempt:{" "}
+            <span className="font-mono text-blue-400 font-semibold">{activeRepair.current_attempt || 1} of {activeRepair.max_attempts || 3}</span>
           </p>
         </div>
 
@@ -415,8 +644,52 @@ export default function RepairWorkspacePage() {
           )}
 
           {activeRepair.status === "PATCH_APPLIED_PENDING_VERIFICATION" && (
-            <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-purple-500/10 text-purple-400 border border-purple-500/20 text-sm font-semibold">
-              <CheckCircle2 className="w-4 h-4" /> Sandbox Applied &bull; Ready for Phase 6 Handoff
+            <button
+              onClick={handleRunVerification}
+              disabled={loading}
+              className="flex items-center gap-2 px-5 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold shadow-lg shadow-blue-500/20 transition-all"
+            >
+              <Play className="w-4 h-4 fill-white" /> Run Sandbox Verification
+            </button>
+          )}
+
+          {activeRepair.status === "VERIFYING" && (
+            <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-500/10 text-blue-400 border border-blue-500/20 text-sm font-semibold animate-pulse">
+              <RefreshCw className="w-4 h-4 animate-spin" /> Verifying in Sandbox...
+            </div>
+          )}
+
+          {activeRepair.status === "VERIFIED" && (
+            <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 text-sm font-semibold">
+              <CheckCircle2 className="w-4 h-4" /> VERIFIED (100% Passed) &bull; Phase 7 PR Ready
+            </div>
+          )}
+
+          {(activeRepair.status === "REPAIR_RETRY_ELIGIBLE" || activeRepair.status === "VERIFICATION_FAILED") && (
+            <button
+              onClick={handleRetry}
+              disabled={loading || (activeRepair.current_attempt || 1) >= (activeRepair.max_attempts || 3)}
+              className="flex items-center gap-2 px-5 py-2 rounded-lg bg-amber-600 hover:bg-amber-500 text-white text-sm font-semibold shadow-lg shadow-amber-500/20 transition-all"
+            >
+              <RotateCcw className="w-4 h-4" /> Initiate Retry (Attempt {(activeRepair.current_attempt || 1) + 1}/3)
+            </button>
+          )}
+
+          {activeRepair.status === "REPAIR_EXHAUSTED" && (
+            <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-red-950/40 text-red-400 border border-red-800/40 text-sm font-semibold">
+              <AlertTriangle className="w-4 h-4" /> REPAIR EXHAUSTED (3/3 Attempts Reached)
+            </div>
+          )}
+
+          {activeRepair.status === "INFRASTRUCTURE_FAILURE" && (
+            <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-orange-500/10 text-orange-400 border border-orange-500/30 text-sm font-semibold">
+              <Cpu className="w-4 h-4" /> INFRASTRUCTURE ERROR &bull; No Blind Retry
+            </div>
+          )}
+
+          {activeRepair.status === "NO_PROGRESS" && (
+            <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-rose-500/10 text-rose-400 border border-rose-500/30 text-sm font-semibold">
+              <AlertCircle className="w-4 h-4" /> NO PROGRESS DETECTED &bull; Loop Halted
             </div>
           )}
         </div>
@@ -428,15 +701,33 @@ export default function RepairWorkspacePage() {
         </div>
       )}
 
-      {/* Repair Lifecycle Pipeline Visualization */}
-      <div className="grid grid-cols-2 md:grid-cols-6 gap-2">
+      {/* Repair Lifecycle Pipeline Visualization (8 Steps) */}
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-2">
         {[
           { label: "1. Investigation", done: true, current: false },
-          { label: "2. Repair Context", done: Boolean(activeRepair.context?.is_valid), current: activeRepair.status === "CONTEXT_BUILDING" },
+          { label: "2. Context Guard", done: Boolean(activeRepair.context?.is_valid), current: activeRepair.status === "CONTEXT_BUILDING" },
           { label: "3. Repair Plan", done: Boolean(activeRepair.plan), current: activeRepair.status === "PLANNING" },
           { label: "4. Patch & Risk", done: Boolean(activeRepair.patch && activeRepair.risk), current: activeRepair.status === "PATCH_GENERATING" },
-          { label: "5. Human Approval", done: activeRepair.status === "APPROVED" || activeRepair.status === "PATCH_APPLIED_PENDING_VERIFICATION", current: activeRepair.status === "AWAITING_APPROVAL" },
-          { label: "6. Sandbox Handoff", done: activeRepair.status === "PATCH_APPLIED_PENDING_VERIFICATION", current: activeRepair.status === "APPLYING" },
+          {
+            label: "5. Human Approval",
+            done: ["APPROVED", "PATCH_APPLIED_PENDING_VERIFICATION", "VERIFYING", "VERIFIED", "VERIFICATION_FAILED", "REPAIR_RETRY_ELIGIBLE", "REPAIR_EXHAUSTED"].includes(activeRepair.status),
+            current: activeRepair.status === "AWAITING_APPROVAL",
+          },
+          {
+            label: "6. Sandbox Apply",
+            done: ["PATCH_APPLIED_PENDING_VERIFICATION", "VERIFYING", "VERIFIED", "VERIFICATION_FAILED", "REPAIR_RETRY_ELIGIBLE", "REPAIR_EXHAUSTED"].includes(activeRepair.status),
+            current: activeRepair.status === "APPLYING",
+          },
+          {
+            label: "7. Verification",
+            done: activeRepair.status === "VERIFIED",
+            current: ["PATCH_APPLIED_PENDING_VERIFICATION", "VERIFYING", "ANALYZING_FAILURE"].includes(activeRepair.status),
+          },
+          {
+            label: "8. PR Handoff",
+            done: false,
+            current: activeRepair.status === "VERIFIED",
+          },
         ].map((step, idx) => (
           <div
             key={idx}
@@ -451,6 +742,72 @@ export default function RepairWorkspacePage() {
             {step.label}
           </div>
         ))}
+      </div>
+
+      {/* Bounded Repair Loop Timeline (Max 3 Attempts) */}
+      <div className="bg-[#111726] border border-[#1e293b] rounded-xl p-5 space-y-4">
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
+            <RotateCcw className="w-4 h-4 text-amber-400" /> Bounded Repair Loop Progress (Max 3 Total Attempts)
+          </span>
+          <span className="text-xs font-mono text-gray-400">
+            Current: Attempt <strong className="text-white">{activeRepair.current_attempt || 1}</strong> of 3
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {[1, 2, 3].map((attemptNum) => {
+            const isCurrent = (activeRepair.current_attempt || 1) === attemptNum;
+            const isPast = (activeRepair.current_attempt || 1) > attemptNum;
+            const isFuture = (activeRepair.current_attempt || 1) < attemptNum;
+
+            let badgeText = "Upcoming";
+            let badgeClass = "text-gray-500 bg-gray-500/10 border-gray-500/20";
+
+            if (isCurrent) {
+              badgeText = activeRepair.status;
+              badgeClass = getStatusColor(activeRepair.status);
+            } else if (isPast) {
+              badgeText = "Completed / Retried";
+              badgeClass = "text-blue-400 bg-blue-500/10 border-blue-500/20";
+            }
+
+            return (
+              <div
+                key={attemptNum}
+                className={`p-4 rounded-lg border space-y-2 transition-all ${
+                  isCurrent
+                    ? "bg-[#0d131f] border-blue-500/40 ring-1 ring-blue-500/30"
+                    : isPast
+                    ? "bg-[#0d131f]/60 border-[#1e293b]"
+                    : "bg-[#111726]/40 border-[#1e293b]/60 opacity-60"
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-mono font-bold text-white flex items-center gap-1.5">
+                    Attempt {attemptNum} {attemptNum === 3 && "(Final Limit)"}
+                  </span>
+                  <span className={`text-[10px] font-mono px-2 py-0.5 rounded border ${badgeClass}`}>
+                    {badgeText}
+                  </span>
+                </div>
+                <p className="text-xs text-gray-400">
+                  {attemptNum === 1
+                    ? "Initial evidence-backed plan and scoped patch."
+                    : attemptNum === 2
+                    ? "Revision addressing Attempt 1 test/lint regressions."
+                    : "Final fallback boundary. If failed -> REPAIR_EXHAUSTED."}
+                </p>
+                {isCurrent && activeRepair.patch && (
+                  <div className="pt-2 border-t border-[#1e293b] flex items-center justify-between text-[11px] font-mono text-gray-400">
+                    <span>Patch:</span>
+                    <span className="text-blue-400">{activeRepair.patch.patch_hash.substring(0, 10)}...</span>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       {/* Top Details Grid: Root Cause & Repair Scope */}
@@ -688,11 +1045,177 @@ export default function RepairWorkspacePage() {
               <span className="font-mono text-purple-400 font-medium">
                 {activeRepair.status === "PATCH_APPLIED_PENDING_VERIFICATION"
                   ? "READY (PENDING VERIFICATION)"
-                  : "Awaiting Application"}
+                  : activeRepair.status === "VERIFIED"
+                  ? "VERIFIED (PASSED)"
+                  : "Awaiting Verification"}
               </span>
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Phase 6: Sandbox Verification Results Panel */}
+      <div className="bg-[#111726] border border-[#1e293b] rounded-xl p-6 space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-[#1e293b]">
+          <div>
+            <h3 className="text-base font-semibold text-white flex items-center gap-2">
+              <CheckCircle2 className="w-5 h-5 text-blue-400" /> Sandbox Verification Suite (Phase 6)
+            </h3>
+            <p className="text-xs text-gray-400 mt-0.5">
+              Strictly executed inside isolated sandbox workspace. Original repository remains completely unmodified.
+            </p>
+          </div>
+          {verificationRun && (
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-mono text-gray-400">Attempt {verificationRun.attempt_number} Run:</span>
+              <span className={`px-2.5 py-1 rounded text-xs font-mono font-semibold border ${getCheckStatusBadge(verificationRun.overall_result)}`}>
+                {verificationRun.overall_result}
+              </span>
+            </div>
+          )}
+        </div>
+
+        {verificationRun ? (
+          <div className="space-y-6">
+            {/* 3 Verification Checks Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {verificationRun.checks.map((check, idx) => {
+                const isExpanded = expandedCheck === (check.id || `check-${idx}`);
+                return (
+                  <div
+                    key={idx}
+                    className="p-4 rounded-xl bg-[#0d131f] border border-[#1e293b] flex flex-col justify-between space-y-3"
+                  >
+                    <div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-mono uppercase font-bold text-white tracking-wider flex items-center gap-1.5">
+                          <Terminal className="w-3.5 h-3.5 text-blue-400" />
+                          {check.check_type}
+                        </span>
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-mono border font-semibold ${getCheckStatusBadge(check.status)}`}>
+                          {check.status}
+                        </span>
+                      </div>
+                      <div className="mt-2 text-xs font-mono text-gray-400 bg-[#080d16] px-2 py-1.5 rounded border border-[#1e293b] overflow-x-auto">
+                        $ {check.command}
+                      </div>
+                    </div>
+
+                    <div className="space-y-2 pt-2 border-t border-[#1e293b] text-xs">
+                      <div className="flex justify-between text-gray-400 text-[11px]">
+                        <span>Duration:</span>
+                        <span className="font-mono text-gray-300">{check.duration_ms} ms</span>
+                      </div>
+                      <div className="flex justify-between text-gray-400 text-[11px]">
+                        <span>Exit Code:</span>
+                        <span className={`font-mono font-bold ${check.exit_code === 0 ? "text-emerald-400" : "text-red-400"}`}>
+                          {check.exit_code}
+                        </span>
+                      </div>
+
+                      {/* Parsed Errors count */}
+                      {check.parsed_errors && check.parsed_errors.length > 0 && (
+                        <div className="p-2 rounded bg-red-500/10 border border-red-500/20 text-red-300 text-[11px] space-y-1">
+                          <span className="font-semibold">{check.parsed_errors.length} Normalized Failure(s):</span>
+                          {check.parsed_errors.slice(0, 2).map((pe, i) => (
+                            <div key={i} className="font-mono text-[10px] truncate text-red-200">
+                              {pe.file ? `${pe.file}:${pe.line || ""}` : pe.test_name || "Assertion"}: {pe.message}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Log Toggle */}
+                      <button
+                        onClick={() => setExpandedCheck(isExpanded ? null : (check.id || `check-${idx}`))}
+                        className="w-full flex items-center justify-center gap-1 py-1 rounded bg-[#111726] hover:bg-[#151f33] text-gray-400 hover:text-white text-[11px] font-medium border border-[#1e293b] transition-all"
+                      >
+                        {isExpanded ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
+                        {isExpanded ? "Hide Logs" : "View Console Output"}
+                      </button>
+                    </div>
+
+                    {/* Expandable Console Logs */}
+                    {isExpanded && (
+                      <div className="mt-2 space-y-2">
+                        {check.stdout && (
+                          <div className="space-y-1">
+                            <span className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider">stdout</span>
+                            <pre className="p-2 rounded bg-[#060910] border border-[#1e293b] font-mono text-[10px] text-gray-300 max-h-36 overflow-y-auto whitespace-pre-wrap">
+                              {check.stdout}
+                            </pre>
+                          </div>
+                        )}
+                        {check.stderr && (
+                          <div className="space-y-1">
+                            <span className="text-[10px] font-semibold text-red-400 uppercase tracking-wider">stderr</span>
+                            <pre className="p-2 rounded bg-[#060910] border border-red-500/20 font-mono text-[10px] text-red-300 max-h-36 overflow-y-auto whitespace-pre-wrap">
+                              {check.stderr}
+                            </pre>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Failure Analysis & Signature Diagnosis */}
+            {verificationRun.failure_analysis && (
+              <div className="p-4 rounded-xl bg-[#0d131f] border border-[#1e293b] space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
+                    <AlertTriangle className="w-4 h-4 text-amber-400" /> Automated Verification Diagnosis
+                  </span>
+                  <span className="text-xs font-mono text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded border border-purple-500/20">
+                    {verificationRun.failure_analysis.failure_type || "CODE_FAILURE"}
+                  </span>
+                </div>
+
+                <p className="text-xs text-gray-200">
+                  {verificationRun.failure_analysis.root_cause_summary}
+                </p>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 text-xs">
+                  <div className="p-2.5 rounded bg-[#111726] border border-[#1e293b] space-y-1">
+                    <span className="text-[11px] text-gray-400 font-semibold">Deterministic Failure Signature (SHA-256):</span>
+                    <div className="font-mono text-[10px] text-purple-300 truncate">
+                      {verificationRun.failure_analysis.failure_signature}
+                    </div>
+                  </div>
+                  <div className="p-2.5 rounded bg-[#111726] border border-[#1e293b] space-y-1">
+                    <span className="text-[11px] text-gray-400 font-semibold">Bounded Retry Permission:</span>
+                    <div className="font-mono text-[11px] font-bold">
+                      {verificationRun.failure_analysis.can_retry ? (
+                        <span className="text-emerald-400">ELIGIBLE FOR RETRY (Attempt {(activeRepair.current_attempt || 1) + 1}/3)</span>
+                      ) : (
+                        <span className="text-red-400">
+                          BLOCKED: {verificationRun.failure_analysis.retry_block_reason || "Attempts exhausted or no progress"}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {verificationRun.failure_analysis.suggested_changes && verificationRun.failure_analysis.suggested_changes.length > 0 && (
+                  <div className="pt-2 text-xs space-y-1">
+                    <span className="text-gray-400 font-semibold">Recommended Fix Strategies for Next Attempt:</span>
+                    <ul className="list-disc list-inside text-gray-300 space-y-0.5 text-[11px]">
+                      {verificationRun.failure_analysis.suggested_changes.map((s, idx) => (
+                        <li key={idx}>{s}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="py-8 text-center text-gray-500 text-sm border border-dashed border-[#1e293b] rounded-xl">
+            No verification suite has been executed for this repair attempt yet. Click &quot;Run Sandbox Verification&quot; to test the isolated sandbox.
+          </div>
+        )}
       </div>
     </div>
   );

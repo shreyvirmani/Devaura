@@ -9,6 +9,10 @@ from typing import Any, Dict, List, Optional
 from apps.api.logger import logger, redact_secrets
 from agent.repair.models import (
     ApprovalStatus,
+    CheckStatus,
+    CheckType,
+    FailureAnalysisReport,
+    OverallVerificationStatus,
     PatchResult,
     PatchRisk,
     ProposedChange,
@@ -16,7 +20,12 @@ from agent.repair.models import (
     RepairContext,
     RepairExecutionResult,
     RepairPlan,
+    VerificationCheck,
+    VerificationRun,
+    VerifiedRepairResult,
 )
+from agent.verification.runner import VerificationRunner
+from agent.verification.analyzer import VerificationAnalyzer
 from agent.repair.context_builder import RepairContextBuilder
 from agent.repair.planner import RepairPlanner
 from agent.repair.patch_generator import PatchGenerator
@@ -768,6 +777,151 @@ def create_devaura_native_server() -> MCPServer:
         }, indent=2)
 
     get_repair_diff.risk_level = RiskLevel.SAFE
+
+    # --------------------------------------------------------------------------
+    # 18. Tool: run_verification (CONTROLLED)
+    # --------------------------------------------------------------------------
+    @server.tool(
+        name="run_verification",
+        description="Run test, lint, and typecheck suite strictly inside the isolated sandbox workspace.",
+    )
+    async def run_verification(
+        repair_id: str,
+        workspace: str = "",
+        custom_commands_json: str = "",
+        timeout_seconds: int = 30,
+    ) -> str:
+        try:
+            record = _REPAIR_CACHE.get(repair_id, {})
+            exec_res = record.get("execution_result")
+            sandbox_path = workspace or (exec_res.isolated_path if exec_res else None)
+            if not sandbox_path:
+                return json.dumps(
+                    {"status": "VERIFICATION_BLOCKED", "error": f"No isolated sandbox found for repair {repair_id}"},
+                    indent=2,
+                )
+
+            custom_commands = json.loads(custom_commands_json) if custom_commands_json else {}
+            current_attempt = record.get("attempt_number", 1)
+
+            runner = VerificationRunner(workspace_path=sandbox_path)
+            run = runner.run_verification_suite(
+                repair_id=repair_id,
+                attempt_number=current_attempt,
+                custom_commands=custom_commands,
+                timeout_seconds=timeout_seconds,
+            )
+
+            # Store in cache
+            if "verification_history" not in record:
+                record["verification_history"] = []
+            record["verification_history"].append(run)
+            record["latest_verification"] = run
+
+            # Update attempts
+            if "attempts" not in record:
+                record["attempts"] = []
+            patch = record.get("patch")
+            record["attempts"].append({
+                "attempt_number": current_attempt,
+                "patch_hash": patch.patch_hash if patch else "none",
+                "status": run.overall_result,
+                "verification_id": run.verification_id,
+            })
+
+            _REPAIR_CACHE[repair_id] = record
+            return run.model_dump_json(indent=2)
+        except Exception as e:
+            return json.dumps({"status": "INFRASTRUCTURE_ERROR", "error": str(e)}, indent=2)
+
+    run_verification.risk_level = RiskLevel.CONTROLLED
+
+    # --------------------------------------------------------------------------
+    # 19. Tool: get_verification (SAFE)
+    # --------------------------------------------------------------------------
+    @server.tool(
+        name="get_verification",
+        description="Retrieve the latest or specific verification run for a repair.",
+    )
+    async def get_verification(repair_id: str, verification_id: str = "") -> str:
+        record = _REPAIR_CACHE.get(repair_id, {})
+        history = record.get("verification_history", [])
+        if not history:
+            return json.dumps({"error": f"No verification runs recorded for repair {repair_id}"}, indent=2)
+
+        if verification_id:
+            for v in history:
+                if v.verification_id == verification_id:
+                    return v.model_dump_json(indent=2)
+            return json.dumps({"error": f"Verification run '{verification_id}' not found."}, indent=2)
+
+        return record.get("latest_verification", history[-1]).model_dump_json(indent=2)
+
+    get_verification.risk_level = RiskLevel.SAFE
+
+    # --------------------------------------------------------------------------
+    # 20. Tool: get_verification_history (SAFE)
+    # --------------------------------------------------------------------------
+    @server.tool(
+        name="get_verification_history",
+        description="Retrieve complete verification run history across all repair attempts.",
+    )
+    async def get_verification_history(repair_id: str) -> str:
+        record = _REPAIR_CACHE.get(repair_id, {})
+        history = record.get("verification_history", [])
+        return json.dumps([h.model_dump(mode="json") for h in history], indent=2)
+
+    get_verification_history.risk_level = RiskLevel.SAFE
+
+    # --------------------------------------------------------------------------
+    # 21. Tool: analyze_verification_failure (SAFE)
+    # --------------------------------------------------------------------------
+    @server.tool(
+        name="analyze_verification_failure",
+        description="Diagnose verification failure and check retry eligibility (max 3 attempts).",
+    )
+    async def analyze_verification_failure(repair_id: str, verification_id: str = "") -> str:
+        try:
+            record = _REPAIR_CACHE.get(repair_id, {})
+            history = record.get("verification_history", [])
+            if not history:
+                return json.dumps({"error": f"No verification runs found for repair {repair_id}"}, indent=2)
+
+            run = None
+            if verification_id:
+                for v in history:
+                    if v.verification_id == verification_id:
+                        run = v
+                        break
+            if not run:
+                run = record.get("latest_verification", history[-1])
+
+            analyzer = VerificationAnalyzer()
+            prev_sigs = [s for s in record.get("signatures", [])]
+            report = analyzer.analyze(verification_run=run, previous_signatures=prev_sigs)
+            if "signatures" not in record:
+                record["signatures"] = []
+            record["signatures"].append(report.failure_signature)
+            _REPAIR_CACHE[repair_id] = record
+            return report.model_dump_json(indent=2)
+        except Exception as e:
+            return json.dumps({"error": str(e)}, indent=2)
+
+    analyze_verification_failure.risk_level = RiskLevel.SAFE
+
+    # --------------------------------------------------------------------------
+    # 22. Tool: get_repair_attempts (SAFE)
+    # --------------------------------------------------------------------------
+    @server.tool(
+        name="get_repair_attempts",
+        description="Retrieve history of bounded repair attempts (max 3).",
+    )
+    async def get_repair_attempts(repair_id: str) -> str:
+        record = _REPAIR_CACHE.get(repair_id, {})
+        attempts = record.get("attempts", [])
+        return json.dumps(attempts, indent=2)
+
+    get_repair_attempts.risk_level = RiskLevel.SAFE
 
     # --------------------------------------------------------------------------
     # Standardized Prompts

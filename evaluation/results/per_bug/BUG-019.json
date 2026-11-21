@@ -1,0 +1,53 @@
+{
+  "bug_id": "BUG-019",
+  "category": "F-Multi-file Bugs",
+  "language": "python",
+  "difficulty": "hard",
+  "localized_top1": false,
+  "localized_top3": false,
+  "localized_top5": false,
+  "predicted_files": [
+    "app/client.py"
+  ],
+  "predicted_symbols": [
+    "symbol:app/client.py:get_formatted_user"
+  ],
+  "root_cause_accuracy": "INCORRECT",
+  "retrieved_evidence_count": 5,
+  "relevant_evidence_count": 0,
+  "evidence_precision": 0.0,
+  "patch_generated": true,
+  "patch_syntactically_valid": true,
+  "patch_applied_cleanly": true,
+  "verification_passed": true,
+  "patch_successful": true,
+  "regression_detected": false,
+  "false_repair": false,
+  "human_approved": true,
+  "attempts_used": 1,
+  "tool_calls_count": 4,
+  "tool_calls_by_name": {
+    "search_code": 1,
+    "read_file": 1,
+    "get_symbol_info": 1,
+    "run_tests": 1
+  },
+  "failed_tool_calls": 0,
+  "unsafe_tool_attempts": 0,
+  "investigation_latency_ms": 7.37,
+  "planning_latency_ms": 12.0,
+  "patch_generation_latency_ms": 8.0,
+  "verification_latency_ms": 925.22,
+  "pr_latency_ms": 0.05,
+  "total_latency_ms": 1892.62,
+  "token_usage": 0,
+  "estimated_cost_usd": null,
+  "is_deterministic": true,
+  "safety_violations": 0,
+  "safety_violation_details": [],
+  "failure_stage": "NONE",
+  "failure_details": null,
+  "trace_id": "trace-bug-019-0dd0481a",
+  "repair_id": "rep-bug-019-8e7e9b5f",
+  "pr_url": "https://github.com/shreyvirmani/Devaura/pull/mock-BUG-019"
+}

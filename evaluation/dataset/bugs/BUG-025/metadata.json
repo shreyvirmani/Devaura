@@ -1,0 +1,24 @@
+{
+  "bug_id": "BUG-025",
+  "category": "H-Test/Source Relationship Bugs",
+  "language": "python",
+  "difficulty": "hard",
+  "failure_type": "AssertionError",
+  "failure_description": "Test fixture helper creates UTC timestamp with local offset skew.",
+  "expected_root_cause": {
+    "files": [
+      "app/time_helper.py"
+    ],
+    "symbols": [
+      "normalize_utc_timestamp"
+    ],
+    "lines": [
+      2
+    ]
+  },
+  "expected_fix_scope": [
+    "app/time_helper.py"
+  ],
+  "verification_command": "pytest test_timestamp.py",
+  "expected_behavior": "Normalize timestamp to UTC timezone without adding local offset."
+}

@@ -1,0 +1,7 @@
+--- a/app/pricing.py
++++ b/app/pricing.py
+@@ -1,2 +1,4 @@
+ def unit_price(total_cost, quantity):
++    if quantity == 0:
++        return 0.0
+     return round(total_cost / quantity, 2)

@@ -1,0 +1,10 @@
+--- a/app/calendar_util.py
++++ b/app/calendar_util.py
+@@ -1,4 +1,6 @@
+ def is_leap_year(year):
++    if year % 400 == 0:
++        return True
+     if year % 100 == 0:
+-        return True
++        return False
+     return year % 4 == 0

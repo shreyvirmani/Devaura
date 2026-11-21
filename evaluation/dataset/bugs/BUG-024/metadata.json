@@ -1,0 +1,24 @@
+{
+  "bug_id": "BUG-024",
+  "category": "H-Test/Source Relationship Bugs",
+  "language": "python",
+  "difficulty": "hard",
+  "failure_type": "AssertionError",
+  "failure_description": "Failing test in test_facade.py tests OrderFacade, but root cause is in InventoryEngine.reserve_stock.",
+  "expected_root_cause": {
+    "files": [
+      "app/inventory.py"
+    ],
+    "symbols": [
+      "reserve_stock"
+    ],
+    "lines": [
+      5
+    ]
+  },
+  "expected_fix_scope": [
+    "app/inventory.py"
+  ],
+  "verification_command": "pytest test_facade.py",
+  "expected_behavior": "Update inventory reservation logic to decrement available count accurately."
+}

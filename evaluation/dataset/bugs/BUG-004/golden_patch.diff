@@ -1,0 +1,9 @@
+--- a/app/window.py
++++ b/app/window.py
+@@ -1,4 +1,6 @@
+ def get_window_boundary(items):
++    if not items:
++        return (None, None)
+     first_elem = items[0]
+     last_elem = items[-1]
+     return (first_elem, last_elem)

@@ -1,0 +1,24 @@
+{
+  "bug_id": "BUG-006",
+  "category": "B-Failed Tests",
+  "language": "python",
+  "difficulty": "easy",
+  "failure_type": "AssertionError",
+  "failure_description": "Inverted condition in rate limiter threshold check.",
+  "expected_root_cause": {
+    "files": [
+      "app/ratelimit.py"
+    ],
+    "symbols": [
+      "is_rate_limited"
+    ],
+    "lines": [
+      2
+    ]
+  },
+  "expected_fix_scope": [
+    "app/ratelimit.py"
+  ],
+  "verification_command": "pytest test_ratelimit.py",
+  "expected_behavior": "Return True when current_requests >= max_allowed."
+}

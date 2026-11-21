@@ -1,0 +1,24 @@
+{
+  "bug_id": "BUG-011",
+  "category": "C-Import / Dependency Failures",
+  "language": "python",
+  "difficulty": "medium",
+  "failure_type": "ModuleNotFoundError",
+  "failure_description": "ModuleNotFoundError: No module named 'app.legacy_db'.",
+  "expected_root_cause": {
+    "files": [
+      "app/repository.py"
+    ],
+    "symbols": [
+      "get_record"
+    ],
+    "lines": [
+      1
+    ]
+  },
+  "expected_fix_scope": [
+    "app/repository.py"
+  ],
+  "verification_command": "pytest test_repository.py",
+  "expected_behavior": "Update import path from app.legacy_db to app.database."
+}

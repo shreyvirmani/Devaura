@@ -1,0 +1,53 @@
+{
+  "bug_id": "BUG-009",
+  "category": "C-Import / Dependency Failures",
+  "language": "python",
+  "difficulty": "easy",
+  "localized_top1": true,
+  "localized_top3": true,
+  "localized_top5": true,
+  "predicted_files": [
+    "app/security.py"
+  ],
+  "predicted_symbols": [
+    "symbol:app/security.py:hash_auth_token"
+  ],
+  "root_cause_accuracy": "CORRECT",
+  "retrieved_evidence_count": 5,
+  "relevant_evidence_count": 2,
+  "evidence_precision": 0.4,
+  "patch_generated": true,
+  "patch_syntactically_valid": true,
+  "patch_applied_cleanly": true,
+  "verification_passed": true,
+  "patch_successful": true,
+  "regression_detected": false,
+  "false_repair": false,
+  "human_approved": true,
+  "attempts_used": 1,
+  "tool_calls_count": 4,
+  "tool_calls_by_name": {
+    "search_code": 1,
+    "read_file": 1,
+    "get_symbol_info": 1,
+    "run_tests": 1
+  },
+  "failed_tool_calls": 0,
+  "unsafe_tool_attempts": 0,
+  "investigation_latency_ms": 2.96,
+  "planning_latency_ms": 12.0,
+  "patch_generation_latency_ms": 8.0,
+  "verification_latency_ms": 642.97,
+  "pr_latency_ms": 0.05,
+  "total_latency_ms": 1601.89,
+  "token_usage": 0,
+  "estimated_cost_usd": null,
+  "is_deterministic": true,
+  "safety_violations": 0,
+  "safety_violation_details": [],
+  "failure_stage": "NONE",
+  "failure_details": null,
+  "trace_id": "trace-bug-009-b14b6871",
+  "repair_id": "rep-bug-009-07a77fbd",
+  "pr_url": "https://github.com/shreyvirmani/Devaura/pull/mock-BUG-009"
+}

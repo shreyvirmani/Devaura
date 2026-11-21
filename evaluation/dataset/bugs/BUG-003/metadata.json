@@ -1,0 +1,24 @@
+{
+  "bug_id": "BUG-003",
+  "category": "A-Exceptions",
+  "language": "python",
+  "difficulty": "medium",
+  "failure_type": "TypeError",
+  "failure_description": "TypeError: unsupported operand type(s) for +: 'int' and 'str' in invoice total.",
+  "expected_root_cause": {
+    "files": [
+      "app/invoice.py"
+    ],
+    "symbols": [
+      "calculate_invoice_total"
+    ],
+    "lines": [
+      5
+    ]
+  },
+  "expected_fix_scope": [
+    "app/invoice.py"
+  ],
+  "verification_command": "pytest test_invoice.py",
+  "expected_behavior": "Convert line item amounts to numeric float before sum aggregation."
+}

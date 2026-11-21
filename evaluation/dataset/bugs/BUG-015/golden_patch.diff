@@ -1,0 +1,11 @@
+--- a/app/order_fsm.py
++++ b/app/order_fsm.py
+@@ -1,7 +1,7 @@
+ ALLOWED_TRANSITIONS = {
+     "CREATED": ["PROCESSING", "CANCELLED"],
+     "PROCESSING": ["COMPLETED", "CANCELLED"],
+-    "CANCELLED": ["COMPLETED"],
++    "CANCELLED": [],
+     "COMPLETED": []
+ }
+ 

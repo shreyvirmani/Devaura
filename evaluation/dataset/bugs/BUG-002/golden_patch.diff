@@ -1,0 +1,8 @@
+--- a/app/webhook.py
++++ b/app/webhook.py
+@@ -1,4 +1,4 @@
+ def route_webhook_event(payload):
+     event_type = payload.get("event", "unknown")
+-    status = payload["status"]
++    status = payload.get("status", "pending")
+     return f"{event_type}:{status}"

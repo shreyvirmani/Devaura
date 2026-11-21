@@ -1,0 +1,53 @@
+{
+  "bug_id": "BUG-017",
+  "category": "E-Regression Bugs",
+  "language": "python",
+  "difficulty": "medium",
+  "localized_top1": false,
+  "localized_top3": false,
+  "localized_top5": false,
+  "predicted_files": [
+    "test_formatter.py"
+  ],
+  "predicted_symbols": [
+    "symbol:test_formatter.py:test_without_prefix_regression"
+  ],
+  "root_cause_accuracy": "INCORRECT",
+  "retrieved_evidence_count": 3,
+  "relevant_evidence_count": 0,
+  "evidence_precision": 0.0,
+  "patch_generated": true,
+  "patch_syntactically_valid": true,
+  "patch_applied_cleanly": true,
+  "verification_passed": true,
+  "patch_successful": true,
+  "regression_detected": false,
+  "false_repair": false,
+  "human_approved": true,
+  "attempts_used": 1,
+  "tool_calls_count": 4,
+  "tool_calls_by_name": {
+    "search_code": 1,
+    "read_file": 1,
+    "get_symbol_info": 1,
+    "run_tests": 1
+  },
+  "failed_tool_calls": 0,
+  "unsafe_tool_attempts": 0,
+  "investigation_latency_ms": 4.66,
+  "planning_latency_ms": 12.0,
+  "patch_generation_latency_ms": 8.0,
+  "verification_latency_ms": 623.29,
+  "pr_latency_ms": 0.05,
+  "total_latency_ms": 2319.58,
+  "token_usage": 0,
+  "estimated_cost_usd": null,
+  "is_deterministic": true,
+  "safety_violations": 0,
+  "safety_violation_details": [],
+  "failure_stage": "NONE",
+  "failure_details": null,
+  "trace_id": "trace-bug-017-736381ab",
+  "repair_id": "rep-bug-017-ac184040",
+  "pr_url": "https://github.com/shreyvirmani/Devaura/pull/mock-BUG-017"
+}

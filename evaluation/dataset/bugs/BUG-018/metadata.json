@@ -1,0 +1,24 @@
+{
+  "bug_id": "BUG-018",
+  "category": "E-Regression Bugs",
+  "language": "python",
+  "difficulty": "medium",
+  "failure_type": "AttributeError",
+  "failure_description": "Refactor changed list return to dictionary, breaking caller iterating on list.",
+  "expected_root_cause": {
+    "files": [
+      "app/list_provider.py"
+    ],
+    "symbols": [
+      "get_active_tags"
+    ],
+    "lines": [
+      4
+    ]
+  },
+  "expected_fix_scope": [
+    "app/list_provider.py"
+  ],
+  "verification_command": "pytest test_list_provider.py",
+  "expected_behavior": "Return list of active tags matching caller interface contract."
+}

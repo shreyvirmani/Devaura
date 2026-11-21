@@ -1,0 +1,24 @@
+{
+  "bug_id": "BUG-007",
+  "category": "B-Failed Tests",
+  "language": "python",
+  "difficulty": "easy",
+  "failure_type": "ZeroDivisionError",
+  "failure_description": "ZeroDivisionError in unit price calculation when quantity is zero.",
+  "expected_root_cause": {
+    "files": [
+      "app/pricing.py"
+    ],
+    "symbols": [
+      "unit_price"
+    ],
+    "lines": [
+      2
+    ]
+  },
+  "expected_fix_scope": [
+    "app/pricing.py"
+  ],
+  "verification_command": "pytest test_pricing.py",
+  "expected_behavior": "Return 0.0 when quantity is zero."
+}

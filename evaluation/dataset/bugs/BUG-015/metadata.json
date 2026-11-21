@@ -1,0 +1,24 @@
+{
+  "bug_id": "BUG-015",
+  "category": "D-Logic Bugs",
+  "language": "python",
+  "difficulty": "medium",
+  "failure_type": "AssertionError",
+  "failure_description": "Invalid state machine transition permitted from CANCELLED to COMPLETED.",
+  "expected_root_cause": {
+    "files": [
+      "app/order_fsm.py"
+    ],
+    "symbols": [
+      "can_transition"
+    ],
+    "lines": [
+      4
+    ]
+  },
+  "expected_fix_scope": [
+    "app/order_fsm.py"
+  ],
+  "verification_command": "pytest test_order_fsm.py",
+  "expected_behavior": "Disallow transitions out of terminal CANCELLED state."
+}

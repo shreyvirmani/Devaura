@@ -1,0 +1,6 @@
+--- a/app/time_helper.py
++++ b/app/time_helper.py
+@@ -1,2 +1,2 @@
+ def normalize_utc_timestamp(epoch_seconds, offset_hours=0):
+-    return epoch_seconds + (offset_hours * 3600)
++    return epoch_seconds

@@ -182,10 +182,26 @@ class IsolatedWorkspace:
                     # \ No newline at end of file
                     continue
 
+            # Extract expected original lines from block for context matching
+            expected_orig: List[str] = [bline[1:] for bline in block if bline and bline[0] in (" ", "-")]
+
             # Replace slice in result_lines
-            # Handle boundary safely
+            # Handle boundary safely with context-matching fallback
             start_idx = max(0, min(adjusted_start, len(result_lines)))
             end_idx = min(start_idx + orig_consumed, len(result_lines))
+
+            if expected_orig and len(result_lines) >= len(expected_orig):
+                target_stripped = [l.rstrip("\r\n") for l in expected_orig]
+                # Check if exact position matches
+                curr_slice = [l.rstrip("\r\n") for l in result_lines[start_idx:start_idx + len(expected_orig)]]
+                if curr_slice != target_stripped:
+                    # Scan for best matching location in file
+                    for candidate_idx in range(len(result_lines) - len(expected_orig) + 1):
+                        cand_slice = [l.rstrip("\r\n") for l in result_lines[candidate_idx:candidate_idx + len(expected_orig)]]
+                        if cand_slice == target_stripped:
+                            start_idx = candidate_idx
+                            end_idx = start_idx + len(expected_orig)
+                            break
 
             result_lines[start_idx:end_idx] = new_block_lines
             offset += len(new_block_lines) - orig_consumed

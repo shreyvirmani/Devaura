@@ -22,6 +22,7 @@ const navigation = [
   { name: "Investigations", href: "/investigations", icon: Search },
   { name: "Repair Workspace", href: "/repairs", icon: Wrench },
   { name: "MCP Hub", href: "/mcp", icon: Cpu },
+  { name: "Evaluation & Benchmarks", href: "/evaluation", icon: ShieldCheck },
   { name: "Settings", href: "/settings", icon: Settings },
 ];
 

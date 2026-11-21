@@ -1,0 +1,24 @@
+{
+  "bug_id": "BUG-013",
+  "category": "D-Logic Bugs",
+  "language": "python",
+  "difficulty": "easy",
+  "failure_type": "AssertionError",
+  "failure_description": "Permissions logic rejects superuser role.",
+  "expected_root_cause": {
+    "files": [
+      "app/auth_policy.py"
+    ],
+    "symbols": [
+      "has_access"
+    ],
+    "lines": [
+      2
+    ]
+  },
+  "expected_fix_scope": [
+    "app/auth_policy.py"
+  ],
+  "verification_command": "pytest test_auth_policy.py",
+  "expected_behavior": "Allow both 'admin' and 'superuser' roles to pass access check."
+}

@@ -1,0 +1,24 @@
+{
+  "bug_id": "BUG-019",
+  "category": "F-Multi-file Bugs",
+  "language": "python",
+  "difficulty": "hard",
+  "failure_type": "KeyError",
+  "failure_description": "Caller in client.py expects 'id' but serializer in serializer.py emits 'user_id'.",
+  "expected_root_cause": {
+    "files": [
+      "app/serializer.py"
+    ],
+    "symbols": [
+      "serialize_user"
+    ],
+    "lines": [
+      2
+    ]
+  },
+  "expected_fix_scope": [
+    "app/serializer.py"
+  ],
+  "verification_command": "pytest test_client.py",
+  "expected_behavior": "Include 'id' key alongside user_id for backward compatibility with client.py."
+}

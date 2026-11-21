@@ -1,0 +1,219 @@
+{
+  "dataset_name": "Devaura-Benchmark-v1",
+  "total_bugs": 25,
+  "categories": [
+    "A-Exceptions",
+    "B-Failed Tests",
+    "C-Import / Dependency Failures",
+    "D-Logic Bugs",
+    "E-Regression Bugs",
+    "F-Multi-file Bugs",
+    "G-Type / Static Analysis Failures",
+    "H-Test/Source Relationship Bugs"
+  ],
+  "languages": [
+    "python"
+  ],
+  "bugs": [
+    {
+      "bug_id": "BUG-001",
+      "category": "A-Exceptions",
+      "language": "python",
+      "difficulty": "easy",
+      "failure_type": "AttributeError",
+      "path": "bugs/BUG-001"
+    },
+    {
+      "bug_id": "BUG-002",
+      "category": "A-Exceptions",
+      "language": "python",
+      "difficulty": "easy",
+      "failure_type": "KeyError",
+      "path": "bugs/BUG-002"
+    },
+    {
+      "bug_id": "BUG-003",
+      "category": "A-Exceptions",
+      "language": "python",
+      "difficulty": "medium",
+      "failure_type": "TypeError",
+      "path": "bugs/BUG-003"
+    },
+    {
+      "bug_id": "BUG-004",
+      "category": "A-Exceptions",
+      "language": "python",
+      "difficulty": "easy",
+      "failure_type": "IndexError",
+      "path": "bugs/BUG-004"
+    },
+    {
+      "bug_id": "BUG-005",
+      "category": "B-Failed Tests",
+      "language": "python",
+      "difficulty": "easy",
+      "failure_type": "AssertionError",
+      "path": "bugs/BUG-005"
+    },
+    {
+      "bug_id": "BUG-006",
+      "category": "B-Failed Tests",
+      "language": "python",
+      "difficulty": "easy",
+      "failure_type": "AssertionError",
+      "path": "bugs/BUG-006"
+    },
+    {
+      "bug_id": "BUG-007",
+      "category": "B-Failed Tests",
+      "language": "python",
+      "difficulty": "easy",
+      "failure_type": "ZeroDivisionError",
+      "path": "bugs/BUG-007"
+    },
+    {
+      "bug_id": "BUG-008",
+      "category": "B-Failed Tests",
+      "language": "python",
+      "difficulty": "medium",
+      "failure_type": "AssertionError",
+      "path": "bugs/BUG-008"
+    },
+    {
+      "bug_id": "BUG-009",
+      "category": "C-Import / Dependency Failures",
+      "language": "python",
+      "difficulty": "easy",
+      "failure_type": "NameError",
+      "path": "bugs/BUG-009"
+    },
+    {
+      "bug_id": "BUG-010",
+      "category": "C-Import / Dependency Failures",
+      "language": "python",
+      "difficulty": "medium",
+      "failure_type": "ImportError",
+      "path": "bugs/BUG-010"
+    },
+    {
+      "bug_id": "BUG-011",
+      "category": "C-Import / Dependency Failures",
+      "language": "python",
+      "difficulty": "medium",
+      "failure_type": "ModuleNotFoundError",
+      "path": "bugs/BUG-011"
+    },
+    {
+      "bug_id": "BUG-012",
+      "category": "D-Logic Bugs",
+      "language": "python",
+      "difficulty": "easy",
+      "failure_type": "AssertionError",
+      "path": "bugs/BUG-012"
+    },
+    {
+      "bug_id": "BUG-013",
+      "category": "D-Logic Bugs",
+      "language": "python",
+      "difficulty": "easy",
+      "failure_type": "AssertionError",
+      "path": "bugs/BUG-013"
+    },
+    {
+      "bug_id": "BUG-014",
+      "category": "D-Logic Bugs",
+      "language": "python",
+      "difficulty": "medium",
+      "failure_type": "AssertionError",
+      "path": "bugs/BUG-014"
+    },
+    {
+      "bug_id": "BUG-015",
+      "category": "D-Logic Bugs",
+      "language": "python",
+      "difficulty": "medium",
+      "failure_type": "AssertionError",
+      "path": "bugs/BUG-015"
+    },
+    {
+      "bug_id": "BUG-016",
+      "category": "E-Regression Bugs",
+      "language": "python",
+      "difficulty": "medium",
+      "failure_type": "AssertionError",
+      "path": "bugs/BUG-016"
+    },
+    {
+      "bug_id": "BUG-017",
+      "category": "E-Regression Bugs",
+      "language": "python",
+      "difficulty": "medium",
+      "failure_type": "TypeError",
+      "path": "bugs/BUG-017"
+    },
+    {
+      "bug_id": "BUG-018",
+      "category": "E-Regression Bugs",
+      "language": "python",
+      "difficulty": "medium",
+      "failure_type": "AttributeError",
+      "path": "bugs/BUG-018"
+    },
+    {
+      "bug_id": "BUG-019",
+      "category": "F-Multi-file Bugs",
+      "language": "python",
+      "difficulty": "hard",
+      "failure_type": "KeyError",
+      "path": "bugs/BUG-019"
+    },
+    {
+      "bug_id": "BUG-020",
+      "category": "F-Multi-file Bugs",
+      "language": "python",
+      "difficulty": "hard",
+      "failure_type": "AssertionError",
+      "path": "bugs/BUG-020"
+    },
+    {
+      "bug_id": "BUG-021",
+      "category": "F-Multi-file Bugs",
+      "language": "python",
+      "difficulty": "hard",
+      "failure_type": "KeyError",
+      "path": "bugs/BUG-021"
+    },
+    {
+      "bug_id": "BUG-022",
+      "category": "G-Type / Static Analysis Failures",
+      "language": "python",
+      "difficulty": "medium",
+      "failure_type": "TypeError",
+      "path": "bugs/BUG-022"
+    },
+    {
+      "bug_id": "BUG-023",
+      "category": "G-Type / Static Analysis Failures",
+      "language": "python",
+      "difficulty": "easy",
+      "failure_type": "NameError",
+      "path": "bugs/BUG-023"
+    },
+    {
+      "bug_id": "BUG-024",
+      "category": "H-Test/Source Relationship Bugs",
+      "language": "python",
+      "difficulty": "hard",
+      "failure_type": "AssertionError",
+      "path": "bugs/BUG-024"
+    },
+    {
+      "bug_id": "BUG-025",
+      "category": "H-Test/Source Relationship Bugs",
+      "language": "python",
+      "difficulty": "hard",
+      "failure_type": "AssertionError",
+      "path": "bugs/BUG-025"
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "bug_id": "BUG-010",
+  "category": "C-Import / Dependency Failures",
+  "language": "python",
+  "difficulty": "medium",
+  "failure_type": "ImportError",
+  "failure_description": "ImportError: cannot import name 'format_currency' from 'app.helpers'.",
+  "expected_root_cause": {
+    "files": [
+      "app/display.py"
+    ],
+    "symbols": [
+      "render_balance"
+    ],
+    "lines": [
+      1
+    ]
+  },
+  "expected_fix_scope": [
+    "app/display.py"
+  ],
+  "verification_command": "pytest test_display.py",
+  "expected_behavior": "Import renamed helper format_price as format_currency."
+}

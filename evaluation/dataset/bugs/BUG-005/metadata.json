@@ -1,0 +1,24 @@
+{
+  "bug_id": "BUG-005",
+  "category": "B-Failed Tests",
+  "language": "python",
+  "difficulty": "easy",
+  "failure_type": "AssertionError",
+  "failure_description": "calculate_discount returns decimal proportion instead of dollar discount amount.",
+  "expected_root_cause": {
+    "files": [
+      "app/discounts.py"
+    ],
+    "symbols": [
+      "apply_tier_discount"
+    ],
+    "lines": [
+      4
+    ]
+  },
+  "expected_fix_scope": [
+    "app/discounts.py"
+  ],
+  "verification_command": "pytest test_discounts.py",
+  "expected_behavior": "Return price * (1.0 - rate)."
+}

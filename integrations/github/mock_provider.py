@@ -60,6 +60,13 @@ class MockGitProvider(GitProvider):
         self.simulate_base_change_sha: Optional[str] = None
         self.simulate_pr_creation_failure: bool = False
 
+    def simulate_base_revision_divergence(self, owner: str, repo: str, new_sha: str) -> None:
+        """Simulate remote branch advancing while local repair was running."""
+        self.simulate_base_change_sha = new_sha
+        self.branches[(owner, repo, "main")] = BranchInfo(
+            name="main", sha=new_sha, is_protected=True, exists=True
+        )
+
     @property
     def provider_type(self) -> ProviderType:
         return self._provider_type
@@ -94,16 +101,24 @@ class MockGitProvider(GitProvider):
         self,
         owner: str,
         repo: str,
-        branch: str,
-        local_repo_path: str,
+        branch: Optional[str] = None,
+        local_repo_path: str = "",
+        branch_name: Optional[str] = None,
+        commit_sha: Optional[str] = None,
+        **kwargs,
     ) -> bool:
         self._check_simulated_failures()
-        if branch in {"main", "master", "develop", "release"}:
-            raise SecurityBlockError(f"Cannot push directly to base branch '{branch}'. Modifying base branch is prohibited.")
-        key = (owner, repo, branch)
+        target_branch = branch or branch_name or ""
+        if (
+            target_branch in {"main", "master", "develop", "release", "production"}
+            or target_branch.startswith("release/")
+            or target_branch.startswith("release-")
+        ):
+            raise SecurityBlockError(f"Cannot push directly to base branch '{target_branch}'. Modifying base branch is prohibited.")
+        key = (owner, repo, target_branch)
         if key not in self.branches:
             # If not pre-created via create_branch, register it
-            self.branches[key] = BranchInfo(name=branch, sha="commit_sha_head", is_protected=False, exists=True)
+            self.branches[key] = BranchInfo(name=target_branch, sha=commit_sha or "commit_sha_head", is_protected=False, exists=True)
         self.pushed_branches.append(key)
         return True
 
@@ -123,6 +138,11 @@ class MockGitProvider(GitProvider):
 
     async def create_pull_request(self, payload: PullRequestPayload) -> PullRequestResult:
         self._check_simulated_failures()
+        if self.simulate_base_change_sha:
+            raise BaseRevisionChangedError(
+                verified_sha=self.default_branch_sha,
+                remote_sha=self.simulate_base_change_sha,
+            )
         if self.simulate_pr_creation_failure:
             raise PullRequestCreationError("Simulated PR creation API error (HTTP 500).")
 

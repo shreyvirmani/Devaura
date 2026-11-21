@@ -56,9 +56,15 @@ from database.models.pull_request import (
     PullRequestApprovalRecord,
     PullRequestEventRecord,
 )
+from database.models.evaluation import (
+    EvaluationRunRecord,
+    EvaluationBugResultRecord,
+)
 
 __all__ = [
     "Base",
+    "EvaluationRunRecord",
+    "EvaluationBugResultRecord",
     "AgentState",
     "CheckStatus",
     "Evidence",

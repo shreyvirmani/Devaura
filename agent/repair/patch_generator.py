@@ -7,6 +7,7 @@ scope invariants before patches can be proposed or analyzed.
 import difflib
 import hashlib
 import os
+import re
 from typing import Dict, List, Optional, Tuple
 
 from agent.repair.models import PatchResult, RepairContext, RepairPlan
@@ -30,14 +31,50 @@ class PatchScopeGuard:
         "id_rsa.pub",
         "id_ed25519",
         "devaura.db",
+        "secrets.yaml",
+        "secrets.json",
     }
     RESTRICTED_EXTENSIONS = {".key", ".pem", ".p12", ".pfx"}
+    SENSITIVE_PATTERNS = [
+        re.compile(r"^\.env(\..+)?$", re.IGNORECASE),
+        re.compile(r".*\.(pem|key|pkcs12|pfx|p12)$", re.IGNORECASE),
+        re.compile(r".*id_rsa.*", re.IGNORECASE),
+        re.compile(r".*id_ed25519.*", re.IGNORECASE),
+        re.compile(r".*credentials\.(json|yaml|yml|ini)$", re.IGNORECASE),
+        re.compile(r".*secrets?\.(json|yaml|yml)$", re.IGNORECASE),
+    ]
+
+    def __init__(
+        self,
+        repo_root: str = ".",
+        allowed_files: Optional[List[str]] = None,
+        max_file_size_bytes: int = 50 * 1024,
+        max_files: int = 5,
+    ):
+        self.repo_root = repo_root
+        self.allowed_files = allowed_files or []
+        self.max_file_size_bytes = max_file_size_bytes
+        self.max_files = max_files
+
+    def validate_file_path(self, file_path: str) -> None:
+        """Instance method for validating a single file path."""
+        self.validate_file(self.repo_root, file_path, self.allowed_files or [file_path])
+
+    def validate_patch(self, file_path: str, unified_diff: str) -> None:
+        """Instance method for validating a patch and target file."""
+        self.validate_file(self.repo_root, file_path, self.allowed_files or [file_path])
 
     @classmethod
     def validate_file(cls, repo_root: str, file_path: str, allowed_files: List[str]) -> None:
         """Validate a single target file path against safety boundaries."""
         # 1. Path traversal & absolute paths
-        if ".." in file_path or os.path.isabs(file_path):
+        clean_path = file_path.replace("\\", "/")
+        if (
+            ".." in clean_path
+            or os.path.isabs(file_path)
+            or clean_path.startswith("/")
+            or (len(file_path) > 1 and file_path[1] == ":")
+        ):
             raise ScopeViolationError(f"Security: Path traversal or absolute path detected: '{file_path}'")
 
         normalized = os.path.normpath(file_path).replace("\\", "/")
@@ -49,10 +86,14 @@ class PatchScopeGuard:
                 f"Scope violation: File '{file_path}' is not in approved repair scope: {allowed_files}"
             )
 
-        # 3. Disallowed files and extensions
-        base_name = os.path.basename(file_path).lower()
+        # 3. Disallowed files and extensions & sensitive regex patterns
+        base_name = os.path.basename(normalized).lower()
         if base_name in cls.RESTRICTED_FILES:
             raise ScopeViolationError(f"Security: Modification of sensitive file '{file_path}' is forbidden.")
+
+        for pat in cls.SENSITIVE_PATTERNS:
+            if pat.match(base_name) or pat.match(normalized):
+                raise ScopeViolationError(f"Security: Modification of sensitive file '{file_path}' is forbidden.")
 
         _, ext = os.path.splitext(base_name)
         if ext in cls.RESTRICTED_EXTENSIONS:

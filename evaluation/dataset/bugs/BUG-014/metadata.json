@@ -1,0 +1,24 @@
+{
+  "bug_id": "BUG-014",
+  "category": "D-Logic Bugs",
+  "language": "python",
+  "difficulty": "medium",
+  "failure_type": "AssertionError",
+  "failure_description": "Off-by-one in paginate_results omitting last element.",
+  "expected_root_cause": {
+    "files": [
+      "app/pagination.py"
+    ],
+    "symbols": [
+      "paginate_items"
+    ],
+    "lines": [
+      3
+    ]
+  },
+  "expected_fix_scope": [
+    "app/pagination.py"
+  ],
+  "verification_command": "pytest test_pagination.py",
+  "expected_behavior": "Correctly compute end index as start + page_size."
+}

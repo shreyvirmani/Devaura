@@ -1,0 +1,24 @@
+{
+  "bug_id": "BUG-022",
+  "category": "G-Type / Static Analysis Failures",
+  "language": "python",
+  "difficulty": "medium",
+  "failure_type": "TypeError",
+  "failure_description": "Passing None to non-optional string join parameter raises TypeError.",
+  "expected_root_cause": {
+    "files": [
+      "app/string_utils.py"
+    ],
+    "symbols": [
+      "join_tokens"
+    ],
+    "lines": [
+      2
+    ]
+  },
+  "expected_fix_scope": [
+    "app/string_utils.py"
+  ],
+  "verification_command": "pytest test_string_utils.py",
+  "expected_behavior": "Filter out None values before joining tokens."
+}

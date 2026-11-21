@@ -1,0 +1,10 @@
+--- a/app/http_service.py
++++ b/app/http_service.py
+@@ -1,4 +1,6 @@
++from app.settings import DEFAULT_TIMEOUT
++
+ def get_request_timeout(override=None):
+     if override is not None:
+         return override
+-    return 5
++    return DEFAULT_TIMEOUT

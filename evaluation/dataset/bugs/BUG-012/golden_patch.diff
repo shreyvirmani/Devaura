@@ -1,0 +1,9 @@
+--- a/app/taxes.py
++++ b/app/taxes.py
+@@ -1,5 +1,5 @@
+ def calculate_sales_tax(subtotal, country):
+-    if country == "EXEMPT_ZONE":
++    if country != "EXEMPT_ZONE":
+         tax_rate = 0.20
+     else:
+         tax_rate = 0.0

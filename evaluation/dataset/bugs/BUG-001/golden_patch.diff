@@ -1,0 +1,8 @@
+--- a/app/processor.py
++++ b/app/processor.py
+@@ -2,4 +2,4 @@
+     if user_dict is None:
+         user_dict = {}
+     profile = user_dict.get("profile")
+-    return profile.get("username", "anonymous")
++    return (profile or {}).get("username", "anonymous")

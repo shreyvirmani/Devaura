@@ -1,0 +1,9 @@
+--- a/app/serializer.py
++++ b/app/serializer.py
+@@ -1,5 +1,6 @@
+ def serialize_user(raw_user):
+     return {
++        "id": raw_user["uid"],
+         "user_id": raw_user["uid"],
+         "name": raw_user["name"],
+     }

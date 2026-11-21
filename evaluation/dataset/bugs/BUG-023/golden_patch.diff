@@ -1,0 +1,8 @@
+--- a/app/logger_handler.py
++++ b/app/logger_handler.py
+@@ -2,4 +2,4 @@
+     try:
+         return action_fn()
+     except Exception as err:
+-        return f"Error: {err_log}"
++        return f"Error: {err}"

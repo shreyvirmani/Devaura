@@ -1,0 +1,24 @@
+{
+  "bug_id": "BUG-008",
+  "category": "B-Failed Tests",
+  "language": "python",
+  "difficulty": "medium",
+  "failure_type": "AssertionError",
+  "failure_description": "Boundary condition bug in leap year century calculation.",
+  "expected_root_cause": {
+    "files": [
+      "app/calendar_util.py"
+    ],
+    "symbols": [
+      "is_leap_year"
+    ],
+    "lines": [
+      2
+    ]
+  },
+  "expected_fix_scope": [
+    "app/calendar_util.py"
+  ],
+  "verification_command": "pytest test_calendar_util.py",
+  "expected_behavior": "A year divisible by 100 is only leap if divisible by 400."
+}

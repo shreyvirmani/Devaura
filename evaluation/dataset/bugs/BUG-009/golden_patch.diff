@@ -1,0 +1,7 @@
+--- a/app/security.py
++++ b/app/security.py
+@@ -1,2 +1,4 @@
++import hashlib
++
+ def hash_auth_token(token):
+     return hashlib.sha256(token.encode("utf-8")).hexdigest()

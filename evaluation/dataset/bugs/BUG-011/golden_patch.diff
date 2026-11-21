@@ -1,0 +1,8 @@
+--- a/app/repository.py
++++ b/app/repository.py
+@@ -1,4 +1,4 @@
+-from app.legacy_db import query_record
++from app.database import query_record
+ 
+ def get_record(record_id):
+     return query_record(record_id)

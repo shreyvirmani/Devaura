@@ -1,0 +1,24 @@
+{
+  "bug_id": "BUG-004",
+  "category": "A-Exceptions",
+  "language": "python",
+  "difficulty": "easy",
+  "failure_type": "IndexError",
+  "failure_description": "IndexError: list index out of range in sliding window aggregator.",
+  "expected_root_cause": {
+    "files": [
+      "app/window.py"
+    ],
+    "symbols": [
+      "get_window_boundary"
+    ],
+    "lines": [
+      2
+    ]
+  },
+  "expected_fix_scope": [
+    "app/window.py"
+  ],
+  "verification_command": "pytest test_window.py",
+  "expected_behavior": "Safely return (None, None) when items array is empty."
+}

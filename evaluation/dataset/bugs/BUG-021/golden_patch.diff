@@ -1,0 +1,6 @@
+--- a/app/repo.py
++++ b/app/repo.py
+@@ -1,2 +1,2 @@
+ def get_record_timestamp(record):
+-    return record["created_at"]
++    return record.get("created_timestamp", record.get("created_at"))

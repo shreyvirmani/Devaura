@@ -1,0 +1,24 @@
+{
+  "bug_id": "BUG-001",
+  "category": "A-Exceptions",
+  "language": "python",
+  "difficulty": "easy",
+  "failure_type": "AttributeError",
+  "failure_description": "AttributeError: 'NoneType' object has no attribute 'get' in user processor.",
+  "expected_root_cause": {
+    "files": [
+      "app/processor.py"
+    ],
+    "symbols": [
+      "process_user_profile"
+    ],
+    "lines": [
+      5
+    ]
+  },
+  "expected_fix_scope": [
+    "app/processor.py"
+  ],
+  "verification_command": "pytest test_processor.py",
+  "expected_behavior": "Defensively handle None user profile by returning default metadata."
+}

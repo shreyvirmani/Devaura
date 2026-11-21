@@ -1,0 +1,6 @@
+--- a/app/formatter.py
++++ b/app/formatter.py
+@@ -1,2 +1,2 @@
+-def format_header(title, prefix):
++def format_header(title, prefix=""):
+     return f"{prefix}{title}"

@@ -1,0 +1,24 @@
+{
+  "bug_id": "BUG-023",
+  "category": "G-Type / Static Analysis Failures",
+  "language": "python",
+  "difficulty": "easy",
+  "failure_type": "NameError",
+  "failure_description": "Undefined variable 'err_log' referenced in exception handler.",
+  "expected_root_cause": {
+    "files": [
+      "app/logger_handler.py"
+    ],
+    "symbols": [
+      "handle_error"
+    ],
+    "lines": [
+      5
+    ]
+  },
+  "expected_fix_scope": [
+    "app/logger_handler.py"
+  ],
+  "verification_command": "pytest test_logger_handler.py",
+  "expected_behavior": "Reference defined variable 'err' in exception block."
+}

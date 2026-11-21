@@ -1,0 +1,24 @@
+{
+  "bug_id": "BUG-020",
+  "category": "F-Multi-file Bugs",
+  "language": "python",
+  "difficulty": "hard",
+  "failure_type": "AssertionError",
+  "failure_description": "Config timeout value in settings.py not respected in http_service.py default timeout.",
+  "expected_root_cause": {
+    "files": [
+      "app/http_service.py"
+    ],
+    "symbols": [
+      "get_request_timeout"
+    ],
+    "lines": [
+      4
+    ]
+  },
+  "expected_fix_scope": [
+    "app/http_service.py"
+  ],
+  "verification_command": "pytest test_http_service.py",
+  "expected_behavior": "Import DEFAULT_TIMEOUT from app.settings and use as fallback."
+}

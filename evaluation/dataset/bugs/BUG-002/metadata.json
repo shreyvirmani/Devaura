@@ -1,0 +1,24 @@
+{
+  "bug_id": "BUG-002",
+  "category": "A-Exceptions",
+  "language": "python",
+  "difficulty": "easy",
+  "failure_type": "KeyError",
+  "failure_description": "KeyError: 'status' in webhook payload event router.",
+  "expected_root_cause": {
+    "files": [
+      "app/webhook.py"
+    ],
+    "symbols": [
+      "route_webhook_event"
+    ],
+    "lines": [
+      4
+    ]
+  },
+  "expected_fix_scope": [
+    "app/webhook.py"
+  ],
+  "verification_command": "pytest test_webhook.py",
+  "expected_behavior": "Safely read status from payload without raising KeyError on partial events."
+}

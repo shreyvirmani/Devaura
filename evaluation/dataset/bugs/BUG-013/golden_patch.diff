@@ -1,0 +1,6 @@
+--- a/app/auth_policy.py
++++ b/app/auth_policy.py
+@@ -1,2 +1,2 @@
+ def has_access(user_role):
+-    return user_role == "admin"
++    return user_role in {"admin", "superuser"}

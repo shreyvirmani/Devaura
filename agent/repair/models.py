@@ -79,9 +79,16 @@ class OverallVerificationStatus(str, Enum):
 
 class FailureClassification(str, Enum):
     CODE_FAILURE = "CODE_FAILURE"
+    TEST_FAILURE = "TEST_FAILURE"
+    LINT_FAILURE = "LINT_FAILURE"
+    TYPECHECK_FAILURE = "TYPECHECK_FAILURE"
+    DEPENDENCY_FAILURE = "DEPENDENCY_FAILURE"
     INFRASTRUCTURE_FAILURE = "INFRASTRUCTURE_FAILURE"
-    SECURITY_BLOCK = "SECURITY_BLOCK"
     TIMEOUT_ERROR = "TIMEOUT_ERROR"
+    TIMEOUT = "TIMEOUT_ERROR"
+    PERMISSION_FAILURE = "PERMISSION_FAILURE"
+    ENVIRONMENT_FAILURE = "ENVIRONMENT_FAILURE"
+    SECURITY_BLOCK = "SECURITY_BLOCK"
     UNKNOWN = "UNKNOWN"
 
 
@@ -235,6 +242,10 @@ class TestFailure(BaseModel):
     expected: Optional[str] = None
     actual: Optional[str] = None
     confidence: float = 1.0
+
+    @property
+    def exception_type(self) -> str:
+        return self.error_type
 
 
 class VerificationCheck(BaseModel):

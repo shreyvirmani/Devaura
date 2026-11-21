@@ -1,0 +1,8 @@
+--- a/app/list_provider.py
++++ b/app/list_provider.py
+@@ -1,4 +1,4 @@
+ TAG_DATA = {"v1": True, "v2": False, "v3": True}
+ 
+ def get_active_tags():
+-    return {k: v for k, v in TAG_DATA.items() if v}
++    return [k for k, v in TAG_DATA.items() if v]

@@ -1,0 +1,24 @@
+{
+  "bug_id": "BUG-009",
+  "category": "C-Import / Dependency Failures",
+  "language": "python",
+  "difficulty": "easy",
+  "failure_type": "NameError",
+  "failure_description": "NameError: name 'hashlib' is not defined in token hasher.",
+  "expected_root_cause": {
+    "files": [
+      "app/security.py"
+    ],
+    "symbols": [
+      "hash_auth_token"
+    ],
+    "lines": [
+      1
+    ]
+  },
+  "expected_fix_scope": [
+    "app/security.py"
+  ],
+  "verification_command": "pytest test_security.py",
+  "expected_behavior": "Import hashlib module at top of security.py."
+}

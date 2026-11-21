@@ -1,0 +1,6 @@
+--- a/app/string_utils.py
++++ b/app/string_utils.py
+@@ -1,2 +1,2 @@
+ def join_tokens(tokens):
+-    return " ".join(tokens)
++    return " ".join(str(t) for t in tokens if t is not None)

@@ -1,0 +1,6 @@
+--- a/app/ratelimit.py
++++ b/app/ratelimit.py
+@@ -1,2 +1,2 @@
+ def is_rate_limited(current_requests, max_allowed):
+-    return current_requests < max_allowed
++    return current_requests >= max_allowed

@@ -1,0 +1,8 @@
+--- a/app/pagination.py
++++ b/app/pagination.py
+@@ -1,4 +1,4 @@
+ def paginate_items(items, page, page_size):
+     start = (page - 1) * page_size
+-    end = start + page_size - 1
++    end = start + page_size
+     return items[start:end]

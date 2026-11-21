@@ -108,10 +108,38 @@ class VerificationAnalyzer:
             current_signature = "unparsed:" + primary_check.check_type.value
             root_summary = f"{primary_check.check_type.value} command failed with exit code {primary_check.exit_code}."
 
+        err_msg = primary_failure.message if primary_failure else ""
+        err_type = (getattr(primary_failure, "error_type", "") or getattr(primary_failure, "exception_type", "") or "") if primary_failure else ""
+        err_combined = f"{err_msg} {err_type}".lower()
+
+        # Determine failure classification
+        if primary_check.check_type == CheckType.LINT:
+            classified_type = FailureClassification.LINT_FAILURE
+        elif primary_check.check_type == CheckType.TYPECHECK:
+            classified_type = FailureClassification.TYPECHECK_FAILURE
+        elif primary_failure and any(term in err_combined for term in ["modulenotfounderror", "no module named", "pip install"]):
+            classified_type = FailureClassification.DEPENDENCY_FAILURE
+        elif primary_failure and any(term in err_combined for term in ["permissiondenied", "eacces", "operation not permitted"]):
+            classified_type = FailureClassification.PERMISSION_FAILURE
+        else:
+            classified_type = FailureClassification.CODE_FAILURE
+
+        # Non-retryable dependency/environment/permission errors
+        if classified_type in {FailureClassification.DEPENDENCY_FAILURE, FailureClassification.PERMISSION_FAILURE, FailureClassification.ENVIRONMENT_FAILURE}:
+            return FailureAnalysisReport(
+                failure_type=classified_type,
+                failure_signature=current_signature,
+                root_cause_summary=root_summary,
+                affected_files=affected_files,
+                affected_symbols=affected_symbols,
+                can_retry=False,
+                retry_block_reason=f"{classified_type.value} cannot be automatically repaired by code changes.",
+            )
+
         # 3. Check Attempt Limit (Max 3 total attempts)
         if verification_run.attempt_number >= self.MAX_REPAIR_ATTEMPTS:
             return FailureAnalysisReport(
-                failure_type=FailureClassification.CODE_FAILURE,
+                failure_type=classified_type,
                 failure_signature=current_signature,
                 root_cause_summary=root_summary,
                 affected_files=affected_files,
@@ -125,7 +153,7 @@ class VerificationAnalyzer:
             # If current patch is also identical to previous, abort for NO_PROGRESS
             if current_patch_hash and current_patch_hash in prev_hashes:
                 return FailureAnalysisReport(
-                    failure_type=FailureClassification.CODE_FAILURE,
+                    failure_type=classified_type,
                     failure_signature=current_signature,
                     root_cause_summary=root_summary,
                     affected_files=affected_files,
@@ -144,7 +172,7 @@ class VerificationAnalyzer:
             suggestions.append("Add explicit type annotations or null checks to satisfy static type analyzer.")
 
         return FailureAnalysisReport(
-            failure_type=FailureClassification.CODE_FAILURE,
+            failure_type=classified_type,
             failure_signature=current_signature,
             root_cause_summary=root_summary,
             affected_files=affected_files,

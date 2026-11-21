@@ -1,0 +1,24 @@
+{
+  "bug_id": "BUG-021",
+  "category": "F-Multi-file Bugs",
+  "language": "python",
+  "difficulty": "hard",
+  "failure_type": "KeyError",
+  "failure_description": "Model field in models.py updated to 'created_timestamp' but repository query accesses 'created_at'.",
+  "expected_root_cause": {
+    "files": [
+      "app/repo.py"
+    ],
+    "symbols": [
+      "get_record_timestamp"
+    ],
+    "lines": [
+      2
+    ]
+  },
+  "expected_fix_scope": [
+    "app/repo.py"
+  ],
+  "verification_command": "pytest test_repo.py",
+  "expected_behavior": "Query 'created_timestamp' or fallback to 'created_at'."
+}

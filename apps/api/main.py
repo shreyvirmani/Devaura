@@ -5,7 +5,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from apps.api.config import get_settings
 from apps.api.logger import logger
-from apps.api.routes import code_intelligence, health, investigations, mcp_servers, metrics, repositories, repairs, pull_requests
+from apps.api.routes import code_intelligence, evaluation, health, investigations, mcp_servers, metrics, repositories, repairs, pull_requests
 from database.connection import close_db, init_db
 
 
@@ -88,6 +88,7 @@ app.include_router(mcp_servers.router, prefix=api_v1_prefix)
 app.include_router(code_intelligence.router, prefix=api_v1_prefix)
 app.include_router(metrics.router, prefix=api_v1_prefix)
 app.include_router(pull_requests.router, prefix=api_v1_prefix)
+app.include_router(evaluation.router, prefix=api_v1_prefix)
 
 
 @app.get("/")

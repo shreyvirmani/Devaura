@@ -1,0 +1,8 @@
+--- a/app/discounts.py
++++ b/app/discounts.py
+@@ -1,4 +1,4 @@
+ def apply_tier_discount(price, tier):
+     rates = {"gold": 0.20, "silver": 0.10, "bronze": 0.05}
+     rate = rates.get(tier, 0.0)
+-    return price * rate
++    return price * (1.0 - rate)

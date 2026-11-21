@@ -1,0 +1,24 @@
+{
+  "bug_id": "BUG-017",
+  "category": "E-Regression Bugs",
+  "language": "python",
+  "difficulty": "medium",
+  "failure_type": "TypeError",
+  "failure_description": "Function signature refactor broke callers expecting optional parameter.",
+  "expected_root_cause": {
+    "files": [
+      "app/formatter.py"
+    ],
+    "symbols": [
+      "format_header"
+    ],
+    "lines": [
+      1
+    ]
+  },
+  "expected_fix_scope": [
+    "app/formatter.py"
+  ],
+  "verification_command": "pytest test_formatter.py",
+  "expected_behavior": "Restore default prefix='' parameter for backward compatibility."
+}

@@ -1,0 +1,8 @@
+--- a/app/display.py
++++ b/app/display.py
+@@ -1,4 +1,4 @@
+-from app.helpers import format_currency
++from app.helpers import format_price as format_currency
+ 
+ def render_balance(account_name, balance):
+     return f"{account_name}: {format_currency(balance)}"

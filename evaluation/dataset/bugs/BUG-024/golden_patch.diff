@@ -1,0 +1,9 @@
+--- a/app/inventory.py
++++ b/app/inventory.py
+@@ -2,5 +2,5 @@
+ 
+ def reserve_stock(item_id, count):
+     current = STOCK.get(item_id, 0)
+-    STOCK[item_id] = current + count
++    STOCK[item_id] = current - count
+     return True

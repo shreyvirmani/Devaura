@@ -112,6 +112,9 @@ class RepairRecord(Base):
     failure_signatures: Mapped[List["FailureSignatureRecord"]] = relationship(
         "FailureSignatureRecord", back_populates="repair", cascade="all, delete-orphan", lazy="selectin"
     )
+    pull_request: Mapped[Optional["PullRequestRecord"]] = relationship(
+        "PullRequestRecord", back_populates="repair", uselist=False, cascade="all, delete-orphan", lazy="selectin"
+    )
 
 
 class RepairContextRecord(Base):

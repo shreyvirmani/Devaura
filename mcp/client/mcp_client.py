@@ -193,6 +193,10 @@ class DevauraMCPClient:
                 for tool in raw_tools:
                     fn = getattr(tool, "fn", None)
                     risk = getattr(fn, "risk_level", None) if fn else None
+                    if not risk and hasattr(self.native_server, "_tool_manager"):
+                        mgr_tool = self.native_server._tool_manager.get_tool(tool.name)
+                        if mgr_tool and hasattr(mgr_tool, "fn"):
+                            risk = getattr(mgr_tool.fn, "risk_level", None)
                     if not risk:
                         risk = getattr(tool, "risk_level", None)
                     if not risk:
@@ -436,10 +440,10 @@ class DevauraMCPClient:
         """Deterministic risk classifier based on tool name semantics."""
         name = tool_name.lower()
         # DANGEROUS operations
-        if any(keyword in name for keyword in ["push", "merge", "delete", "deploy", "drop", "destroy", "approve_repair", "apply_approved_patch"]):
+        if any(keyword in name for keyword in ["push", "merge", "delete", "deploy", "drop", "destroy", "approve_repair", "apply_approved_patch", "create_pull_request"]):
             return RiskLevel.DANGEROUS
         # CONTROLLED mutations
-        if any(keyword in name for keyword in ["run_", "test", "patch", "apply", "commit", "branch", "execute", "write", "verification"]):
+        if any(keyword in name for keyword in ["run_", "test", "patch", "apply", "commit", "branch", "execute", "write", "verification", "prepare_pull_request", "request_pr_approval"]):
             return RiskLevel.CONTROLLED
         # SAFE read-only operations
         return RiskLevel.SAFE

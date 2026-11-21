@@ -9,6 +9,10 @@ class CurrentUser(BaseModel):
     name: str
     is_authenticated: bool = True
 
+    @property
+    def username(self) -> str:
+        return self.email or self.name or self.id
+
 
 # Default developer context for local development / testing
 DEV_USER = CurrentUser(

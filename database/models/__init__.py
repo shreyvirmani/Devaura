@@ -51,6 +51,11 @@ from database.models.repair import (
     VerificationCheckRecord,
     VerificationRunRecord,
 )
+from database.models.pull_request import (
+    PullRequestRecord,
+    PullRequestApprovalRecord,
+    PullRequestEventRecord,
+)
 
 __all__ = [
     "Base",
@@ -100,4 +105,7 @@ __all__ = [
     "VerificationRunRecord",
     "VerificationCheckRecord",
     "FailureSignatureRecord",
+    "PullRequestRecord",
+    "PullRequestApprovalRecord",
+    "PullRequestEventRecord",
 ]

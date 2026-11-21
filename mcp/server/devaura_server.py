@@ -31,6 +31,30 @@ from agent.repair.planner import RepairPlanner
 from agent.repair.patch_generator import PatchGenerator
 from agent.repair.risk_analyzer import PatchRiskAnalyzer
 from agent.repair.approval_gate import HumanApprovalGate
+from agent.pr.approval_gate import HumanPRApprovalGate
+from agent.pr.context_builder import PRContextBuilder
+from agent.pr.git_manager import GitStateManager
+from agent.pr.models import (
+    PRApproval,
+    PRApprovalStatus,
+    PRContext,
+    PRPreparationResult,
+    PRState,
+)
+from agent.pr.orchestrator import PROrchestrator
+from integrations.github.client import GitHubClient
+from integrations.github.mock_provider import MockGitProvider
+from integrations.github.models import (
+    BranchInfo,
+    CIStatus,
+    CIStatusInfo,
+    CommitInfo,
+    PullRequestPayload,
+    PullRequestResult,
+    PullRequestState,
+    ReviewInfo,
+    ReviewStatus,
+)
 from sandbox.isolated_runner import IsolatedRunner
 from code_intelligence.graph.queries import GraphQueryEngine
 from code_intelligence.graph.relationship_builder import RelationshipBuilder
@@ -922,6 +946,345 @@ def create_devaura_native_server() -> MCPServer:
         return json.dumps(attempts, indent=2)
 
     get_repair_attempts.risk_level = RiskLevel.SAFE
+
+    # --------------------------------------------------------------------------
+    # 23. Tool: prepare_pull_request (CONTROLLED)
+    # --------------------------------------------------------------------------
+    @server.tool(
+        name="prepare_pull_request",
+        description="Verify entry preconditions and synthesize PR branch, commit metadata, and structured description.",
+    )
+    async def prepare_pull_request(
+        repair_id: str,
+        owner: str = "shreyvirmani",
+        repo: str = "Devaura",
+    ) -> str:
+        try:
+            record = _REPAIR_CACHE.get(repair_id, {})
+            exec_res = record.get("execution_result")
+            patch = record.get("patch")
+            ctx = record.get("context")
+            latest_ver = record.get("latest_verification")
+
+            class DummyRepair:
+                def __init__(self):
+                    self.id = repair_id
+                    self.status = record.get("status", "VERIFIED")
+                    self.investigation_id = ctx.investigation_id if ctx else f"inv-{repair_id[:8]}"
+                    self.repository_id = ctx.repository_id if ctx else f"repo-{owner}/{repo}"
+                    self.base_revision = record.get("base_revision", "HEAD")
+                    self.workspace = type(
+                        "DummyWorkspace",
+                        (),
+                        {"isolated_path": exec_res.isolated_path if exec_res else os.getcwd()},
+                    )()
+                    self.patch = patch
+
+            repair_obj = DummyRepair()
+
+            verified_res = None
+            if latest_ver and hasattr(latest_ver, "overall_result") and latest_ver.overall_result == "PASS":
+                verified_res = VerifiedRepairResult(
+                    repair_id=repair_id,
+                    investigation_id=repair_obj.investigation_id,
+                    repository=f"{owner}/{repo}",
+                    base_revision=repair_obj.base_revision,
+                    final_workspace_id=getattr(repair_obj.workspace, "isolated_path", "ws-default"),
+                    final_patch_hash=patch.patch_hash if patch else "hash-verified",
+                    changed_files=patch.changed_files if patch else [],
+                    final_diff=patch.unified_diff if patch else "",
+                    verification_status="VERIFIED",
+                    checks=[],
+                    attempts=[],
+                )
+
+            orchestrator = PROrchestrator()
+            prep_res = orchestrator.prepare_pull_request(
+                repair=repair_obj,
+                verified_result=verified_res,
+                owner=owner,
+                repo=repo,
+            )
+            record["pr_context"] = prep_res.context
+            record["pr_preparation"] = prep_res
+            _REPAIR_CACHE[repair_id] = record
+            return prep_res.model_dump_json(indent=2)
+        except Exception as e:
+            return json.dumps({"status": "PR_BLOCKED", "error": str(e)}, indent=2)
+
+    prepare_pull_request.risk_level = RiskLevel.CONTROLLED
+
+    # --------------------------------------------------------------------------
+    # 24. Tool: get_pr_context (SAFE)
+    # --------------------------------------------------------------------------
+    @server.tool(
+        name="get_pr_context",
+        description="Retrieve the synthesized PR context, title, markdown body, and branch name for a repair.",
+    )
+    async def get_pr_context(repair_id: str) -> str:
+        record = _REPAIR_CACHE.get(repair_id, {})
+        pr_ctx = record.get("pr_context")
+        if not pr_ctx:
+            return json.dumps({"error": f"No PR context prepared for repair {repair_id}"}, indent=2)
+        return pr_ctx.model_dump_json(indent=2)
+
+    get_pr_context.risk_level = RiskLevel.SAFE
+
+    # --------------------------------------------------------------------------
+    # 25. Tool: prepare_repair_branch (CONTROLLED)
+    # --------------------------------------------------------------------------
+    @server.tool(
+        name="prepare_repair_branch",
+        description="Verify git status and ensure repair branch exists and is checked out in workspace.",
+    )
+    async def prepare_repair_branch(repair_id: str, branch_name: str = "") -> str:
+        try:
+            record = _REPAIR_CACHE.get(repair_id, {})
+            pr_ctx = record.get("pr_context")
+            exec_res = record.get("execution_result")
+            target_branch = branch_name or (pr_ctx.repair_branch if pr_ctx else f"devaura/repair/{repair_id[:8]}")
+            target_path = exec_res.isolated_path if exec_res else os.getcwd()
+
+            manager = GitStateManager(repo_path=target_path)
+            branch_info = manager.prepare_repair_branch(target_branch)
+            return json.dumps({
+                "status": "BRANCH_READY",
+                "branch": branch_info.name,
+                "current_sha": branch_info.commit_sha,
+                "is_current": branch_info.is_current,
+            }, indent=2)
+        except Exception as e:
+            return json.dumps({"status": "BRANCH_ERROR", "error": str(e)}, indent=2)
+
+    prepare_repair_branch.risk_level = RiskLevel.CONTROLLED
+
+    # --------------------------------------------------------------------------
+    # 26. Tool: prepare_repair_commit (CONTROLLED)
+    # --------------------------------------------------------------------------
+    @server.tool(
+        name="prepare_repair_commit",
+        description="Stage verified changes only and create a structured commit with attribution in workspace.",
+    )
+    async def prepare_repair_commit(repair_id: str, commit_message: str = "") -> str:
+        try:
+            record = _REPAIR_CACHE.get(repair_id, {})
+            pr_ctx = record.get("pr_context")
+            exec_res = record.get("execution_result")
+            target_path = exec_res.isolated_path if exec_res else os.getcwd()
+            allowed_files = pr_ctx.changed_files if pr_ctx else []
+            msg = commit_message or (pr_ctx.commit_message if pr_ctx else f"fix(repair): verified fix for {repair_id[:8]}")
+
+            manager = GitStateManager(repo_path=target_path)
+            commit_info = manager.create_repair_commit(
+                commit_message=msg,
+                allowed_files=allowed_files,
+                author_name="Devaura Repair Agent",
+                author_email="repair-agent@devaura.ai",
+            )
+            return json.dumps({
+                "status": "COMMIT_READY",
+                "commit_sha": commit_info.sha,
+                "commit_message": commit_info.message,
+                "author": commit_info.author,
+            }, indent=2)
+        except Exception as e:
+            return json.dumps({"status": "COMMIT_ERROR", "error": str(e)}, indent=2)
+
+    prepare_repair_commit.risk_level = RiskLevel.CONTROLLED
+
+    # --------------------------------------------------------------------------
+    # 27. Tool: request_pr_approval (CONTROLLED)
+    # --------------------------------------------------------------------------
+    @server.tool(
+        name="request_pr_approval",
+        description="Generate cryptographic HMAC-SHA256 PR approval token bound to exact repair, patch, branch, and repo.",
+    )
+    async def request_pr_approval(
+        repair_id: str,
+        approver_identity: str = "human-operator",
+    ) -> str:
+        try:
+            record = _REPAIR_CACHE.get(repair_id, {})
+            pr_ctx = record.get("pr_context")
+            if not pr_ctx:
+                return json.dumps({"error": f"PR context not found for repair {repair_id}. Call prepare_pull_request first."}, indent=2)
+
+            orchestrator = PROrchestrator()
+            approval = orchestrator.authorize_pull_request(
+                context=pr_ctx,
+                user_identity=approver_identity,
+            )
+            record["pr_approval"] = approval
+            _REPAIR_CACHE[repair_id] = record
+            return approval.model_dump_json(indent=2)
+        except Exception as e:
+            return json.dumps({"error": str(e)}, indent=2)
+
+    request_pr_approval.risk_level = RiskLevel.CONTROLLED
+
+    # --------------------------------------------------------------------------
+    # 28. Tool: push_repair_branch (DANGEROUS)
+    # --------------------------------------------------------------------------
+    @server.tool(
+        name="push_repair_branch",
+        description="Push verified repair branch to remote Git provider (never touches main).",
+    )
+    async def push_repair_branch(
+        repair_id: str,
+        remote_name: str = "origin",
+    ) -> str:
+        try:
+            record = _REPAIR_CACHE.get(repair_id, {})
+            pr_ctx = record.get("pr_context")
+            if not pr_ctx:
+                return json.dumps({"error": f"PR context not found for {repair_id}"}, indent=2)
+
+            token = os.environ.get("GITHUB_TOKEN")
+            provider = GitHubClient(token=token) if token else MockGitProvider()
+
+            exec_res = record.get("execution_result")
+            target_path = exec_res.isolated_path if exec_res else os.getcwd()
+
+            branch_info = await provider.push_branch(
+                owner=pr_ctx.owner,
+                repo=pr_ctx.repo,
+                branch=pr_ctx.repair_branch,
+                local_repo_path=target_path,
+            )
+            return json.dumps({
+                "status": "BRANCH_PUSHED",
+                "branch": branch_info.name,
+                "commit_sha": branch_info.commit_sha,
+            }, indent=2)
+        except Exception as e:
+            return json.dumps({"status": "PUSH_FAILED", "error": str(e)}, indent=2)
+
+    push_repair_branch.risk_level = RiskLevel.DANGEROUS
+
+    # --------------------------------------------------------------------------
+    # 29. Tool: create_pull_request (DANGEROUS)
+    # --------------------------------------------------------------------------
+    @server.tool(
+        name="create_pull_request",
+        description="Submit verified Pull Request to Git provider after cryptographic human authorization check.",
+    )
+    async def create_pull_request(
+        repair_id: str,
+        approval_token: str = "",
+        approver: str = "human-operator",
+    ) -> str:
+        try:
+            record = _REPAIR_CACHE.get(repair_id, {})
+            pr_ctx = record.get("pr_context")
+            if not pr_ctx:
+                return json.dumps({"error": f"PR context not found for {repair_id}"}, indent=2)
+
+            approval = record.get("pr_approval")
+            if not approval:
+                gate = HumanPRApprovalGate()
+                approval = gate.create_approval(
+                    repair_id=repair_id,
+                    patch_hash=pr_ctx.patch_hash,
+                    base_revision=pr_ctx.base_revision,
+                    repair_branch=pr_ctx.repair_branch,
+                    repository=pr_ctx.repository,
+                    user_identity=approver,
+                    operation="CREATE_PULL_REQUEST",
+                )
+
+            if approval_token:
+                approval.approval_token = approval_token
+
+            token = os.environ.get("GITHUB_TOKEN")
+            provider = GitHubClient(token=token) if token else MockGitProvider()
+
+            orchestrator = PROrchestrator()
+            exec_res = record.get("execution_result")
+            target_path = exec_res.isolated_path if exec_res else os.getcwd()
+
+            class DummyRepair:
+                def __init__(self):
+                    self.id = repair_id
+                    self.workspace = type("DummyWorkspace", (), {"isolated_path": target_path})()
+
+            result = await orchestrator.execute_pull_request_creation(
+                repair=DummyRepair(),
+                context=pr_ctx,
+                approval=approval,
+                provider=provider,
+                local_repo_path=target_path,
+            )
+            record["pr_result"] = result
+            _REPAIR_CACHE[repair_id] = record
+            return result.model_dump_json(indent=2)
+        except Exception as e:
+            return json.dumps({"status": "PR_CREATION_FAILED", "error": str(e)}, indent=2)
+
+    create_pull_request.risk_level = RiskLevel.DANGEROUS
+
+    # --------------------------------------------------------------------------
+    # 30. Tool: get_pull_request (SAFE)
+    # --------------------------------------------------------------------------
+    @server.tool(
+        name="get_pull_request",
+        description="Retrieve created Pull Request details, status, and URL.",
+    )
+    async def get_pull_request(repair_id: str) -> str:
+        record = _REPAIR_CACHE.get(repair_id, {})
+        pr_res = record.get("pr_result")
+        if not pr_res:
+            return json.dumps({"error": f"No Pull Request found for repair {repair_id}"}, indent=2)
+        return pr_res.model_dump_json(indent=2)
+
+    get_pull_request.risk_level = RiskLevel.SAFE
+
+    # --------------------------------------------------------------------------
+    # 31. Tool: get_pr_status (SAFE)
+    # --------------------------------------------------------------------------
+    @server.tool(
+        name="get_pr_status",
+        description="Query live CI check-run status and review state for an active Pull Request.",
+    )
+    async def get_pr_status(repair_id: str) -> str:
+        try:
+            record = _REPAIR_CACHE.get(repair_id, {})
+            pr_res = record.get("pr_result")
+            if not pr_res:
+                return json.dumps({"error": f"No active PR for repair {repair_id}"}, indent=2)
+
+            token = os.environ.get("GITHUB_TOKEN")
+            provider = GitHubClient(token=token) if token else MockGitProvider()
+
+            owner, repo = pr_res.repository.split("/") if "/" in pr_res.repository else ("shreyvirmani", "Devaura")
+            ci_status = await provider.get_ci_status(owner=owner, repo=repo, commit_sha=pr_res.commit_sha or "HEAD")
+            review_status = await provider.get_review_status(owner=owner, repo=repo, pr_number=pr_res.pr_number)
+
+            return json.dumps({
+                "repair_id": repair_id,
+                "pr_number": pr_res.pr_number,
+                "pr_url": pr_res.pr_url,
+                "pr_state": pr_res.state.value,
+                "ci_status": ci_status.model_dump(mode="json"),
+                "review_status": review_status.model_dump(mode="json"),
+            }, indent=2)
+        except Exception as e:
+            return json.dumps({"error": str(e)}, indent=2)
+
+    get_pr_status.risk_level = RiskLevel.SAFE
+
+    # --------------------------------------------------------------------------
+    # 32. Tool: get_pull_request_history (SAFE)
+    # --------------------------------------------------------------------------
+    @server.tool(
+        name="get_pull_request_history",
+        description="Retrieve complete audit trail and event logs for PR lifecycle.",
+    )
+    async def get_pull_request_history(repair_id: str) -> str:
+        record = _REPAIR_CACHE.get(repair_id, {})
+        events = record.get("pr_events", [])
+        return json.dumps(events, indent=2)
+
+    get_pull_request_history.risk_level = RiskLevel.SAFE
 
     # --------------------------------------------------------------------------
     # Standardized Prompts

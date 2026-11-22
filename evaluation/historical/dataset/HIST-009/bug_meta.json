@@ -1,0 +1,13 @@
+{
+  "bug_id": "HIST-009",
+  "project": "pytest",
+  "ecosystem": "python",
+  "cve_or_issue": "Issue #5888",
+  "category": "Test Harness / Fixtures",
+  "title": "Fixture teardown failure silently suppresses test execution report",
+  "description": "When fixture generator teardown raised an unhandled error, the primary test assertion outcome was lost.",
+  "error_message": "RuntimeError: fixture teardown wiped test execution record",
+  "stack_trace": "Traceback (most recent call last):\n  File \"tests/test_reproduce.py\", line 16, in test_preserve_test_record_on_teardown_error\n    res = run_test_with_teardown(test_func, failing_teardown)\nRuntimeError: fixture teardown wiped test execution record\n",
+  "test_command": "pytest tests/test_reproduce.py",
+  "context_files": []
+}

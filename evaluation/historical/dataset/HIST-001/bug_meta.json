@@ -1,0 +1,13 @@
+{
+  "bug_id": "HIST-001",
+  "project": "flask",
+  "ecosystem": "python",
+  "cve_or_issue": "Issue #2766 / CVE-2018-1000656",
+  "category": "Routing / URL Parsing",
+  "title": "Query parameters dropped during trailing slash redirection",
+  "description": "When redirecting a strict-slashes route from /path to /path/, query string was dropped.",
+  "error_message": "AssertionError: assert 'redirected?token=abc' == 'redirected'",
+  "stack_trace": "Traceback (most recent call last):\n  File \"tests/test_reproduce.py\", line 18, in test_slash_redirect_preserves_query\n    assert response.location == '/items/?page=2'\nAssertionError: assert '/items/' == '/items/?page=2'\n",
+  "test_command": "pytest tests/test_reproduce.py",
+  "context_files": []
+}

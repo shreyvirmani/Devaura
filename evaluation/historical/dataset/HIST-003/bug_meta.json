@@ -1,0 +1,13 @@
+{
+  "bug_id": "HIST-003",
+  "project": "click",
+  "ecosystem": "python",
+  "cve_or_issue": "Issue #1624",
+  "category": "CLI / Unicode Handling",
+  "title": "TypeError when formatting command path with unicode or binary names",
+  "description": "Click command path formatting crashed with TypeError when command name was bytes or non-ascii.",
+  "error_message": "TypeError: can only concatenate str (not 'bytes') to str",
+  "stack_trace": "Traceback (most recent call last):\n  File \"tests/test_reproduce.py\", line 12, in test_unicode_command_path\n    res = format_command_path(['cli', b'sub'])\n  File \"click_cli/formatting.py\", line 6, in format_command_path\n    return ' '.join(parts)\nTypeError: sequence item 1: expected str instance, bytes found\n",
+  "test_command": "pytest tests/test_reproduce.py",
+  "context_files": []
+}

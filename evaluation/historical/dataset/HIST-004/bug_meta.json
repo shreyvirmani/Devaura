@@ -1,0 +1,13 @@
+{
+  "bug_id": "HIST-004",
+  "project": "pydantic",
+  "ecosystem": "python",
+  "cve_or_issue": "Issue #1449",
+  "category": "Type Parsing / Validation",
+  "title": "Union validation resolves incorrectly when optional field is None",
+  "description": "Union parser defaulted to first matching type instead of verifying schema exactness when value was None.",
+  "error_message": "ValueError: invalid union resolution for None value",
+  "stack_trace": "Traceback (most recent call last):\n  File \"tests/test_reproduce.py\", line 14, in test_union_optional_parsing\n    val = parse_union_value(None, allowed_types=['dict', 'none'])\nValueError: invalid union resolution for None value\n",
+  "test_command": "pytest tests/test_reproduce.py",
+  "context_files": []
+}

@@ -19,6 +19,7 @@ import uuid
 
 from agent.events import LifecycleEventType, tracker
 from agent.investigator import InvestigatorEngine
+from agent.llm.provider import LLMConfigurationError
 from agent.models import FailureType, InvestigationRequest
 from agent.pr.approval_gate import HumanPRApprovalGate
 from agent.repair.approval_gate import HumanApprovalGate
@@ -42,10 +43,20 @@ PER_BUG_DIR = RESULTS_DIR / "per_bug"
 class BenchmarkRunner:
     """Executes the hardened quantitative evaluation pipeline across the benchmark dataset."""
 
-    def __init__(self, dataset_dir: Optional[Path] = None, results_dir: Optional[Path] = None):
+    def __init__(
+        self,
+        dataset_dir: Optional[Path] = None,
+        results_dir: Optional[Path] = None,
+        mode: str = "deterministic",
+    ):
         self.dataset_dir = dataset_dir or DATASET_ROOT
         self.results_dir = results_dir or RESULTS_DIR
         self.per_bug_dir = self.results_dir / "per_bug"
+        self.mode = mode.lower()
+        if self.mode == "live":
+            key = os.getenv("GEMINI_API_KEY") or os.getenv("OPENAI_API_KEY")
+            if not key:
+                raise LLMConfigurationError("LLM benchmark = NOT EXECUTED: live mode requested but API keys are unset.")
 
     def run_all(self, max_bugs: Optional[int] = None) -> SummaryBenchmarkMetrics:
         """Execute evaluation across all benchmark cases."""

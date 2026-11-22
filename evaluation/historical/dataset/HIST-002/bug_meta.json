@@ -1,0 +1,13 @@
+{
+  "bug_id": "HIST-002",
+  "project": "requests",
+  "ecosystem": "python",
+  "cve_or_issue": "CVE-2018-18074",
+  "category": "Security / HTTP Redirect",
+  "title": "Authorization header leaked across different domains during HTTP redirect",
+  "description": "Session redirect handler failed to strip Authorization header when redirecting to another host.",
+  "error_message": "AssertionError: assert 'Authorization' not in headers",
+  "stack_trace": "Traceback (most recent call last):\n  File \"tests/test_reproduce.py\", line 15, in test_strip_auth_on_redirect\n    assert 'Authorization' not in result_headers\nAssertionError: assert 'Authorization' not in {'Authorization': 'Bearer sec', 'Host': 'evil.com'}\n",
+  "test_command": "pytest tests/test_reproduce.py",
+  "context_files": []
+}

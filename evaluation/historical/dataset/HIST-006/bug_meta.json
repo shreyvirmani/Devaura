@@ -1,0 +1,13 @@
+{
+  "bug_id": "HIST-006",
+  "project": "sqlalchemy",
+  "ecosystem": "python",
+  "cve_or_issue": "Issue #4481",
+  "category": "Database / SQL Compilation",
+  "title": "Colon in JSON path operator mistakenly treated as bind parameter",
+  "description": "SQL tokenizer interpreted any : character as a named parameter placeholder, even inside JSON access operators (->:key).",
+  "error_message": "ValueError: unbound parameter detected in JSON clause ':field'",
+  "stack_trace": "Traceback (most recent call last):\n  File \"tests/test_reproduce.py\", line 12, in test_json_colon_escaping\n    res = extract_bind_params('SELECT data->>\"user:name\" FROM users')\nValueError: unbound parameter detected in JSON clause ':field'\n",
+  "test_command": "pytest tests/test_reproduce.py",
+  "context_files": []
+}

@@ -196,6 +196,7 @@ class EvidenceCollector:
 
             if (not failing_file or self._is_test_file(failing_file)) and tf.tested_file:
                 failing_file = tf.tested_file
+                failing_symbol = tf.tested_symbol_id
 
                 test_content = f"Failed Test: {tf.test_file}"
                 if tf.test_function:

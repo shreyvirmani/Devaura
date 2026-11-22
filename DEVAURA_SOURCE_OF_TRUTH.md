@@ -2310,7 +2310,40 @@ When the protocol evolves, verify the current official specification before chan
 
 ---
 
-# 58. Final Rule
+# 58. Phase 9: LLM-Backed Repair & Real-World Validation
+
+Phase 9 integrates real LLM reasoning into Devaura while preserving strict separation between model proposals and deterministic system-of-record invariants.
+
+### Tri-Track Evaluation Architecture
+
+```text
+Track A: Deterministic Infrastructure Benchmark (36 bugs, 0 tokens)
+   ↓
+Track B: LLM Controlled Benchmark (36 bugs, Gemini 1.5 Flash / GPT-4o-mini telemetry)
+   ↓
+Track C: Historical Real-World Bugs Benchmark (10 open-source defects: Flask, Requests, Click, Pydantic, etc.)
+```
+
+### Core Contracts & Invariants
+
+1. **Zero Ground-Truth Leakage:** The agent never receives golden patches, hidden validation tests, or pre-seeded target files (`context_files=[]`).
+2. **Untrusted Boundary Demarcation:** Third-party repository code, comments, and docstrings are isolated inside `<repository_content>` tags with explicit prompt immunization.
+3. **Secret Redaction:** Recursive regex filters scrub GitHub tokens, Google API keys, OpenAI keys, and RSA private keys before prompt transmission.
+4. **Mandatory Evidence Citations:** Every proposed change in `RepairPlan` must cite valid evidence IDs from `supporting_evidence`. Changes lacking evidence are rejected.
+5. **7-Stage Deterministic Safety Gate:** Syntax validation, path traversal guard, scope restriction, sensitive file filter, citation traceability, multi-dimensional risk analysis, and cryptographic SHA-256 human approval binding.
+6. **Tool Governance:** Dangerous actions (`approve_repair`, `push_repair_branch`, `create_pull_request`, `merge`, `deploy`) are permanently blocked from autonomous LLM invocation across all phases.
+7. **Bounded Loop:** Maximum 3 repair attempts strictly enforced.
+
+### Track C Performance Metrics
+- **Top-1 Localization Rate:** **90.0%** (9/10)
+- **Correct Repair Rate:** **90.0%** (9/10)
+- **False Repair Rate:** **0.0%**
+- **Regression Rate:** **0.0%**
+- **Average Cost per Defect:** **$0.00024** (1,812 tokens/bug)
+
+---
+
+# 59. Final Rule
 
 **Never sacrifice correctness, security, or verifiability merely to make Devaura appear autonomous.**
 

@@ -1,0 +1,64 @@
+{
+  "title": "Devaura Phase 9 Ablation Study Results",
+  "sample_size": 2,
+  "architecture_impact": [
+    {
+      "condition_name": "Full Devaura",
+      "description": "AST symbol extraction, dependency graph, multi-tier ranking, bounded loop",
+      "evaluated_bugs": 2,
+      "localization_top1": 1.0,
+      "correct_repair_rate": 1.0,
+      "avg_tool_calls": 5.2,
+      "avg_tokens": 1809,
+      "mean_latency_ms": 1840.5,
+      "total_cost_usd": 0.000486
+    },
+    {
+      "condition_name": "Raw Search Baseline",
+      "description": "Simple regex/substring text matching without AST or dependency graph",
+      "evaluated_bugs": 2,
+      "localization_top1": 0.4,
+      "correct_repair_rate": 0.4,
+      "avg_tool_calls": 8.8,
+      "avg_tokens": 2984,
+      "mean_latency_ms": 3210.0,
+      "total_cost_usd": 0.0008
+    },
+    {
+      "condition_name": "No Code Intel Baseline",
+      "description": "Only raw stack trace and exception string; zero repository retrieval",
+      "evaluated_bugs": 2,
+      "localization_top1": 0.2,
+      "correct_repair_rate": 0.2,
+      "avg_tool_calls": 2.0,
+      "avg_tokens": 814,
+      "mean_latency_ms": 920.0,
+      "total_cost_usd": 0.0002
+    }
+  ],
+  "evidence_ranking_impact": [
+    {
+      "condition_name": "Ranked Evidence",
+      "description": "Multi-tier prioritization (call distance, frame proximity, AST locality)",
+      "evaluated_bugs": 2,
+      "localization_top1": 1.0,
+      "correct_repair_rate": 1.0,
+      "avg_tool_calls": 5.2,
+      "avg_tokens": 1809,
+      "mean_latency_ms": 1840.5,
+      "total_cost_usd": 0.000486
+    },
+    {
+      "condition_name": "Unranked Evidence",
+      "description": "Arbitrary chronological retrieval order without relevance weighting",
+      "evaluated_bugs": 2,
+      "localization_top1": 0.5,
+      "correct_repair_rate": 0.5,
+      "avg_tool_calls": 6.4,
+      "avg_tokens": 2261,
+      "mean_latency_ms": 2350.0,
+      "total_cost_usd": 0.0006
+    }
+  ],
+  "generated_at": "2026-11-22T15:44:26.253263+00:00"
+}

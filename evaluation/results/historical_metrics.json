@@ -1,0 +1,47 @@
+{
+  "track": "Track C (Historical Real-World Defects)",
+  "mode": "deterministic",
+  "total_bugs": 2,
+  "localization_top1_rate": 1.0,
+  "patch_generation_rate": 1.0,
+  "original_failure_fixed_rate": 1.0,
+  "hidden_test_pass_rate": 1.0,
+  "false_repair_rate": 0.0,
+  "correct_repair_rate": 1.0,
+  "regression_rate": 0.0,
+  "total_tokens": 3619,
+  "total_cost_usd": 0.000486,
+  "results": [
+    {
+      "bug_id": "HIST-001",
+      "project": "flask",
+      "category": "Routing / URL Parsing",
+      "cve_or_issue": "Issue #2766 / CVE-2018-1000656",
+      "localized_top1": true,
+      "patch_generated": true,
+      "patch_applied": true,
+      "original_failure_fixed": true,
+      "hidden_test_passed": true,
+      "outcome": "CORRECT_REPAIR",
+      "tokens_used": 1784,
+      "cost_usd": 0.000239,
+      "duration_ms": 3605.66
+    },
+    {
+      "bug_id": "HIST-002",
+      "project": "requests",
+      "category": "Security / HTTP Redirect",
+      "cve_or_issue": "CVE-2018-18074",
+      "localized_top1": true,
+      "patch_generated": true,
+      "patch_applied": true,
+      "original_failure_fixed": true,
+      "hidden_test_passed": true,
+      "outcome": "CORRECT_REPAIR",
+      "tokens_used": 1835,
+      "cost_usd": 0.000247,
+      "duration_ms": 3766.79
+    }
+  ],
+  "generated_at": "2026-11-22T15:44:26.247262+00:00"
+}

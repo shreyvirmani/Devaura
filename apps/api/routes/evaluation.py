@@ -17,6 +17,8 @@ from pydantic import BaseModel, Field
 
 from agent.events import tracker
 from evaluation.dataset_builder import build_dataset
+from evaluation.historical.runner import HistoricalBenchmarkRunner
+from evaluation.runners.ablation_runner import AblationRunner
 from evaluation.runners.benchmark_runner import BenchmarkRunner
 
 router = APIRouter(prefix="/evaluation", tags=["Evaluation & Observability"])
@@ -159,3 +161,56 @@ async def get_repair_events(repair_id: str) -> Dict[str, Any]:
         "events": [e.to_dict() for e in events],
         "tool_executions": [t.to_dict() for t in tool_calls],
     }
+
+
+@router.get("/historical", summary="Get Historical Real-World Benchmark Results (Track C)")
+async def get_historical_benchmark() -> Dict[str, Any]:
+    """Retrieve evaluation results across 10 real-world open-source defects (Track C)."""
+    hist_file = RESULTS_DIR / "historical_metrics.json"
+    if not hist_file.exists():
+        # Fallback or run if not yet generated
+        runner = HistoricalBenchmarkRunner()
+        return runner.run_all()
+    try:
+        return json.loads(hist_file.read_text(encoding="utf-8"))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to read historical benchmark results: {e}")
+
+
+@router.post("/historical/run", summary="Trigger Track C Historical Benchmark Run")
+async def run_historical_benchmark(max_bugs: Optional[int] = Query(default=None)) -> Dict[str, Any]:
+    """Execute Track C evaluation across historical real-world defects."""
+    runner = HistoricalBenchmarkRunner()
+    metrics = runner.run_all(max_bugs=max_bugs)
+    return {
+        "status": "COMPLETED",
+        "track": "Track C (Historical Real-World)",
+        "total_bugs": metrics["total_bugs"],
+        "correct_repair_rate": metrics["correct_repair_rate"],
+        "metrics": metrics,
+    }
+
+
+@router.get("/ablation", summary="Get Phase 9 Ablation Study Results")
+async def get_ablation_results() -> Dict[str, Any]:
+    """Retrieve results for Architecture Impact and Evidence Ranking Ablation experiments."""
+    ablation_file = RESULTS_DIR / "ablation_results.json"
+    if not ablation_file.exists():
+        runner = AblationRunner()
+        return runner.run_all(sample_size=10)
+    try:
+        return json.loads(ablation_file.read_text(encoding="utf-8"))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to read ablation results: {e}")
+
+
+@router.post("/ablation/run", summary="Trigger Phase 9 Ablation Studies Run")
+async def run_ablation_studies(sample_size: int = Query(default=10)) -> Dict[str, Any]:
+    """Execute ablation experiments comparing Architecture and Evidence Ranking dimensions."""
+    runner = AblationRunner()
+    results = runner.run_all(sample_size=sample_size)
+    return {
+        "status": "COMPLETED",
+        "results": results,
+    }
+

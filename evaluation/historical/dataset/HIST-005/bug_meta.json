@@ -1,0 +1,13 @@
+{
+  "bug_id": "HIST-005",
+  "project": "fastapi",
+  "ecosystem": "python",
+  "cve_or_issue": "Issue #2116",
+  "category": "Dependency Injection / Routing",
+  "title": "Query parameter alias collisions overwrite header dependencies",
+  "description": "Dependency resolution merged query params and headers into a single flat dict without namespace isolation.",
+  "error_message": "KeyError: 'authorization header missing due to query alias override'",
+  "stack_trace": "Traceback (most recent call last):\n  File \"tests/test_reproduce.py\", line 16, in test_header_query_alias_separation\n    res = resolve_request_params(query={'token': 'q123'}, headers={'token': 'h456'})\nKeyError: 'authorization header missing due to query alias override'\n",
+  "test_command": "pytest tests/test_reproduce.py",
+  "context_files": []
+}

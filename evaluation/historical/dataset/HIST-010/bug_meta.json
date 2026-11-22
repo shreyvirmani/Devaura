@@ -1,0 +1,13 @@
+{
+  "bug_id": "HIST-010",
+  "project": "marshmallow",
+  "ecosystem": "python",
+  "cve_or_issue": "Issue #1522",
+  "category": "Serialization / Schema",
+  "title": "List field deserialization crashes with AttributeError when element is None",
+  "description": "Deserializing a list containing None caused AttributeError if allow_none was False on inner element.",
+  "error_message": "AttributeError: 'NoneType' object has no attribute 'strip'",
+  "stack_trace": "Traceback (most recent call last):\n  File \"tests/test_reproduce.py\", line 14, in test_list_none_element_validation\n    res = deserialize_string_list(['valid', None], allow_none_element=False)\n  File \"marshmallow_schema/fields.py\", line 8, in deserialize_string_list\n    return [item.strip() for item in values]\nAttributeError: 'NoneType' object has no attribute 'strip'\n",
+  "test_command": "pytest tests/test_reproduce.py",
+  "context_files": []
+}

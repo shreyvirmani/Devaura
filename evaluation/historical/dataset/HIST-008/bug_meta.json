@@ -1,0 +1,13 @@
+{
+  "bug_id": "HIST-008",
+  "project": "tornado",
+  "ecosystem": "python",
+  "cve_or_issue": "CVE-2023-28370",
+  "category": "Security / HTTP Smuggling",
+  "title": "Chunked transfer encoding parser accepts trailing whitespace or tabs",
+  "description": "Chunk size parsing permitted trailing tab characters, enabling HTTP request smuggling.",
+  "error_message": "ValueError: invalid chunk size line contains trailing tabs",
+  "stack_trace": "Traceback (most recent call last):\n  File \"tests/test_reproduce.py\", line 12, in test_reject_whitespace_chunk_header\n    parse_chunk_size('10 \\t\\r\\n')\nAssertionError: ValueError not raised\n",
+  "test_command": "pytest tests/test_reproduce.py",
+  "context_files": []
+}

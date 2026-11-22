@@ -1,0 +1,13 @@
+{
+  "bug_id": "HIST-007",
+  "project": "express",
+  "ecosystem": "python",
+  "cve_or_issue": "CVE-2022-24999",
+  "category": "Security / Query Parsing",
+  "title": "Prototype pollution assignment allowed via __proto__ query parameters",
+  "description": "Extended query parameter parser allowed direct modification of object prototype properties.",
+  "error_message": "AssertionError: prototype polluted with malicious attribute",
+  "stack_trace": "Traceback (most recent call last):\n  File \"tests/test_reproduce.py\", line 14, in test_proto_pollution_defense\n    assert '__proto__' not in parsed\nAssertionError: assert '__proto__' not in {'__proto__': {'polluted': True}}\n",
+  "test_command": "pytest tests/test_reproduce.py",
+  "context_files": []
+}

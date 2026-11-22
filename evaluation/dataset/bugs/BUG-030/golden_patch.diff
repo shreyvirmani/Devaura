@@ -1,0 +1,8 @@
+--- a/app/session_store.py
++++ b/app/session_store.py
+@@ -3,4 +3,4 @@
+         self.sessions = {}
+ 
+     def expire_session(self, sid):
+-        del self.sessions[sid]
++        self.sessions.pop(sid, None)

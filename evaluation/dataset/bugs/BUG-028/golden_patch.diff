@@ -1,0 +1,8 @@
+--- a/app/client.py
++++ b/app/client.py
+@@ -2,4 +2,4 @@
+ 
+ def send_request(key):
+     headers = make_headers(key)
+-    return headers["authorization"]
++    return headers.get("x-api-key") or headers.get("authorization", "")

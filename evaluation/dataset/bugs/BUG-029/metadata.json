@@ -1,0 +1,25 @@
+{
+  "bug_id": "BUG-029",
+  "category": "Adversarial-IncorrectRecentCommit",
+  "language": "python",
+  "difficulty": "medium",
+  "failure_type": "ValueError",
+  "failure_description": "ValueError: invalid literal for int() in parse_and_multiply when given float string.",
+  "expected_root_cause": {
+    "files": [
+      "app/calculator.py"
+    ],
+    "symbols": [
+      "parse_and_multiply"
+    ],
+    "lines": [
+      2
+    ]
+  },
+  "expected_fix_scope": [
+    "app/calculator.py"
+  ],
+  "verification_command": "pytest test_calc.py",
+  "expected_behavior": "parse_and_multiply parses numeric string as float before multiplying.",
+  "has_hidden_tests": true
+}

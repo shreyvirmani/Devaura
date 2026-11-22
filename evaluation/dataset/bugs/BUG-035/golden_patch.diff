@@ -1,0 +1,9 @@
+--- a/app/api_layer.py
++++ b/app/api_layer.py
+@@ -2,4 +2,6 @@
+ 
+ def get_user_view(uid):
+     u = query_user(uid)
++    if not u:
++        return {"status": 404, "user_id": None}
+     return {"status": 200, "user_id": u["id"]}

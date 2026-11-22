@@ -20,5 +20,6 @@
     "app/list_provider.py"
   ],
   "verification_command": "pytest test_list_provider.py",
-  "expected_behavior": "Return list of active tags matching caller interface contract."
+  "expected_behavior": "Return list of active tags matching caller interface contract.",
+  "has_hidden_tests": true
 }

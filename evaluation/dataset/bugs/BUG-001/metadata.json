@@ -20,5 +20,6 @@
     "app/processor.py"
   ],
   "verification_command": "pytest test_processor.py",
-  "expected_behavior": "Defensively handle None user profile by returning default metadata."
+  "expected_behavior": "Defensively handle None user profile by returning default metadata.",
+  "has_hidden_tests": true
 }

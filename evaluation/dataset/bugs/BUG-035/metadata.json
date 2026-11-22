@@ -1,0 +1,25 @@
+{
+  "bug_id": "BUG-035",
+  "category": "Adversarial-CrossLayerFailure",
+  "language": "python",
+  "difficulty": "hard",
+  "failure_type": "TypeError",
+  "failure_description": "TypeError in get_user_view when db_layer returns None for invalid ID.",
+  "expected_root_cause": {
+    "files": [
+      "app/api_layer.py"
+    ],
+    "symbols": [
+      "get_user_view"
+    ],
+    "lines": [
+      5
+    ]
+  },
+  "expected_fix_scope": [
+    "app/api_layer.py"
+  ],
+  "verification_command": "pytest test_api.py",
+  "expected_behavior": "api_layer returns 404 response when db_layer returns None for record.",
+  "has_hidden_tests": true
+}

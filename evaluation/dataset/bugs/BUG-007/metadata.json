@@ -20,5 +20,6 @@
     "app/pricing.py"
   ],
   "verification_command": "pytest test_pricing.py",
-  "expected_behavior": "Return 0.0 when quantity is zero."
+  "expected_behavior": "Return 0.0 when quantity is zero.",
+  "has_hidden_tests": true
 }

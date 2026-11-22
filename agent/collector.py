@@ -55,6 +55,20 @@ class EvidenceCollector:
         self._ev_counter += 1
         return f"ev:{self.investigation_id[:8]}:{self._ev_counter}"
 
+    @staticmethod
+    def _is_test_file(file_path: Optional[str]) -> bool:
+        if not file_path:
+            return False
+        clean = file_path.replace("\\", "/").lower()
+        base = os.path.basename(clean)
+        return (
+            base.startswith("test_")
+            or base.endswith("_test.py")
+            or "/tests/" in clean
+            or clean.startswith("tests/")
+            or clean.startswith("test/")
+        )
+
     def collect_all_evidence(
         self,
         request: InvestigationRequest,
@@ -70,6 +84,10 @@ class EvidenceCollector:
 
         test_engine = TestRelationshipsEngine(workspace_root=self.workspace_root)
         test_mappings = test_engine.discover_test_mappings(parsed_files)
+
+        # Save test_mappings and parsed_files for investigator query
+        self.test_mappings = test_mappings
+        self.parsed_files = parsed_files
 
         # 1. Parse and Collect Stack Trace Evidence
         parsed_trace: Optional[ParsedStackTrace] = None
@@ -151,14 +169,33 @@ class EvidenceCollector:
 
         # 2. Parse and Collect Failed Tests Evidence
         parsed_tests: List[ParsedTestFailure] = []
-        if request.failed_tests:
-            for item in request.failed_tests:
-                tf = self.test_parser.parse_item(item)
-                tf = self.test_parser.map_to_source(tf, test_mappings=test_mappings)
-                parsed_tests.append(tf)
+        raw_test_items: List[str] = list(request.failed_tests or [])
 
-                if not failing_file and tf.tested_file:
-                    failing_file = tf.tested_file
+        # Auto-extract test failure nodes from stack trace if pytest/unittest output is present
+        if request.stack_trace:
+            for line in request.stack_trace.splitlines():
+                line_str = line.strip()
+                if "FAILED" in line_str and "::" in line_str:
+                    tokens = line_str.split()
+                    for t in tokens:
+                        if "::" in t:
+                            cleaned = t.strip()
+                            if cleaned.startswith("FAILED"):
+                                cleaned = cleaned[6:].strip()
+                            if cleaned and cleaned not in raw_test_items:
+                                raw_test_items.append(cleaned)
+                elif line_str.startswith("def test_"):
+                    func_name = line_str.split("(")[0].replace("def ", "").strip()
+                    if failing_file and f"{failing_file}::{func_name}" not in raw_test_items:
+                        raw_test_items.append(f"{failing_file}::{func_name}")
+
+        for item in raw_test_items:
+            tf = self.test_parser.parse_item(item)
+            tf = self.test_parser.map_to_source(tf, test_mappings=test_mappings)
+            parsed_tests.append(tf)
+
+            if (not failing_file or self._is_test_file(failing_file)) and tf.tested_file:
+                failing_file = tf.tested_file
 
                 test_content = f"Failed Test: {tf.test_file}"
                 if tf.test_function:

@@ -20,5 +20,6 @@
     "app/repository.py"
   ],
   "verification_command": "pytest test_repository.py",
-  "expected_behavior": "Update import path from app.legacy_db to app.database."
+  "expected_behavior": "Update import path from app.legacy_db to app.database.",
+  "has_hidden_tests": true
 }

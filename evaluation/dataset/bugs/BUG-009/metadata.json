@@ -20,5 +20,6 @@
     "app/security.py"
   ],
   "verification_command": "pytest test_security.py",
-  "expected_behavior": "Import hashlib module at top of security.py."
+  "expected_behavior": "Import hashlib module at top of security.py.",
+  "has_hidden_tests": true
 }

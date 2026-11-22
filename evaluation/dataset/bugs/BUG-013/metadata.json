@@ -20,5 +20,6 @@
     "app/auth_policy.py"
   ],
   "verification_command": "pytest test_auth_policy.py",
-  "expected_behavior": "Allow both 'admin' and 'superuser' roles to pass access check."
+  "expected_behavior": "Allow both 'admin' and 'superuser' roles to pass access check.",
+  "has_hidden_tests": true
 }

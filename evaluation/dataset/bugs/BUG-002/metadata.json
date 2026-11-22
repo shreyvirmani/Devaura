@@ -20,5 +20,6 @@
     "app/webhook.py"
   ],
   "verification_command": "pytest test_webhook.py",
-  "expected_behavior": "Safely read status from payload without raising KeyError on partial events."
+  "expected_behavior": "Safely read status from payload without raising KeyError on partial events.",
+  "has_hidden_tests": true
 }

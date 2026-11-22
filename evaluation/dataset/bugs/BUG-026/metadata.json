@@ -1,0 +1,25 @@
+{
+  "bug_id": "BUG-026",
+  "category": "Adversarial-DecoyEvidence",
+  "language": "python",
+  "difficulty": "hard",
+  "failure_type": "AttributeError",
+  "failure_description": "AttributeError in formatter helper caused by empty token returned by parser.",
+  "expected_root_cause": {
+    "files": [
+      "app/parser.py"
+    ],
+    "symbols": [
+      "extract_token"
+    ],
+    "lines": [
+      4
+    ]
+  },
+  "expected_fix_scope": [
+    "app/parser.py"
+  ],
+  "verification_command": "pytest test_pipeline.py",
+  "expected_behavior": "Parser extract_token returns empty string instead of None when token parameter is absent.",
+  "has_hidden_tests": true
+}

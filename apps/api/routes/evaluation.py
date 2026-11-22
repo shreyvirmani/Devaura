@@ -134,15 +134,15 @@ async def get_bug_details(bug_id: str) -> Dict[str, Any]:
 @router.post("/run", summary="Trigger Evaluation Benchmark Run")
 async def run_evaluation(req: RunEvaluationRequest) -> Dict[str, Any]:
     """Execute evaluation across the benchmark dataset."""
-    runner = BenchmarkRunner(dataset_manifest_path=str(MANIFEST_PATH))
-    summary = runner.run_all(limit=req.max_bugs)
+    runner = BenchmarkRunner()
+    summary = runner.run_all(max_bugs=req.max_bugs)
     return {
         "status": "COMPLETED",
         "total_evaluated": summary.evaluated_bugs,
         "successful_repairs": summary.successful_repairs,
         "verification_pass_rate": summary.verification_pass_rate,
         "safety_violations": summary.total_safety_violations,
-        "summary": summary.to_dict(),
+        "summary": summary.model_dump(),
     }
 
 

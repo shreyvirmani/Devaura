@@ -1,8 +1,19 @@
 {
   "dataset_name": "Devaura-Benchmark-v1",
-  "total_bugs": 25,
+  "total_bugs": 36,
   "categories": [
     "A-Exceptions",
+    "Adversarial-CrossLayerFailure",
+    "Adversarial-DecoyEvidence",
+    "Adversarial-DynamicDispatch",
+    "Adversarial-FalseRepairTrap",
+    "Adversarial-ImportDependencyFailure",
+    "Adversarial-IncorrectRecentCommit",
+    "Adversarial-MisleadingTestName",
+    "Adversarial-MultiFileRegression",
+    "Adversarial-PartialFixTrap",
+    "Adversarial-SameNameFunctions",
+    "Adversarial-TypeInterfaceRegression",
     "B-Failed Tests",
     "C-Import / Dependency Failures",
     "D-Logic Bugs",
@@ -214,6 +225,94 @@
       "difficulty": "hard",
       "failure_type": "AssertionError",
       "path": "bugs/BUG-025"
+    },
+    {
+      "bug_id": "BUG-026",
+      "category": "Adversarial-DecoyEvidence",
+      "language": "python",
+      "difficulty": "hard",
+      "failure_type": "AttributeError",
+      "path": "bugs/BUG-026"
+    },
+    {
+      "bug_id": "BUG-027",
+      "category": "Adversarial-SameNameFunctions",
+      "language": "python",
+      "difficulty": "hard",
+      "failure_type": "KeyError",
+      "path": "bugs/BUG-027"
+    },
+    {
+      "bug_id": "BUG-028",
+      "category": "Adversarial-MultiFileRegression",
+      "language": "python",
+      "difficulty": "hard",
+      "failure_type": "KeyError",
+      "path": "bugs/BUG-028"
+    },
+    {
+      "bug_id": "BUG-029",
+      "category": "Adversarial-IncorrectRecentCommit",
+      "language": "python",
+      "difficulty": "medium",
+      "failure_type": "ValueError",
+      "path": "bugs/BUG-029"
+    },
+    {
+      "bug_id": "BUG-030",
+      "category": "Adversarial-MisleadingTestName",
+      "language": "python",
+      "difficulty": "medium",
+      "failure_type": "KeyError",
+      "path": "bugs/BUG-030"
+    },
+    {
+      "bug_id": "BUG-031",
+      "category": "Adversarial-ImportDependencyFailure",
+      "language": "python",
+      "difficulty": "medium",
+      "failure_type": "NameError",
+      "path": "bugs/BUG-031"
+    },
+    {
+      "bug_id": "BUG-032",
+      "category": "Adversarial-TypeInterfaceRegression",
+      "language": "python",
+      "difficulty": "hard",
+      "failure_type": "AttributeError",
+      "path": "bugs/BUG-032"
+    },
+    {
+      "bug_id": "BUG-033",
+      "category": "Adversarial-PartialFixTrap",
+      "language": "python",
+      "difficulty": "hard",
+      "failure_type": "AssertionError",
+      "path": "bugs/BUG-033"
+    },
+    {
+      "bug_id": "BUG-034",
+      "category": "Adversarial-DynamicDispatch",
+      "language": "python",
+      "difficulty": "hard",
+      "failure_type": "KeyError",
+      "path": "bugs/BUG-034"
+    },
+    {
+      "bug_id": "BUG-035",
+      "category": "Adversarial-CrossLayerFailure",
+      "language": "python",
+      "difficulty": "hard",
+      "failure_type": "TypeError",
+      "path": "bugs/BUG-035"
+    },
+    {
+      "bug_id": "BUG-036",
+      "category": "Adversarial-FalseRepairTrap",
+      "language": "python",
+      "difficulty": "hard",
+      "failure_type": "AssertionError",
+      "path": "bugs/BUG-036"
     }
   ]
 }

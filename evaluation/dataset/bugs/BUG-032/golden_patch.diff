@@ -1,0 +1,7 @@
+--- a/app/order_processor.py
++++ b/app/order_processor.py
+@@ -1,2 +1,3 @@
+ def compute_item_total(item, qty):
+-    return item.price * qty
++    price = item.get("price") if isinstance(item, dict) else getattr(item, "price", 0)
++    return price * qty

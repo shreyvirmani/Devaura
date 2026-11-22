@@ -1830,11 +1830,67 @@ where appropriate.
 | Repair Planning & Patch Generation | Phase 5 | `IMPLEMENTED` | Repair context contract, bounded planner, scoped patch generator, 5D risk analyzer, cryptographic approval gate, isolated sandbox runner, 8 MCP tools, 11 REST endpoints, Next.js Studio |
 | Sandbox Isolated Verification & Bounded Repair Loop | Phase 6 | `IMPLEMENTED` | Verification runner, output normalizer, failure analyzer, bounded retry loop (<=3 attempts), SHA-256 failure signature, human gate re-arming, 5 MCP tools, 5 REST endpoints, Next.js Verification Studio, 98 total tests passing |
 | Pull Request Orchestration & Human Review | Phase 7 | `IMPLEMENTED` | GitProvider abstraction (GitHub API client + deterministic Mock provider), branch isolation (devaura/repair/{repair_id[:8]}), base branch protection, cryptographic HMAC-SHA256 human PR approval gate, zero post-verification mutation guarantee, PR metadata synthesis, 10 MCP tools, 9 REST endpoints, Next.js PR Studio card, 128 tests passing (100%) |
-| Evaluation, Observability & Reliability | Phase 8 | `IMPLEMENTED` | 25-bug benchmark dataset across 8 failure categories, end-to-end evaluation pipeline measuring M1-M14 transition metrics (100% verification pass rate, 0 regressions, 0 false repairs, 0 security violations), structured lifecycle event tracker with secret redaction, granular failure classifier, 23 security regression tests, 9 reliability tests, Next.js Evaluation Dashboard, 160 total tests passing (100%) |
+| Evaluation, Observability & Reliability | Phase 8 | `IMPLEMENTED` | Initial 25-bug benchmark dataset across 8 failure categories, event tracking, failure classifier, security regression suite |
+| Evaluation Integrity, Benchmark Hardening & Real-World Validation | Phase 8.1 | `CONTROLLED BENCHMARK` | 36-bug benchmark (25 baseline + 11 adversarial), zero ground-truth leakage verified by automated test, test-to-source mapping improving Top-1 localization to 91.7%, multi-metric evidence retrieval (P@1: 52.8%, MRR: 0.528), independent hidden test validation, false repair detection on assertion deletion (BUG-036), large repo benchmark (110 files, 1.9s index, 0.48 MB peak RAM), honest reporting (Human review: Automated Gate Only, GitHub E2E: Not Executed locally) |
 
 - **Known Issues:** None
-- **Current Completed Phase:** Phase 8 — Evaluation, Observability, Reliability & Real-World Validation
-- **Next Phase:** Production Deployment & Real-World Rollout
+- **Current Completed Phase:** Phase 8.1 — Evaluation Integrity, Benchmark Hardening & Real-World Validation
+- **System Readiness Status:** `CONTROLLED VALIDATION ONLY`
+- **Next Phase:** Production Deployment & Real-World Pilot
+
+---
+
+## 51.7 Phase 8.1 Evaluation Integrity, Benchmark Hardening & Real-World Validation Results
+
+### Scientific Audit Findings & Contradiction Resolution
+1. **Resolution of Localization (48%) vs Verification (100%) Contradiction**: In Phase 8, the benchmark runner applied golden patches directly from disk (`diff_to_apply = golden_patch`) and injected `context_files` into the investigation request, bypassing localization and repair planning during verification. In Phase 8.1, zero ground-truth leakage was enforced: the runtime receives `context_files=[]` and must discover all defect locations independently.
+2. **Resolution of Localization Bottleneck**: Pytest assertion failures stop at `test_*.py` stack frames. By connecting `TestRelationshipsEngine` in `agent/investigator.py`, test assertion frames are dynamically re-mapped to target implementation files, raising Top-1 localization from **48.0% to 91.7%** (33/36).
+3. **Adversarial Benchmark Expansion**: Expanded from 25 to 36 benchmark defects by introducing 11 challenging adversarial cases (BUG-026 to BUG-036) spanning decoy evidence, same-name functions, multi-file regressions, and cheat traps.
+4. **Independent Hidden Test Validation**: Evaluated repairs against unseen test suites stored completely outside the workspace (`hidden_tests/`).
+5. **False Repair Detection**: Verified cheat detection in `BUG-036` where test assertion weakening was rejected by `PatchScopeGuard` and failed by hidden tests (`RepairOutcome.FALSE_REPAIR`).
+6. **Honest Governance & Validation Reporting**: Discontinued the fake 100% human review metric; accurately labeled as "Automated Approval Workflow Success". Live GitHub E2E accurately reported as `NOT EXECUTED (Guarded by RUN_GITHUB_E2E)`. Track B (LLM repair) accurately reported as `NOT IMPLEMENTED IN BENCHMARK`.
+
+### Phase 8.1 Quantitative Benchmark Summary (`evaluation/results/summary.json`, `evaluation/results/EVALUATION_REPORT.md`)
+- **Total Repository Test Suite**: **167 / 167 tests PASSING (100%), 1 guarded E2E skipped**
+- **Benchmark Dataset Evaluated**: 36 / 36 reproducible bugs (25 baseline + 11 adversarial)
+- **Zero Ground-Truth Leakage**: **PASS** (Verified by `tests/test_ground_truth_leakage.py`)
+- **M1: Localization Accuracy**:
+  - Top-1: **91.7%** (33/36)
+  - Top-3: **91.7%** (33/36)
+  - Top-5: **91.7%** (33/36)
+- **M2: Root Cause Accuracy Rate**: **91.7%** (33/36)
+- **M3: Evidence Retrieval Quality**:
+  - Precision@1 Mean: **52.8%**
+  - Precision@3 Mean: **29.6%**
+  - Precision@5 Mean: **19.4%**
+  - Recall@5 Mean: **88.9%**
+  - MRR (Mean Reciprocal Rank): **0.528**
+- **M4: Granular Patch & Repair Metrics**:
+  - M4a — Patch Syntactic Validity: **100.0%** (36/36)
+  - M4b — Patch Applicability: **100.0%** (36/36)
+  - M4c — Scope Correctness: **88.9%** (32/36)
+  - M4d — Original Failure Fixed Rate: **88.9%** (32/36)
+  - M4e — Hidden Tests Pass Rate: **91.7%** (33/36)
+  - M4f — Regression-Free Rate: **100.0%** (36/36)
+  - M4g — Correct Repair Rate: **88.9%** (32/36)
+- **M7: False Repair Rate**: **2.8%** (1/36, correctly caught in BUG-036)
+- **M8: Governance & Review**:
+  - Automated Approval Workflow Success: **100.0%** (36/36)
+  - Human Review Study: **NOT EVALUATED (Automated Gate Only)**
+- **M9: Mean Repair Attempts**: **1.0** attempts (bounded <= 3)
+- **M10: Tool Calls & Usage**: **4.0** tool calls per repair (144 total tool calls, 0 unsafe attempts)
+- **M11: Pipeline Latency**: Mean total end-to-end latency: **2,340 ms** (2.34s)
+- **M12: Token Usage**: **0 LLM Tokens** (Track A: Deterministic AST & Graph Analysis)
+- **M13: Estimated Cost**: **$0.00 USD**
+- **M14: Safety Violations**: **0** (Zero privilege bypass, path traversal, or credential leakage)
+- **Large Repository Performance (`tests/test_large_repo_performance.py`)**:
+  - 110 files indexed across 10 packages in **1,916 ms** (Peak RAM: 0.48 MB)
+  - Knowledge graph (511 nodes) constructed in **19.5 ms** (Traversal: 0.07 ms)
+  - Symbol search: 0.20 ms, Path search: 5.47 ms
+  - Sandbox creation: 84.6 ms, Cleanup: 11.4 ms
+- **Live GitHub PR E2E**: `NOT EXECUTED (Guarded by RUN_GITHUB_E2E in local offline environment)`
+- **Track B: LLM-Backed Autonomous Repair**: `NOT IMPLEMENTED IN BENCHMARK`
+- **System Readiness**: `CONTROLLED VALIDATION ONLY`
 
 ---
 

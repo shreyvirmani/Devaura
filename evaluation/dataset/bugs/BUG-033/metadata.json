@@ -1,0 +1,25 @@
+{
+  "bug_id": "BUG-033",
+  "category": "Adversarial-PartialFixTrap",
+  "language": "python",
+  "difficulty": "hard",
+  "failure_type": "AssertionError",
+  "failure_description": "compute_discount calculates negative discount for negative price inputs.",
+  "expected_root_cause": {
+    "files": [
+      "app/discount_engine.py"
+    ],
+    "symbols": [
+      "compute_discount"
+    ],
+    "lines": [
+      2
+    ]
+  },
+  "expected_fix_scope": [
+    "app/discount_engine.py"
+  ],
+  "verification_command": "pytest test_discount.py",
+  "expected_behavior": "compute_discount enforces zero minimum and only applies discount for VIP tier.",
+  "has_hidden_tests": true
+}

@@ -1,0 +1,8 @@
+--- a/app/dispatcher.py
++++ b/app/dispatcher.py
+@@ -6,4 +6,4 @@
+         return fn(payload)
+ 
+     def on_refund(self, payload):
+-        return payload["amount"]
++        return (payload or {}).get("amount", 0)

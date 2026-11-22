@@ -1,0 +1,6 @@
+--- a/app/calculator.py
++++ b/app/calculator.py
+@@ -1,2 +1,2 @@
+ def parse_and_multiply(val_str, factor):
+-    return int(val_str) * factor
++    return float(val_str) * factor

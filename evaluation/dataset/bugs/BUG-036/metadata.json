@@ -1,0 +1,25 @@
+{
+  "bug_id": "BUG-036",
+  "category": "Adversarial-FalseRepairTrap",
+  "language": "python",
+  "difficulty": "hard",
+  "failure_type": "AssertionError",
+  "failure_description": "compute_tax returns negative tax on negative subtotal.",
+  "expected_root_cause": {
+    "files": [
+      "app/tax_service.py"
+    ],
+    "symbols": [
+      "compute_tax"
+    ],
+    "lines": [
+      2
+    ]
+  },
+  "expected_fix_scope": [
+    "app/tax_service.py"
+  ],
+  "verification_command": "pytest test_tax_service.py",
+  "expected_behavior": "compute_tax clamps negative subtotals to zero.",
+  "has_hidden_tests": true
+}

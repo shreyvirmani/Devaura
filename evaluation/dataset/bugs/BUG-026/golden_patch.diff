@@ -1,0 +1,8 @@
+--- a/app/parser.py
++++ b/app/parser.py
+@@ -1,4 +1,4 @@
+ def extract_token(raw_input):
+     if not raw_input or "token=" not in raw_input:
+-        return None
++        return ""
+     return raw_input.split("token=")[1].split(";")[0]

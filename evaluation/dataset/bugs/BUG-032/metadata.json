@@ -1,0 +1,25 @@
+{
+  "bug_id": "BUG-032",
+  "category": "Adversarial-TypeInterfaceRegression",
+  "language": "python",
+  "difficulty": "hard",
+  "failure_type": "AttributeError",
+  "failure_description": "AttributeError: 'dict' object has no attribute 'price' in compute_item_total.",
+  "expected_root_cause": {
+    "files": [
+      "app/order_processor.py"
+    ],
+    "symbols": [
+      "compute_item_total"
+    ],
+    "lines": [
+      2
+    ]
+  },
+  "expected_fix_scope": [
+    "app/order_processor.py"
+  ],
+  "verification_command": "pytest test_order.py",
+  "expected_behavior": "compute_item_total gracefully extracts price from either dictionary key or attribute.",
+  "has_hidden_tests": true
+}

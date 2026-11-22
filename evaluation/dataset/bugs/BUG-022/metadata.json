@@ -20,5 +20,6 @@
     "app/string_utils.py"
   ],
   "verification_command": "pytest test_string_utils.py",
-  "expected_behavior": "Filter out None values before joining tokens."
+  "expected_behavior": "Filter out None values before joining tokens.",
+  "has_hidden_tests": true
 }

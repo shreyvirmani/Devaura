@@ -1,0 +1,25 @@
+{
+  "bug_id": "BUG-027",
+  "category": "Adversarial-SameNameFunctions",
+  "language": "python",
+  "difficulty": "hard",
+  "failure_type": "KeyError",
+  "failure_description": "KeyError in database.get_user when queried with missing user ID.",
+  "expected_root_cause": {
+    "files": [
+      "app/database.py"
+    ],
+    "symbols": [
+      "get_user"
+    ],
+    "lines": [
+      3
+    ]
+  },
+  "expected_fix_scope": [
+    "app/database.py"
+  ],
+  "verification_command": "pytest test_db.py",
+  "expected_behavior": "database.get_user returns None instead of raising KeyError on unknown user ID.",
+  "has_hidden_tests": true
+}

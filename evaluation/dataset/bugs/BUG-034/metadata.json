@@ -1,0 +1,26 @@
+{
+  "bug_id": "BUG-034",
+  "category": "Adversarial-DynamicDispatch",
+  "language": "python",
+  "difficulty": "hard",
+  "failure_type": "KeyError",
+  "failure_description": "KeyError 'amount' in on_refund handler called via dynamic getattr dispatch.",
+  "expected_root_cause": {
+    "files": [
+      "app/dispatcher.py"
+    ],
+    "symbols": [
+      "ActionDispatcher",
+      "on_refund"
+    ],
+    "lines": [
+      9
+    ]
+  },
+  "expected_fix_scope": [
+    "app/dispatcher.py"
+  ],
+  "verification_command": "pytest test_dispatcher.py",
+  "expected_behavior": "on_refund safely handles empty payload returning zero amount.",
+  "has_hidden_tests": true
+}

@@ -1,14 +1,20 @@
-"""Devaura Evaluation Metrics & Scoring Engine (Phase 8).
+"""Devaura Evaluation Metrics & Scoring Engine (Phase 8.1 Hardening).
 
 Defines standardized data models and mathematical evaluators for:
 - M1: Issue Localization Accuracy (Top-1, Top-3, Top-5)
 - M2: Root Cause Accuracy (Correct, Partially Correct, Incorrect, Unsupported)
-- M3: Evidence Retrieval Precision
-- M4: Patch Success Rate
-- M5: Verification Pass Rate
+- M3: Multi-metric Evidence Retrieval (P@1, P@3, P@5, Recall@5, MRR)
+- M4a: Patch Generation (Syntactically valid unified diff)
+- M4b: Patch Applicability (Applies cleanly to workspace)
+- M4c: Patch Scope Correctness (Modifies only approved files, no forbidden files)
+- M4d: Original Failure Fixed (Visible reproduction test passes)
+- M4e: Hidden Test Pass Rate (Independent unseen validation passes)
+- M4f: Regression-Free Rate (No side-effects or regressions in existing tests)
+- M4g: Independent Correct Repair (M4c AND M4d AND M4e AND M4f)
+- M5: Verification Pass Rate (Visible sandbox tests pass)
 - M6: Regression Rate
-- M7: False Repair Rate
-- M8: Human Acceptance Rate
+- M7: False Repair Rate (Visible tests pass BUT hidden/independent validation fails)
+- M8: Automated Approval Workflow Success (HMAC token verification, self-approval blocking)
 - M9: Repair Attempts (Average, Median, Max <= 3)
 - M10: Tool Usage & Selection Accuracy
 - M11: Stage & Total Latency
@@ -45,9 +51,25 @@ class FailureStage(str, Enum):
     PATCH_APPLICATION_FAILURE = "PATCH_APPLICATION_FAILURE"
     VERIFICATION_FAILURE = "VERIFICATION_FAILURE"
     REGRESSION = "REGRESSION"
+    HIDDEN_TEST_FAILURE = "HIDDEN_TEST_FAILURE"
     INFRASTRUCTURE_FAILURE = "INFRASTRUCTURE_FAILURE"
     APPROVAL_FAILURE = "APPROVAL_FAILURE"
     GITHUB_FAILURE = "GITHUB_FAILURE"
+
+
+class RepairOutcome(str, Enum):
+    NO_REPAIR = "NO_REPAIR"
+    INVALID_PATCH = "INVALID_PATCH"
+    PATCH_NOT_APPLICABLE = "PATCH_NOT_APPLICABLE"
+    VISIBLE_TEST_PASS_ONLY = "VISIBLE_TEST_PASS_ONLY"
+    ORIGINAL_FAILURE_FIXED = "ORIGINAL_FAILURE_FIXED"
+    REGRESSION_DETECTED = "REGRESSION_DETECTED"
+    HIDDEN_TEST_FAILURE = "HIDDEN_TEST_FAILURE"
+    CORRECT_REPAIR = "CORRECT_REPAIR"
+    FALSE_REPAIR = "FALSE_REPAIR"
+    REPAIR_REJECTED = "REPAIR_REJECTED"
+    REPAIR_BLOCKED = "REPAIR_BLOCKED"
+    INFRASTRUCTURE_FAILURE = "INFRASTRUCTURE_FAILURE"
 
 
 class BugEvaluationResult(BaseModel):
@@ -65,28 +87,44 @@ class BugEvaluationResult(BaseModel):
     localized_top5: bool = False
     predicted_files: List[str] = Field(default_factory=list)
     predicted_symbols: List[str] = Field(default_factory=list)
+    localization_failure_category: Optional[str] = None
 
     # M2: Root Cause Accuracy
     root_cause_accuracy: RootCauseAccuracy = RootCauseAccuracy.INCORRECT
 
-    # M3: Evidence Retrieval Precision
+    # M3: Evidence Retrieval Quality
     retrieved_evidence_count: int = 0
     relevant_evidence_count: int = 0
     evidence_precision: float = 0.0
+    evidence_precision_at_1: float = 0.0
+    evidence_precision_at_3: float = 0.0
+    evidence_precision_at_5: float = 0.0
+    evidence_recall_at_5: float = 0.0
+    evidence_mrr: float = 0.0
 
-    # M4 & M5: Patch & Verification
-    patch_generated: bool = False
-    patch_syntactically_valid: bool = False
-    patch_applied_cleanly: bool = False
-    verification_passed: bool = False
-    patch_successful: bool = False
+    # M4: Granular Patch & Repair Metrics
+    patch_generated: bool = False               # Was a patch produced?
+    patch_syntactically_valid: bool = False     # M4a: Valid unified diff syntax
+    patch_applied_cleanly: bool = False         # M4b: Clean application in workspace
+    patch_scope_valid: bool = False             # M4c: Modifies only allowed files, no forbidden files
+    original_failure_fixed: bool = False        # M4d: Visible reproduction test switches FAIL -> PASS
+    hidden_tests_passed: bool = False           # M4e: Independent unseen tests pass
+    regression_free: bool = True                # M4f: Existing tests continue to pass
+    correct_repair: bool = False                # M4g: Independent complete correctness
+    patch_successful: bool = False              # Legacy compatibility (= correct_repair)
+
+    # M5: Visible Verification
+    verification_passed: bool = False           # Visible test suite passed
 
     # M6 & M7: Regression & False Repair
     regression_detected: bool = False
-    false_repair: bool = False
+    false_repair: bool = False                  # Visible passes BUT hidden tests fail!
+    repair_outcome: RepairOutcome = RepairOutcome.NO_REPAIR
 
-    # M8: Human Acceptance
-    human_approved: bool = False
+    # M8: Governance & Review
+    automated_approval_passed: bool = False     # HMAC-SHA256 token verified
+    human_approved: bool = False                # Automated gate status (for legacy compatibility)
+    human_review_status: str = "NOT EVALUATED (Automated Gate Only)"
 
     # M9: Repair Attempts
     attempts_used: int = 1
@@ -102,6 +140,7 @@ class BugEvaluationResult(BaseModel):
     planning_latency_ms: float = 0.0
     patch_generation_latency_ms: float = 0.0
     verification_latency_ms: float = 0.0
+    hidden_validation_latency_ms: float = 0.0
     pr_latency_ms: float = 0.0
     total_latency_ms: float = 0.0
 
@@ -122,6 +161,7 @@ class BugEvaluationResult(BaseModel):
     trace_id: Optional[str] = None
     repair_id: Optional[str] = None
     pr_url: Optional[str] = None
+    github_e2e_status: str = "NOT EXECUTED (Guarded by RUN_GITHUB_E2E in local offline environment)"
 
 
 class SummaryBenchmarkMetrics(BaseModel):
@@ -138,12 +178,28 @@ class SummaryBenchmarkMetrics(BaseModel):
     localization_accuracy_top3: float
     localization_accuracy_top5: float
     root_cause_accuracy_rate: float
+
+    # Evidence Retrieval Metrics
     evidence_precision_mean: float
-    patch_generation_success_rate: float
-    verification_pass_rate: float
-    regression_rate: float
-    false_repair_rate: float
-    human_acceptance_rate: float
+    evidence_precision_at_1_mean: float = 0.0
+    evidence_precision_at_3_mean: float = 0.0
+    evidence_precision_at_5_mean: float = 0.0
+    evidence_recall_at_5_mean: float = 0.0
+    evidence_mrr_mean: float = 0.0
+
+    # Granular Patch & Repair Metrics (M4a - M4g)
+    patch_generation_success_rate: float        # M4a: Valid syntax rate
+    patch_applicability_rate: float = 0.0       # M4b: Applied cleanly rate
+    patch_scope_correctness_rate: float = 0.0   # M4c: In-scope modification rate
+    original_failure_fixed_rate: float = 0.0    # M4d: Visible bug fixed rate
+    hidden_test_pass_rate: float = 0.0          # M4e: Independent unseen tests pass rate
+    regression_free_rate: float = 0.0           # M4f: 1.0 - regression_rate
+    correct_repair_rate: float = 0.0            # M4g: Independent complete correctness
+    verification_pass_rate: float               # Visible tests pass rate
+    regression_rate: float                      # Regression rate
+    false_repair_rate: float                    # Cheating / false repair rate
+    automated_approval_rate: float = 0.0        # Automated gate completion rate
+    human_acceptance_rate: float                # Legacy alias (= automated_approval_rate)
 
     # Operational Metrics
     average_attempts: float
@@ -160,6 +216,7 @@ class SummaryBenchmarkMetrics(BaseModel):
     mean_planning_latency_ms: float
     mean_patch_latency_ms: float
     mean_verification_latency_ms: float
+    mean_hidden_validation_latency_ms: float = 0.0
     mean_total_latency_ms: float
 
     # Tokens & Cost
@@ -170,8 +227,9 @@ class SummaryBenchmarkMetrics(BaseModel):
     # Safety
     total_safety_violations: int
 
-    # Failure Distribution
+    # Failure & Outcome Distribution
     failure_breakdown: Dict[str, int] = Field(default_factory=dict)
+    outcome_breakdown: Dict[str, int] = Field(default_factory=dict)
     category_success_rates: Dict[str, float] = Field(default_factory=dict)
 
     generated_at: datetime = Field(default_factory=utc_now)
@@ -201,73 +259,101 @@ class MetricsCalculator:
         top3_count = sum(1 for r in results if r.localized_top3)
         top5_count = sum(1 for r in results if r.localized_top5)
 
-        rc_correct = sum(1 for r in results if r.root_cause_accuracy == RootCauseAccuracy.CORRECT)
-        ev_prec_mean = statistics.mean(r.evidence_precision for r in results) if results else 0.0
+        correct_rc = sum(
+            1 for r in results
+            if r.root_cause_accuracy in {RootCauseAccuracy.CORRECT, RootCauseAccuracy.PARTIALLY_CORRECT}
+        )
 
-        patches_gen = sum(1 for r in results if r.patch_generated)
-        verified = sum(1 for r in results if r.verification_passed)
-        regressions = sum(1 for r in results if r.regression_detected)
-        false_repairs = sum(1 for r in results if r.false_repair)
-        human_accepted = sum(1 for r in results if r.human_approved)
+        # Granular rates
+        patch_gen_count = sum(1 for r in results if r.patch_syntactically_valid)
+        patch_app_count = sum(1 for r in results if r.patch_applied_cleanly)
+        patch_scope_count = sum(1 for r in results if r.patch_scope_valid)
+        orig_fix_count = sum(1 for r in results if r.original_failure_fixed)
+        hidden_pass_count = sum(1 for r in results if r.hidden_tests_passed)
+        regression_free_count = sum(1 for r in results if r.regression_free)
+        correct_repair_count = sum(1 for r in results if r.correct_repair)
+        verif_pass_count = sum(1 for r in results if r.verification_passed)
+        regr_count = sum(1 for r in results if r.regression_detected)
+        false_repair_count = sum(1 for r in results if r.false_repair)
+        approval_count = sum(1 for r in results if r.automated_approval_passed or r.human_approved)
 
-        attempts_list = [r.attempts_used for r in results]
-        avg_attempts = statistics.mean(attempts_list) if attempts_list else 0.0
-        med_attempts = statistics.median(attempts_list) if attempts_list else 0.0
-        max_attempts = max(attempts_list) if attempts_list else 0
-
-        total_tools = sum(r.tool_calls_count for r in results)
-        unsafe_tools = sum(r.unsafe_tool_attempts for r in results)
-        violations = sum(r.safety_violations for r in results)
-
-        tool_breakdown: Dict[str, int] = {}
+        attempts = [r.attempts_used for r in results]
+        tool_counts: Dict[str, int] = {}
         for r in results:
-            for k, v in r.tool_calls_by_name.items():
-                tool_breakdown[k] = tool_breakdown.get(k, 0) + v
+            for t_name, c in r.tool_calls_by_name.items():
+                tool_counts[t_name] = tool_counts.get(t_name, 0) + c
 
-        failure_counts: Dict[str, int] = {}
+        # Evidence quality means
+        p1_list = [r.evidence_precision_at_1 for r in results]
+        p3_list = [r.evidence_precision_at_3 for r in results]
+        p5_list = [r.evidence_precision_at_5 for r in results]
+        rec5_list = [r.evidence_recall_at_5 for r in results]
+        mrr_list = [r.evidence_mrr for r in results]
+
+        # Categories
+        cat_success: Dict[str, float] = {}
+        cats = sorted(list({r.category for r in results}))
+        for cat in cats:
+            cat_results = [r for r in results if r.category == cat]
+            cat_pass = sum(1 for r in cat_results if r.correct_repair or r.verification_passed)
+            cat_success[cat] = round(cat_pass / len(cat_results), 4)
+
+        # Outcomes
+        outcome_breakdown: Dict[str, int] = {}
+        for r in results:
+            outcome_key = r.repair_outcome.value
+            outcome_breakdown[outcome_key] = outcome_breakdown.get(outcome_key, 0) + 1
+
+        fail_breakdown: Dict[str, int] = {}
         for r in results:
             if r.failure_stage != FailureStage.NONE:
-                failure_counts[r.failure_stage.value] = failure_counts.get(r.failure_stage.value, 0) + 1
-
-        # Per Category success rates
-        categories = sorted(list({r.category for r in results}))
-        cat_success: Dict[str, float] = {}
-        for cat in categories:
-            cat_results = [r for r in results if r.category == cat]
-            cat_success[cat] = round(
-                sum(1 for r in cat_results if r.verification_passed) / len(cat_results), 4
-            )
+                stg = r.failure_stage.value
+                fail_breakdown[stg] = fail_breakdown.get(stg, 0) + 1
 
         return SummaryBenchmarkMetrics(
             total_bugs=n,
             evaluated_bugs=n,
-            successful_repairs=verified,
-            failed_repairs=n - verified,
+            successful_repairs=correct_repair_count,
+            failed_repairs=n - correct_repair_count,
             localization_accuracy_top1=round(top1_count / n, 4),
             localization_accuracy_top3=round(top3_count / n, 4),
             localization_accuracy_top5=round(top5_count / n, 4),
-            root_cause_accuracy_rate=round(rc_correct / n, 4),
-            evidence_precision_mean=round(ev_prec_mean, 4),
-            patch_generation_success_rate=round(patches_gen / n, 4),
-            verification_pass_rate=round(verified / n, 4),
-            regression_rate=round(regressions / max(1, verified), 4),
-            false_repair_rate=round(false_repairs / max(1, patches_gen), 4),
-            human_acceptance_rate=round(human_accepted / max(1, verified), 4),
-            average_attempts=round(avg_attempts, 2),
-            median_attempts=round(med_attempts, 2),
-            max_attempts=max_attempts,
-            total_tool_calls=total_tools,
-            tool_calls_by_type=tool_breakdown,
-            unsafe_tool_attempts=unsafe_tools,
+            root_cause_accuracy_rate=round(correct_rc / n, 4),
+            evidence_precision_mean=round(statistics.mean(r.evidence_precision for r in results), 4),
+            evidence_precision_at_1_mean=round(statistics.mean(p1_list), 4),
+            evidence_precision_at_3_mean=round(statistics.mean(p3_list), 4),
+            evidence_precision_at_5_mean=round(statistics.mean(p5_list), 4),
+            evidence_recall_at_5_mean=round(statistics.mean(rec5_list), 4),
+            evidence_mrr_mean=round(statistics.mean(mrr_list), 4),
+            patch_generation_success_rate=round(patch_gen_count / n, 4),
+            patch_applicability_rate=round(patch_app_count / n, 4),
+            patch_scope_correctness_rate=round(patch_scope_count / n, 4),
+            original_failure_fixed_rate=round(orig_fix_count / n, 4),
+            hidden_test_pass_rate=round(hidden_pass_count / n, 4),
+            regression_free_rate=round(regression_free_count / n, 4),
+            correct_repair_rate=round(correct_repair_count / n, 4),
+            verification_pass_rate=round(verif_pass_count / n, 4),
+            regression_rate=round(regr_count / n, 4),
+            false_repair_rate=round(false_repair_count / n, 4),
+            automated_approval_rate=round(approval_count / n, 4),
+            human_acceptance_rate=round(approval_count / n, 4),
+            average_attempts=round(statistics.mean(attempts), 2),
+            median_attempts=round(statistics.median(attempts), 2),
+            max_attempts=max(attempts),
+            total_tool_calls=sum(r.tool_calls_count for r in results),
+            tool_calls_by_type=tool_counts,
+            unsafe_tool_attempts=sum(r.unsafe_tool_attempts for r in results),
             mean_investigation_latency_ms=round(statistics.mean(r.investigation_latency_ms for r in results), 2),
             mean_planning_latency_ms=round(statistics.mean(r.planning_latency_ms for r in results), 2),
             mean_patch_latency_ms=round(statistics.mean(r.patch_generation_latency_ms for r in results), 2),
             mean_verification_latency_ms=round(statistics.mean(r.verification_latency_ms for r in results), 2),
+            mean_hidden_validation_latency_ms=round(statistics.mean(r.hidden_validation_latency_ms for r in results), 2),
             mean_total_latency_ms=round(statistics.mean(r.total_latency_ms for r in results), 2),
             total_token_usage=sum(r.token_usage for r in results),
             is_deterministic=all(r.is_deterministic for r in results),
             estimated_cost_usd=None,
-            total_safety_violations=violations,
-            failure_breakdown=failure_counts,
+            total_safety_violations=sum(r.safety_violations for r in results),
+            failure_breakdown=fail_breakdown,
+            outcome_breakdown=outcome_breakdown,
             category_success_rates=cat_success,
         )

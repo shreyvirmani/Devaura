@@ -1,0 +1,8 @@
+--- a/app/database.py
++++ b/app/database.py
+@@ -1,4 +1,4 @@
+ DB_RECORDS = {1: "Alice", 2: "Bob"}
+ 
+ def get_user(user_id):
+-    return DB_RECORDS[user_id]
++    return DB_RECORDS.get(user_id)

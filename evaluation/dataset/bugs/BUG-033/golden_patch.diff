@@ -1,0 +1,8 @@
+--- a/app/discount_engine.py
++++ b/app/discount_engine.py
+@@ -1,2 +1,4 @@
+ def compute_discount(price, tier):
+-    return price * 0.2
++    if tier == "VIP" and price > 0:
++        return price * 0.2
++    return 0.0

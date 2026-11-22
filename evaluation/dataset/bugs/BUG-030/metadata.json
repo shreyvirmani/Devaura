@@ -1,0 +1,26 @@
+{
+  "bug_id": "BUG-030",
+  "category": "Adversarial-MisleadingTestName",
+  "language": "python",
+  "difficulty": "medium",
+  "failure_type": "KeyError",
+  "failure_description": "KeyError in session store during duplicate session expiration.",
+  "expected_root_cause": {
+    "files": [
+      "app/session_store.py"
+    ],
+    "symbols": [
+      "SessionStore",
+      "expire_session"
+    ],
+    "lines": [
+      5
+    ]
+  },
+  "expected_fix_scope": [
+    "app/session_store.py"
+  ],
+  "verification_command": "pytest test_cache_invalidation.py",
+  "expected_behavior": "SessionStore.expire_session handles absent session ID idempotently without KeyError.",
+  "has_hidden_tests": true
+}

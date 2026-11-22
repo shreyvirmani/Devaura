@@ -20,5 +20,6 @@
     "app/http_service.py"
   ],
   "verification_command": "pytest test_http_service.py",
-  "expected_behavior": "Import DEFAULT_TIMEOUT from app.settings and use as fallback."
+  "expected_behavior": "Import DEFAULT_TIMEOUT from app.settings and use as fallback.",
+  "has_hidden_tests": true
 }

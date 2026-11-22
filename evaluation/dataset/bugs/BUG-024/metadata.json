@@ -20,5 +20,6 @@
     "app/inventory.py"
   ],
   "verification_command": "pytest test_facade.py",
-  "expected_behavior": "Update inventory reservation logic to decrement available count accurately."
+  "expected_behavior": "Update inventory reservation logic to decrement available count accurately.",
+  "has_hidden_tests": true
 }

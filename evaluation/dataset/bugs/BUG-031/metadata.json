@@ -1,0 +1,25 @@
+{
+  "bug_id": "BUG-031",
+  "category": "Adversarial-ImportDependencyFailure",
+  "language": "python",
+  "difficulty": "medium",
+  "failure_type": "NameError",
+  "failure_description": "NameError: name 'hashlib' is not defined in hash_password.",
+  "expected_root_cause": {
+    "files": [
+      "app/auth_loader.py"
+    ],
+    "symbols": [
+      "hash_password"
+    ],
+    "lines": [
+      1
+    ]
+  },
+  "expected_fix_scope": [
+    "app/auth_loader.py"
+  ],
+  "verification_command": "pytest test_auth_loader.py",
+  "expected_behavior": "Import hashlib in auth_loader module to compute sha256 digests.",
+  "has_hidden_tests": true
+}

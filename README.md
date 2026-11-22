@@ -212,7 +212,7 @@ Visit the dashboard at [http://localhost:3000](http://localhost:3000) and the AP
 ## 8. Verification & Testing
 
 ```bash
-pytest -v # 160 passed, 1 skipped, 0 failed (100% pass rate)
+pytest -v # 167 passed, 1 skipped, 0 failed (100% pass rate)
 ```
 
 The test suite covers:
@@ -226,6 +226,8 @@ The test suite covers:
 - Pull request orchestration & Git provider (30 tests)
 - Security & safety regressions (23 tests)
 - Reliability, resilience & fault tolerance (9 tests)
+- Ground-truth leakage prevention & scorer isolation (3 tests)
+- Large repository performance & memory scalability (4 tests)
 - Live GitHub E2E integration test (1 test, skipped unless `RUN_GITHUB_E2E=1` and `GITHUB_TOKEN` provided)
 
 ---
@@ -240,5 +242,6 @@ The test suite covers:
 - [x] **Phase 5 — Repair Planning & Patch Generation**: Evidence-backed repair context contracts, bounded repair planner, scoped unified diff patch generator, 5-dimension static risk analyzer (structural, behavioral, test coverage, evidence scope, security), cryptographic human approval gate (SHA-256 bound), isolated sandbox workspace runner (`.devaura_sandboxes/{id}`), 8 new Native MCP tools, 11 REST endpoints, and interactive Next.js Repair Studio. 76/76 tests passing (100% provenance, 100% scope adherence, 100% hash integrity, 100% risk recall).
 - [x] **Phase 6 — Verification & Bounded Repair Loop**: Isolated sandbox verification runner (tests, lint, typecheck), structured output normalizer, deterministic SHA-256 failure signature, failure analyzer (code vs infra vs security vs timeout), bounded retry loop (strict <=3 attempts), fresh human approval gate re-arming per retry, 5 new Native MCP tools, 5 REST endpoints, interactive Next.js Verification Studio, 98/98 tests passing (100% verified repair rate on valid candidates, 100% classification accuracy, 100% retry limit enforcement, 0 original repo mutations).
 - [x] **Phase 7 — Pull Request Orchestration & Human Review**: GitProvider abstraction (GitHub API client + deterministic MockGitProvider), dedicated repair branch isolation (`devaura/repair/{repair_id[:8]}`), base branch push protection, zero post-verification mutation guarantee, independent cryptographic HMAC-SHA256 human review gate (prohibits agent self-approval), base revision drift detection, structured PR metadata & markdown synthesis, 10 new Native MCP tools (total 37 tools), 9 REST endpoints, interactive Next.js PR Studio card, 128/128 tests passing (100%).
-- [x] **Phase 8 — Evaluation, Observability & Reliability**: Reproducible evaluation benchmark dataset (25 bugs across 8 failure categories), end-to-end evaluation pipeline measuring M1&ndash;M14 metrics (100% verification pass rate, 0 regressions, 0 false repairs, 0 safety violations, bounded &le;3 attempts), structured observability with `trace_id` lifecycle event tracking & recursive secret redaction filter, granular failure classification blocking retries on environment/infrastructure errors, 23 security regression tests, 9 reliability tests, interactive Next.js Evaluation Dashboard, 160/160 tests passing (100%).
+- [x] **Phase 8 — Evaluation, Observability & Reliability**: Reproducible evaluation benchmark dataset (25 bugs across 8 failure categories), end-to-end evaluation pipeline measuring M1&ndash;M14 metrics, structured observability with `trace_id` lifecycle event tracking & recursive secret redaction filter, granular failure classification, 23 security regression tests, 9 reliability tests, interactive Next.js Evaluation Dashboard, 160/160 tests passing (100%).
+- [x] **Phase 8.1 — Evaluation Integrity, Benchmark Hardening & Real-World Validation**: Exhaustive scientific audit resolving the 48% localization vs 100% verification contradiction. Zero ground-truth leakage verified (`tests/test_ground_truth_leakage.py`), test-to-source mapping raising Top-1 localization to 91.7%, benchmark expanded to 36 bugs with 11 adversarial cases (decoy evidence, same-name disambiguation, multi-file regression, cheat traps), independent hidden test validation, false repair detection (caught assertion deletion in BUG-036), large repo benchmark (110 files in 1.9s, 0.48 MB peak RAM), honest reporting (Human review: Automated Gate Only, GitHub E2E: Not Executed locally, Track B: Not Implemented in offline benchmark). Readiness: `CONTROLLED VALIDATION ONLY`. 167/167 tests passing (100%).
 - [ ] **Phase 9 — Production Deployment & Autonomous Telemetry**: Staging and production CI/CD automation, cloud deployment, and long-term telemetry.

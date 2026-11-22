@@ -20,5 +20,6 @@
     "app/serializer.py"
   ],
   "verification_command": "pytest test_client.py",
-  "expected_behavior": "Include 'id' key alongside user_id for backward compatibility with client.py."
+  "expected_behavior": "Include 'id' key alongside user_id for backward compatibility with client.py.",
+  "has_hidden_tests": true
 }

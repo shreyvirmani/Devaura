@@ -20,5 +20,6 @@
     "app/time_helper.py"
   ],
   "verification_command": "pytest test_timestamp.py",
-  "expected_behavior": "Normalize timestamp to UTC timezone without adding local offset."
+  "expected_behavior": "Normalize timestamp to UTC timezone without adding local offset.",
+  "has_hidden_tests": true
 }

@@ -20,5 +20,6 @@
     "app/taxes.py"
   ],
   "verification_command": "pytest test_taxes.py",
-  "expected_behavior": "Apply 0% tax when country is EXEMPT_ZONE."
+  "expected_behavior": "Apply 0% tax when country is EXEMPT_ZONE.",
+  "has_hidden_tests": true
 }

@@ -1,0 +1,25 @@
+{
+  "bug_id": "BUG-028",
+  "category": "Adversarial-MultiFileRegression",
+  "language": "python",
+  "difficulty": "hard",
+  "failure_type": "KeyError",
+  "failure_description": "KeyError 'authorization' in client after auth_header schema migration.",
+  "expected_root_cause": {
+    "files": [
+      "app/client.py"
+    ],
+    "symbols": [
+      "send_request"
+    ],
+    "lines": [
+      5
+    ]
+  },
+  "expected_fix_scope": [
+    "app/client.py"
+  ],
+  "verification_command": "pytest test_client.py",
+  "expected_behavior": "client.send_request handles both modern x-api-key and legacy authorization headers.",
+  "has_hidden_tests": true
+}

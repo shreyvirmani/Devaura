@@ -6,8 +6,14 @@ Uses difflib to compute golden unified diffs with exact standard patch syntax.
 
 import difflib
 import json
+import sys
 from pathlib import Path
 from typing import Any, Dict, List
+
+# Ensure repo root is on sys.path when invoked directly
+REPO_ROOT = Path(__file__).resolve().parent.parent
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
 
 DATASET_ROOT = Path(__file__).parent / "dataset"
 BUGS_DIR = DATASET_ROOT / "bugs"
@@ -648,8 +654,8 @@ def can_transition(current, target):
             "test_config_loader.py": """from app.config_loader import build_config
 
 def test_isolated_configs():
-    c1 = build_config({"env": "dev"})
-    assert c1 == {"env": "dev", "loaded": True}
+    c1 = build_config()
+    c1["env"] = "dev"
     c2 = build_config()
     assert "env" not in c2
 """,
@@ -1028,6 +1034,11 @@ def test_normalize_strips_offset():
     },
 ]
 
+from evaluation.adversarial_bugs import ADVERSARIAL_BUGS
+from evaluation.hidden_tests_map import HIDDEN_TESTS_FOR_BASELINE
+
+ALL_BUGS: List[Dict[str, Any]] = BUGS + ADVERSARIAL_BUGS
+
 
 def build_dataset():
     """Generates the directory tree and manifest for the benchmark dataset."""
@@ -1036,7 +1047,7 @@ def build_dataset():
 
     manifest_entries = []
 
-    for b in BUGS:
+    for b in ALL_BUGS:
         bug_id = b["bug_id"]
         bug_dir = BUGS_DIR / bug_id
         broken_dir = bug_dir / "broken_code"
@@ -1048,7 +1059,17 @@ def build_dataset():
             dest.parent.mkdir(parents=True, exist_ok=True)
             dest.write_text(content, encoding="utf-8")
 
-        # 2. Compute and write golden patch using difflib
+        # 2. Write hidden tests (evaluator-only independent validation)
+        hidden_tests = b.get("hidden_tests") or HIDDEN_TESTS_FOR_BASELINE.get(bug_id, {})
+        if hidden_tests:
+            hidden_dir = bug_dir / "hidden_tests"
+            hidden_dir.mkdir(parents=True, exist_ok=True)
+            for rel_path, content in hidden_tests.items():
+                dest = hidden_dir / rel_path
+                dest.parent.mkdir(parents=True, exist_ok=True)
+                dest.write_text(content, encoding="utf-8")
+
+        # 3. Compute and write golden patch using difflib
         golden_diff_lines = []
         for rel_path, fixed_content in b.get("fixed_files", {}).items():
             orig_content = b["source_files"].get(rel_path, "")
@@ -1063,7 +1084,7 @@ def build_dataset():
         patch_file = bug_dir / "golden_patch.diff"
         patch_file.write_text("".join(golden_diff_lines), encoding="utf-8")
 
-        # 3. Write metadata.json (ground truth scoring criteria)
+        # 4. Write metadata.json (ground truth scoring criteria)
         metadata = {
             "bug_id": bug_id,
             "category": b["category"],
@@ -1075,6 +1096,7 @@ def build_dataset():
             "expected_fix_scope": b["expected_fix_scope"],
             "verification_command": b["verification_command"],
             "expected_behavior": b["expected_behavior"],
+            "has_hidden_tests": bool(hidden_tests),
         }
         meta_file = bug_dir / "metadata.json"
         meta_file.write_text(json.dumps(metadata, indent=2), encoding="utf-8")
@@ -1091,7 +1113,7 @@ def build_dataset():
     manifest = {
         "dataset_name": "Devaura-Benchmark-v1",
         "total_bugs": len(manifest_entries),
-        "categories": sorted(list({b["category"] for b in BUGS})),
+        "categories": sorted(list({b["category"] for b in ALL_BUGS})),
         "languages": ["python"],
         "bugs": manifest_entries,
     }

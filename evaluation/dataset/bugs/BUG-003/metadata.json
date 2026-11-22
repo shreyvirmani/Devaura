@@ -20,5 +20,6 @@
     "app/invoice.py"
   ],
   "verification_command": "pytest test_invoice.py",
-  "expected_behavior": "Convert line item amounts to numeric float before sum aggregation."
+  "expected_behavior": "Convert line item amounts to numeric float before sum aggregation.",
+  "has_hidden_tests": true
 }

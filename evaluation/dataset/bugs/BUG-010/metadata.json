@@ -20,5 +20,6 @@
     "app/display.py"
   ],
   "verification_command": "pytest test_display.py",
-  "expected_behavior": "Import renamed helper format_price as format_currency."
+  "expected_behavior": "Import renamed helper format_price as format_currency.",
+  "has_hidden_tests": true
 }

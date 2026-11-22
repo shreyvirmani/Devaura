@@ -20,5 +20,6 @@
     "app/config_loader.py"
   ],
   "verification_command": "pytest test_config_loader.py",
-  "expected_behavior": "Use None default and instantiate new dict per invocation."
+  "expected_behavior": "Use None default and instantiate new dict per invocation.",
+  "has_hidden_tests": true
 }

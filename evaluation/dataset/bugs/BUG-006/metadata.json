@@ -20,5 +20,6 @@
     "app/ratelimit.py"
   ],
   "verification_command": "pytest test_ratelimit.py",
-  "expected_behavior": "Return True when current_requests >= max_allowed."
+  "expected_behavior": "Return True when current_requests >= max_allowed.",
+  "has_hidden_tests": true
 }

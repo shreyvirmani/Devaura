@@ -20,5 +20,6 @@
     "app/window.py"
   ],
   "verification_command": "pytest test_window.py",
-  "expected_behavior": "Safely return (None, None) when items array is empty."
+  "expected_behavior": "Safely return (None, None) when items array is empty.",
+  "has_hidden_tests": true
 }

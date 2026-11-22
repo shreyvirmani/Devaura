@@ -20,5 +20,6 @@
     "app/logger_handler.py"
   ],
   "verification_command": "pytest test_logger_handler.py",
-  "expected_behavior": "Reference defined variable 'err' in exception block."
+  "expected_behavior": "Reference defined variable 'err' in exception block.",
+  "has_hidden_tests": true
 }

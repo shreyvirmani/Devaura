@@ -16,6 +16,7 @@ Safety & Invariants:
   "Insufficient evidence to determine root cause."
 """
 
+import os
 import time
 import uuid
 from typing import Any, Dict, List, Optional, Set, Tuple
@@ -68,6 +69,20 @@ class InvestigatorEngine:
         self.sufficiency_evaluator = EvidenceSufficiencyEvaluator()
 
         self.steps_log: List[Dict[str, Any]] = []
+
+    @staticmethod
+    def _is_test_file(file_path: Optional[str]) -> bool:
+        if not file_path:
+            return False
+        clean = file_path.replace("\\", "/").lower()
+        base = os.path.basename(clean)
+        return (
+            base.startswith("test_")
+            or base.endswith("_test.py")
+            or "/tests/" in clean
+            or clean.startswith("tests/")
+            or clean.startswith("test/")
+        )
 
     def _record_step(
         self,
@@ -135,8 +150,24 @@ class InvestigatorEngine:
                 failed_test_files.add(pt.test_file.replace("\\", "/"))
             if pt.tested_file:
                 dependency_files.add(pt.tested_file.replace("\\", "/"))
-                if not failing_file:
-                    failing_file = pt.tested_file
+
+        # If failing frame is in a test file, map primary target to tested implementation source
+        if failing_file and self._is_test_file(failing_file):
+            for pt in parsed_tests:
+                if pt.tested_file and not self._is_test_file(pt.tested_file):
+                    failing_file = pt.tested_file.replace("\\", "/")
+                    if pt.tested_symbol_id:
+                        failing_symbol = pt.tested_symbol_id
+                    break
+
+            if self._is_test_file(failing_file):
+                for m in getattr(self.collector, "test_mappings", []):
+                    m_test = m.get("test_file", "").replace("\\", "/")
+                    if m_test == failing_file or failing_file.endswith(m_test) or m_test.endswith(failing_file):
+                        src = m.get("source_file", "").replace("\\", "/")
+                        if src and not self._is_test_file(src):
+                            failing_file = src
+                            break
 
         self._record_step(
             step_number=iteration,
@@ -412,9 +443,18 @@ class InvestigatorEngine:
             cand_conf = 0.88
         elif parsed_trace and parsed_trace.failing_frame:
             ff = parsed_trace.failing_frame
-            cand_title = f"Failure in '{ff.function}' at {ff.file}:{ff.line}"
-            cand_desc = f"Execution failed in '{ff.function}' with {err_msg}."
-            cand_conf = 0.90 if ff.resolution_status == ResolutionStatus.RESOLVED.value else 0.70
+            # If the failing frame was in a test file, candidate targets the tested source file!
+            if self._is_test_file(ff.file) and failing_file and not self._is_test_file(failing_file):
+                cand_title = f"Defect in '{failing_symbol or failing_file}' detected by test '{ff.function}'"
+                cand_desc = f"Test assertion '{ff.function}' failed targeting '{failing_file}'. Error: {err_msg}."
+                cand_conf = 0.92
+                aff_files = [failing_file]
+                if failing_symbol:
+                    aff_symbols = [failing_symbol]
+            else:
+                cand_title = f"Failure in '{ff.function}' at {ff.file}:{ff.line}"
+                cand_desc = f"Execution failed in '{ff.function}' with {err_msg}."
+                cand_conf = 0.90 if ff.resolution_status == ResolutionStatus.RESOLVED.value else 0.70
         elif parsed_tests:
             pt = parsed_tests[0]
             target_str = pt.tested_file or pt.test_file

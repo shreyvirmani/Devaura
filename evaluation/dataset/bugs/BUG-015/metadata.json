@@ -20,5 +20,6 @@
     "app/order_fsm.py"
   ],
   "verification_command": "pytest test_order_fsm.py",
-  "expected_behavior": "Disallow transitions out of terminal CANCELLED state."
+  "expected_behavior": "Disallow transitions out of terminal CANCELLED state.",
+  "has_hidden_tests": true
 }

@@ -20,5 +20,6 @@
     "app/formatter.py"
   ],
   "verification_command": "pytest test_formatter.py",
-  "expected_behavior": "Restore default prefix='' parameter for backward compatibility."
+  "expected_behavior": "Restore default prefix='' parameter for backward compatibility.",
+  "has_hidden_tests": true
 }

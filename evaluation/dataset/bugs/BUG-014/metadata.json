@@ -20,5 +20,6 @@
     "app/pagination.py"
   ],
   "verification_command": "pytest test_pagination.py",
-  "expected_behavior": "Correctly compute end index as start + page_size."
+  "expected_behavior": "Correctly compute end index as start + page_size.",
+  "has_hidden_tests": true
 }

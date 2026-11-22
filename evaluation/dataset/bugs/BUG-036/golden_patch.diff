@@ -1,0 +1,7 @@
+--- a/app/tax_service.py
++++ b/app/tax_service.py
+@@ -1,2 +1,4 @@
+ def compute_tax(subtotal):
++    if subtotal <= 0:
++        return 0.0
+     return round(subtotal * 0.1, 2)

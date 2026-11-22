@@ -20,5 +20,6 @@
     "app/repo.py"
   ],
   "verification_command": "pytest test_repo.py",
-  "expected_behavior": "Query 'created_timestamp' or fallback to 'created_at'."
+  "expected_behavior": "Query 'created_timestamp' or fallback to 'created_at'.",
+  "has_hidden_tests": true
 }

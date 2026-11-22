@@ -20,5 +20,6 @@
     "app/discounts.py"
   ],
   "verification_command": "pytest test_discounts.py",
-  "expected_behavior": "Return price * (1.0 - rate)."
+  "expected_behavior": "Return price * (1.0 - rate).",
+  "has_hidden_tests": true
 }

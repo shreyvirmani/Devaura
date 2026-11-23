@@ -212,7 +212,7 @@ Visit the dashboard at [http://localhost:3000](http://localhost:3000) and the AP
 ## 8. Verification & Testing
 
 ```bash
-pytest -v # 189 passed, 1 skipped, 0 failed (100% pass rate)
+pytest -v # 195 passed, 1 skipped, 0 failed (100% pass rate)
 ```
 
 The test suite covers:
@@ -229,6 +229,7 @@ The test suite covers:
 - Ground-truth leakage prevention & scorer isolation (3 tests)
 - Large repository performance & memory scalability (4 tests)
 - LLM provider abstraction, structured generation & citations (16 tests)
+- Live LLM execution integrity, credential cases & no-fallback invariants (6 tests)
 - Security, prompt injection defense & tool governance (6 tests)
 - Live GitHub E2E integration test (1 test, skipped unless `RUN_GITHUB_E2E=1` and `GITHUB_TOKEN` provided)
 
@@ -247,4 +248,5 @@ The test suite covers:
 - [x] **Phase 8 — Evaluation, Observability & Reliability**: Reproducible evaluation benchmark dataset (25 bugs across 8 failure categories), end-to-end evaluation pipeline measuring M1&ndash;M14 metrics, structured observability with `trace_id` lifecycle event tracking & recursive secret redaction filter, granular failure classification, 23 security regression tests, 9 reliability tests, interactive Next.js Evaluation Dashboard, 160/160 tests passing (100%).
 - [x] **Phase 8.1 — Evaluation Integrity, Benchmark Hardening & Real-World Validation**: Exhaustive scientific audit resolving the 48% localization vs 100% verification contradiction. Zero ground-truth leakage verified (`tests/test_ground_truth_leakage.py`), test-to-source mapping raising Top-1 localization to 91.7%, benchmark expanded to 36 bugs with 11 adversarial cases (decoy evidence, same-name disambiguation, multi-file regression, cheat traps), independent hidden test validation, false repair detection (caught assertion deletion in BUG-036), large repo benchmark (110 files in 1.9s, 0.48 MB peak RAM), honest reporting (Human review: Automated Gate Only, GitHub E2E: Not Executed locally, Track B: Not Implemented in offline benchmark). Readiness: `CONTROLLED VALIDATION ONLY`. 167/167 tests passing (100%).
 - [x] **Phase 9 — LLM-Backed Repair & Real-World Validation**: First real language-model-backed repair pipeline for Devaura. Clean LLMProvider abstraction (Gemini 1.5 Flash, GPT-4o-mini, DeterministicMockLLMProvider), untrusted repository prompt boundary with `<repository_content>` tags, secret redaction filter, mandatory evidence citation validation (unbacked hypotheses discarded), 7-stage deterministic patch safety checks (syntax, path traversal, scope, sensitive files, citations, risk, approval hash), governed tool calling across lifecycle phases, Tri-Track evaluation architecture: Track A (36 bugs deterministic, 0 tokens), Track B (36 bugs with Gemini/OpenAI token economics), and Track C (10 real-world open-source defects: Flask, Requests, Click, Pydantic, FastAPI, SQLAlchemy, Express, Tornado, Pytest, Marshmallow achieving 90.0% correct repair rate, 0% regressions, $0.0024 total cost). Controlled ablation studies proving Code Intelligence delivers +50.0% accuracy improvement over raw search. 189/189 tests passing (100%).
+- [x] **Phase 9.1 — Live LLM Execution & Benchmark Integrity Validation**: Real external LLM inference against Google Gemini 2.5 Flash via REST API. Strict no-fallback invariant verified (live mode with missing/invalid credentials strictly raises `LLMConfigurationError`/`LLMExecutionError`, 0 silent fallback to mock). Full structured smoke test verified (HTTP 200, 2479ms, 289 tokens, $0.000035 USD). End-to-end autonomous repair of `HIST-001` (Flask trailing slash redirect query drop): initial failure verified, LLM investigation, surgical repair planning, and patch synthesis. Post-repair tests and withheld hidden validation tests passed 100%. Derivation proof mathematically demonstrates independent reasoning (syntactically distinct diff `clean_path += '?' + query_string` vs golden `return f'{clean_path}?{query_string}'`). Free tier quota limit (20 req/day) honestly caught and reported (HTTP 429 `RESOURCE_EXHAUSTED`). GitHub E2E guarded to prevent primary repo writes. 195/195 tests passing (100%).
 - [ ] **Phase 10 — Production Deployment & Autonomous Telemetry**: Staging and production CI/CD automation, cloud deployment, and long-term telemetry.

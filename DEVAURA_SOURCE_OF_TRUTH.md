@@ -2343,7 +2343,32 @@ Track C: Historical Real-World Bugs Benchmark (10 open-source defects: Flask, Re
 
 ---
 
-# 59. Final Rule
+# 59. Phase 9.1: Live LLM Execution & Benchmark Integrity Validation
+
+Phase 9.1 validates that Devaura's LLM pipeline executes against real external LLM providers and produces verifiable evidence proving which provider and model generated the results.
+
+### Core Validation Findings
+
+1. **Active External Provider:** Google Gemini 2.5 Flash (`gemini-2.5-flash`) via Generative Language REST API (`v1beta`).
+2. **Strict No-Fallback Invariant:** Fully verified via automated tests. Live requests with missing credentials raise `LLMConfigurationError`; invalid credentials raise `LLMExecutionError` (HTTP 401). Under no condition does live mode quietly fall back to mock mode.
+3. **Structured Inference Smoke Test:** HTTP 200, 2479ms, 289 tokens, $0.000035 USD, strictly validated schema without post-hoc repairs.
+4. **End-to-End Live Repair (HIST-001 Flask):** Complete pipeline executed against live Gemini 2.5 Flash:
+   - Initial failure: `AssertionError: assert '/items/' == '/items/?page=2'`
+   - LLM investigation: 2,207 tokens, localized to `flask_router/router.py:build_redirect_url`
+   - LLM repair plan: 1,968 tokens, surgical modification to query string handling
+   - LLM patch synthesis: 1,338 tokens, 7-stage deterministic safety gate passed (Risk: LOW)
+   - Sandbox application: applied unified diff to isolated workspace
+   - Post-repair tests: PASSED (100%)
+   - Withheld hidden validation tests: PASSED (2/2)
+   - Total tokens: 5,513 tokens | Total cost: $0.000763 USD
+5. **Derivation Proof:** The synthesized unified diff is syntactically distinct from the benchmark golden fix (`clean_path += '?' + query_string` vs `return f'{clean_path}?{query_string}'`), proving independent reasoning rather than ground-truth copying.
+6. **Zero Ground-Truth Leakage:** Verified across all bugs. Prompts contain only stack traces, error messages, AST symbols, and target files. No golden patches or hidden test fixtures are accessible.
+7. **Production Quota & Error Handling:** Real Google AI Studio Free Tier quota limit (20 req/day) was hit on subsequent runs; Devaura caught HTTP 429 (`RESOURCE_EXHAUSTED`), raised `LLMExecutionError`, and honestly reported `ERROR: 429 Quota Exceeded` without fabricating numbers or silently falling back.
+8. **GitHub E2E Scoping Safeguard:** `RUN_GITHUB_E2E` is guarded and skipped locally because creating PRs against `shreyvirmani/Devaura` (the primary repository) is blocked by safety policy.
+
+---
+
+# 60. Final Rule
 
 **Never sacrifice correctness, security, or verifiability merely to make Devaura appear autonomous.**
 

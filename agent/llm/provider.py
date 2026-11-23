@@ -16,8 +16,11 @@ import time
 from typing import Any, Dict, List, Optional, Tuple, Type, TypeVar
 import uuid
 
+from dotenv import load_dotenv
 import httpx
 from pydantic import BaseModel
+
+load_dotenv()
 
 from agent.llm.models import (
     LLMMode,
@@ -122,18 +125,19 @@ class GeminiProvider(LLMProvider):
 
     BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models"
 
-    # Pricing per 1M tokens (Gemini 1.5 Flash reference: $0.075 / $0.30)
+    # Pricing per 1M tokens (Gemini 2.5 Flash reference: $0.075 / $0.30)
     PRICE_PER_M_INPUT = 0.075
     PRICE_PER_M_OUTPUT = 0.30
 
     def __init__(
         self,
-        model_name: str = "gemini-1.5-flash",
+        model_name: Optional[str] = None,
         api_key: Optional[str] = None,
         timeout_seconds: float = 30.0,
     ):
+        model = model_name or os.getenv("DEVAURA_GEMINI_MODEL") or "gemini-2.5-flash"
         key = api_key or os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
-        super().__init__(model_name=model_name, api_key=key)
+        super().__init__(model_name=model, api_key=key)
         self.timeout_seconds = timeout_seconds
 
     def provider_name(self) -> str:
@@ -164,11 +168,20 @@ class GeminiProvider(LLMProvider):
             payload["systemInstruction"] = {"parts": [{"text": system_prompt}]}
 
         t0 = time.perf_counter()
-        with httpx.Client(timeout=self.timeout_seconds) as client:
-            resp = client.post(url, json=payload)
-            if resp.status_code != 200:
-                raise LLMExecutionError(f"Gemini API returned HTTP {resp.status_code}: {resp.text}")
-            data = resp.json()
+        resp = None
+        for attempt in range(3):
+            with httpx.Client(timeout=self.timeout_seconds) as client:
+                resp = client.post(url, json=payload)
+                if resp.status_code in (429, 503) and attempt < 2:
+                    time.sleep(2.0 * (attempt + 1))
+                    continue
+                break
+
+        if resp is None or resp.status_code != 200:
+            err_msg = resp.text if resp is not None else "No response"
+            code = resp.status_code if resp is not None else "Timeout"
+            raise LLMExecutionError(f"Gemini API returned HTTP {code}: {err_msg}")
+        data = resp.json()
 
         latency_ms = (time.perf_counter() - t0) * 1000
         text = ""
@@ -178,9 +191,9 @@ class GeminiProvider(LLMProvider):
             if parts:
                 text = parts[0].get("text", "")
 
-        meta = data.get("usageMetadata", {})
-        input_tokens = meta.get("promptTokenCount", len(prompt) // 4)
-        output_tokens = meta.get("candidatesTokenCount", len(text) // 4)
+        meta = data.get("usageMetadata") or {}
+        input_tokens = meta.get("promptTokenCount", 0)
+        output_tokens = meta.get("candidatesTokenCount", 0)
         cost = self._estimate_cost(input_tokens, output_tokens)
 
         self.total_input_tokens += input_tokens
@@ -230,11 +243,20 @@ class GeminiProvider(LLMProvider):
             payload["systemInstruction"] = {"parts": [{"text": system_prompt}]}
 
         t0 = time.perf_counter()
-        with httpx.Client(timeout=self.timeout_seconds) as client:
-            resp = client.post(url, json=payload)
-            if resp.status_code != 200:
-                raise LLMExecutionError(f"Gemini API returned HTTP {resp.status_code}: {resp.text}")
-            data = resp.json()
+        resp = None
+        for attempt in range(3):
+            with httpx.Client(timeout=self.timeout_seconds) as client:
+                resp = client.post(url, json=payload)
+                if resp.status_code in (429, 503) and attempt < 2:
+                    time.sleep(2.0 * (attempt + 1))
+                    continue
+                break
+
+        if resp is None or resp.status_code != 200:
+            err_msg = resp.text if resp is not None else "No response"
+            code = resp.status_code if resp is not None else "Timeout"
+            raise LLMExecutionError(f"Gemini API returned HTTP {code}: {err_msg}")
+        data = resp.json()
 
         latency_ms = (time.perf_counter() - t0) * 1000
         candidates = data.get("candidates", [])
@@ -251,9 +273,9 @@ class GeminiProvider(LLMProvider):
         except Exception as e:
             raise LLMExecutionError(f"Failed to validate Gemini JSON against {schema.__name__}: {e}. Raw: {raw_text[:200]}")
 
-        meta = data.get("usageMetadata", {})
-        input_tokens = meta.get("promptTokenCount", len(prompt) // 4)
-        output_tokens = meta.get("candidatesTokenCount", len(raw_text) // 4)
+        meta = data.get("usageMetadata") or {}
+        input_tokens = meta.get("promptTokenCount", 0)
+        output_tokens = meta.get("candidatesTokenCount", 0)
         cost = self._estimate_cost(input_tokens, output_tokens)
 
         self.total_input_tokens += input_tokens
@@ -334,9 +356,9 @@ class OpenAIProvider(LLMProvider):
 
         latency_ms = (time.perf_counter() - t0) * 1000
         text = data["choices"][0]["message"]["content"]
-        usage_data = data.get("usage", {})
-        input_tokens = usage_data.get("prompt_tokens", len(prompt) // 4)
-        output_tokens = usage_data.get("completion_tokens", len(text) // 4)
+        usage_data = data.get("usage") or {}
+        input_tokens = usage_data.get("prompt_tokens", 0)
+        output_tokens = usage_data.get("completion_tokens", 0)
         cost = self._estimate_cost(input_tokens, output_tokens)
 
         self.total_input_tokens += input_tokens
@@ -403,9 +425,9 @@ class OpenAIProvider(LLMProvider):
         except Exception as e:
             raise LLMExecutionError(f"Failed to validate OpenAI JSON against {schema.__name__}: {e}")
 
-        usage_data = data.get("usage", {})
-        input_tokens = usage_data.get("prompt_tokens", len(prompt) // 4)
-        output_tokens = usage_data.get("completion_tokens", len(raw_text) // 4)
+        usage_data = data.get("usage") or {}
+        input_tokens = usage_data.get("prompt_tokens", 0)
+        output_tokens = usage_data.get("completion_tokens", 0)
         cost = self._estimate_cost(input_tokens, output_tokens)
 
         self.total_input_tokens += input_tokens
@@ -620,7 +642,7 @@ class ProviderFactory:
                     raise LLMConfigurationError(
                         "DEVAURA_LLM_MODE=live requested with gemini provider, but GEMINI_API_KEY or GOOGLE_API_KEY is unset."
                     )
-                return GeminiProvider(model_name=model_name or "gemini-1.5-flash", api_key=key)
+                return GeminiProvider(model_name=model_name, api_key=key)
             elif active_provider == "openai":
                 key = os.getenv("OPENAI_API_KEY")
                 if not key:

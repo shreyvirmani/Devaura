@@ -1,0 +1,19 @@
+{
+  "timestamp": "2026-11-22T18:57:44.183563+00:00",
+  "provider": "gemini",
+  "model": "gemini-2.5-flash",
+  "http_status": 200,
+  "latency_ms": 2479.47,
+  "input_tokens": 231,
+  "output_tokens": 58,
+  "total_tokens": 289,
+  "estimated_cost_usd": 3.5e-05,
+  "request_id": "8f2ff696",
+  "prompt": "Classify the following software error:\n\nTypeError: unsupported operand type(s) for +: 'int' and 'str'\nAt: app/calculator.py:42 in add_values\n",
+  "parsed_response": {
+    "error_type": "TypeError",
+    "summary": "Attempted to perform addition on incompatible types (integer and string) in the 'add_values' function at app/calculator.py:42.",
+    "severity": "Medium"
+  },
+  "schema_validated": true
+}

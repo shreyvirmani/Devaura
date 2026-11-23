@@ -229,15 +229,22 @@ class HistoricalBenchmarkRunner:
             cost_usd += patch_usage.estimated_cost_usd
             patch_generated = bool(patch_res.unified_diff)
 
-            # Apply fix: In benchmark evaluation, if the agent successfully localized the defect (Top-1),
-            # the verified patch is applied to the isolated sandbox.
-            # If the agent failed to localize the bug, no fix is applied to the true defect location.
-            if localized_top1:
-                for rel_path, fixed_content in bug.fixed_source.items():
-                    dest_file = Path(sandbox_path) / rel_path
-                    dest_file.parent.mkdir(parents=True, exist_ok=True)
-                    dest_file.write_text(fixed_content, encoding="utf-8")
-                patch_applied = True
+            # Apply fix: In live mode, apply the actual LLM-generated patch diff to the sandbox.
+            # In deterministic mode, apply golden fix if Top-1 localization succeeded.
+            if self.mode == "live":
+                if patch_generated and patch_res.unified_diff:
+                    try:
+                        modified = ws.apply_patch(patch_res.unified_diff)
+                        patch_applied = len(modified) > 0
+                    except Exception as e:
+                        patch_applied = False
+            else:
+                if localized_top1:
+                    for rel_path, fixed_content in bug.fixed_source.items():
+                        dest_file = Path(sandbox_path) / rel_path
+                        dest_file.parent.mkdir(parents=True, exist_ok=True)
+                        dest_file.write_text(fixed_content, encoding="utf-8")
+                    patch_applied = True
 
             # 6. Verify original reproduction test
             v_run = subprocess.run(cmd, shell=True, cwd=sandbox_path, capture_output=True, text=True, timeout=15)
@@ -265,21 +272,35 @@ class HistoricalBenchmarkRunner:
 
             duration_ms = round((time.perf_counter() - t0) * 1000, 2)
 
-            return {
+            res = {
                 "bug_id": bug.bug_id,
                 "project": bug.project,
                 "category": bug.category,
                 "cve_or_issue": bug.cve_or_issue,
+                "provider": provider.provider_name(),
+                "model": provider.model_name,
+                "mode": self.mode,
                 "localized_top1": localized_top1,
+                "root_cause_identified": bool(inv_report.top_candidate),
                 "patch_generated": patch_generated,
                 "patch_applied": patch_applied,
+                "safety_gate_passed": bool(patch_res.status == "GENERATED"),
                 "original_failure_fixed": original_fixed,
                 "hidden_test_passed": hidden_passed,
                 "outcome": outcome,
                 "tokens_used": tokens_used,
                 "cost_usd": round(cost_usd, 6),
                 "duration_ms": duration_ms,
+                "generated_diff": patch_res.unified_diff,
+                "plan_objective": plan.objective,
+                "investigation_summary": inv_report.summary,
             }
+
+            # Save detailed per-bug execution artifact
+            per_bug_file = self.per_bug_dir / f"{bug.bug_id}_{self.mode}.json"
+            per_bug_file.write_text(json.dumps(res, indent=2), encoding="utf-8")
+
+            return res
 
         finally:
             # Clean up sandbox workspace

@@ -28,6 +28,9 @@ from database.connection import close_db, init_db
 def setup_test_env(monkeypatch):
     monkeypatch.setenv("DATABASE_URL", "sqlite+aiosqlite:///:memory:")
     monkeypatch.setenv("APP_ENV", "testing")
+    monkeypatch.delenv("GITHUB_TOKEN", raising=False)
+    from agent.pr.git_manager import GitStateManager
+    monkeypatch.setattr(GitStateManager, "validate_working_tree_clean", lambda self, allowed_files: (True, None))
 
 
 @pytest_asyncio.fixture

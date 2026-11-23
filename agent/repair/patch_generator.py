@@ -186,6 +186,7 @@ class PatchGenerator:
             lines_removed=lines_removed,
             explanation=expl,
             assumptions=plan.assumptions,
+            patch_provenance="DETERMINISTIC",
             model_metadata={"generator": "DevauraDeterministicPatchEngine", "version": "1.0"},
         )
 

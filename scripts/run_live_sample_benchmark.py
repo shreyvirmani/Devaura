@@ -204,6 +204,8 @@ def run_sample_benchmark(target_bug_ids: List[str] = None):
                 "root_cause_accurate": root_cause_accurate,
                 "plan_generated": plan_generated,
                 "patch_generated": patch_generated,
+                "patch_provenance": patch_res.patch_provenance,
+                "patch_hash": patch_res.patch_hash,
                 "safety_gate_passed": safety_gate_passed,
                 "patch_applied": patch_applied,
                 "original_fixed": original_fixed,

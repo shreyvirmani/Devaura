@@ -2347,11 +2347,19 @@ Track C: Historical Real-World Bugs Benchmark (10 open-source defects: Flask, Re
 
 Phase 9.1 validates that Devaura's LLM pipeline executes against real external LLM providers and produces verifiable evidence proving which provider and model generated the results.
 
+### Forensic Validation Verdict
+**`PARTIALLY — LIVE EXECUTION PROVEN, REPAIR VALIDATION INCOMPLETE`**
+
+- **Live LLM Execution:** PROVEN (real HTTP/2 REST calls to `generativelanguage.googleapis.com`, real tokens from `usageMetadata`, real cost, real latency).
+- **Single Verified Repair:** PROVEN (HIST-001 Flask 100% verified on reproduction and hidden tests).
+- **Independent Derivation:** PROVEN (syntactically distinct diff from golden patch).
+- **Multi-Bug Live Benchmark:** INCOMPLETE (blocked by environment Google AI Studio Free Tier 20 requests/day quota ceiling).
+
 ### Core Validation Findings
 
 1. **Active External Provider:** Google Gemini 2.5 Flash (`gemini-2.5-flash`) via Generative Language REST API (`v1beta`).
-2. **Strict No-Fallback Invariant:** Fully verified via automated tests. Live requests with missing credentials raise `LLMConfigurationError`; invalid credentials raise `LLMExecutionError` (HTTP 401). Under no condition does live mode quietly fall back to mock mode.
-3. **Structured Inference Smoke Test:** HTTP 200, 2479ms, 289 tokens, $0.000035 USD, strictly validated schema without post-hoc repairs.
+2. **Strict No-Fallback Invariant:** Fully verified via automated tests (Cases A, B, C, D, E). Live requests with missing credentials raise `LLMConfigurationError`; invalid credentials or 429 rate limits raise `LLMExecutionError`. Under no condition does live mode quietly fall back to mock mode.
+3. **Structured Inference Smoke Test:** HTTP 200, 2,828ms, 281 tokens, $0.000032 USD, strictly validated schema without post-hoc repairs.
 4. **End-to-End Live Repair (HIST-001 Flask):** Complete pipeline executed against live Gemini 2.5 Flash:
    - Initial failure: `AssertionError: assert '/items/' == '/items/?page=2'`
    - LLM investigation: 2,207 tokens, localized to `flask_router/router.py:build_redirect_url`
@@ -2365,6 +2373,7 @@ Phase 9.1 validates that Devaura's LLM pipeline executes against real external L
 6. **Zero Ground-Truth Leakage:** Verified across all bugs. Prompts contain only stack traces, error messages, AST symbols, and target files. No golden patches or hidden test fixtures are accessible.
 7. **Production Quota & Error Handling:** Real Google AI Studio Free Tier quota limit (20 req/day) was hit on subsequent runs; Devaura caught HTTP 429 (`RESOURCE_EXHAUSTED`), raised `LLMExecutionError`, and honestly reported `ERROR: 429 Quota Exceeded` without fabricating numbers or silently falling back.
 8. **GitHub E2E Scoping Safeguard:** `RUN_GITHUB_E2E` is guarded and skipped locally because creating PRs against `shreyvirmani/Devaura` (the primary repository) is blocked by safety policy.
+9. **Test Suite Status:** 198 passed, 1 skipped (100% pass rate). Production web build verified (11/11 static pages).
 
 ---
 

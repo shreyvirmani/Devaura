@@ -165,6 +165,8 @@ def run_single_repair():
             "cost_usd": patch_usage.estimated_cost_usd,
             "latency_ms": patch_usage.latency_ms,
             "unified_diff": patch_res.unified_diff,
+            "patch_hash": patch_res.patch_hash,
+            "patch_provenance": patch_res.patch_provenance,
             "changed_files": patch_res.changed_files,
             "lines_added": patch_res.lines_added,
             "lines_removed": patch_res.lines_removed,

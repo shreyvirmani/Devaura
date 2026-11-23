@@ -283,6 +283,8 @@ class HistoricalBenchmarkRunner:
                 "localized_top1": localized_top1,
                 "root_cause_identified": bool(inv_report.top_candidate),
                 "patch_generated": patch_generated,
+                "patch_provenance": patch_res.patch_provenance,
+                "patch_hash": patch_res.patch_hash,
                 "patch_applied": patch_applied,
                 "safety_gate_passed": bool(patch_res.status == "GENERATED"),
                 "original_failure_fixed": original_fixed,

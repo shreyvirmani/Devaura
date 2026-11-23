@@ -132,6 +132,8 @@ class LLMPatchGenerator:
 
         patch_hash = hashlib.sha256(diff.encode("utf-8")).hexdigest()
 
+        prov = "DETERMINISTIC" if self.provider.provider_name() == "deterministic-mock" else "REAL_LLM"
+
         patch_result = PatchResult(
             status="GENERATED",
             unified_diff=diff,
@@ -141,6 +143,7 @@ class LLMPatchGenerator:
             lines_removed=lines_removed,
             explanation=proposal.explanation or f"LLM repair addressing {plan.root_cause}",
             assumptions=proposal.assumptions or plan.assumptions,
+            patch_provenance=prov,
             model_metadata={
                 "provider": usage.provider,
                 "model": usage.model,

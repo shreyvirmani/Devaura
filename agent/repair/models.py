@@ -173,6 +173,7 @@ class PatchResult(BaseModel):
     lines_removed: int = 0
     explanation: str = ""
     assumptions: List[str] = Field(default_factory=list)
+    patch_provenance: str = "UNKNOWN"
     generated_at: datetime = Field(default_factory=utc_now)
     model_metadata: Dict[str, Any] = Field(default_factory=dict)
 

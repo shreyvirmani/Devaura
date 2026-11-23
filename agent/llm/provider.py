@@ -169,13 +169,16 @@ class GeminiProvider(LLMProvider):
 
         t0 = time.perf_counter()
         resp = None
-        for attempt in range(3):
-            with httpx.Client(timeout=self.timeout_seconds) as client:
-                resp = client.post(url, json=payload)
-                if resp.status_code in (429, 503) and attempt < 2:
-                    time.sleep(2.0 * (attempt + 1))
-                    continue
-                break
+        try:
+            for attempt in range(3):
+                with httpx.Client(timeout=self.timeout_seconds) as client:
+                    resp = client.post(url, json=payload)
+                    if resp.status_code in (429, 503) and attempt < 2:
+                        time.sleep(2.0 * (attempt + 1))
+                        continue
+                    break
+        except httpx.RequestError as e:
+            raise LLMExecutionError(f"Network error communicating with Gemini API: {e}")
 
         if resp is None or resp.status_code != 200:
             err_msg = resp.text if resp is not None else "No response"
@@ -244,13 +247,16 @@ class GeminiProvider(LLMProvider):
 
         t0 = time.perf_counter()
         resp = None
-        for attempt in range(3):
-            with httpx.Client(timeout=self.timeout_seconds) as client:
-                resp = client.post(url, json=payload)
-                if resp.status_code in (429, 503) and attempt < 2:
-                    time.sleep(2.0 * (attempt + 1))
-                    continue
-                break
+        try:
+            for attempt in range(3):
+                with httpx.Client(timeout=self.timeout_seconds) as client:
+                    resp = client.post(url, json=payload)
+                    if resp.status_code in (429, 503) and attempt < 2:
+                        time.sleep(2.0 * (attempt + 1))
+                        continue
+                    break
+        except httpx.RequestError as e:
+            raise LLMExecutionError(f"Network error communicating with Gemini API: {e}")
 
         if resp is None or resp.status_code != 200:
             err_msg = resp.text if resp is not None else "No response"
@@ -344,15 +350,19 @@ class OpenAIProvider(LLMProvider):
         messages.append({"role": "user", "content": prompt})
 
         t0 = time.perf_counter()
-        with httpx.Client(timeout=self.timeout_seconds) as client:
-            resp = client.post(
-                self.BASE_URL,
-                headers=headers,
-                json={"model": self.model_name, "messages": messages, "temperature": temperature},
-            )
-            if resp.status_code != 200:
-                raise LLMExecutionError(f"OpenAI API returned HTTP {resp.status_code}: {resp.text}")
-            data = resp.json()
+        try:
+            with httpx.Client(timeout=self.timeout_seconds) as client:
+                resp = client.post(
+                    self.BASE_URL,
+                    headers=headers,
+                    json={"model": self.model_name, "messages": messages, "temperature": temperature},
+                )
+        except httpx.RequestError as e:
+            raise LLMExecutionError(f"Network error communicating with OpenAI API: {e}")
+
+        if resp.status_code != 200:
+            raise LLMExecutionError(f"OpenAI API returned HTTP {resp.status_code}: {resp.text}")
+        data = resp.json()
 
         latency_ms = (time.perf_counter() - t0) * 1000
         text = data["choices"][0]["message"]["content"]
@@ -402,20 +412,24 @@ class OpenAIProvider(LLMProvider):
         messages.append({"role": "user", "content": prompt_with_schema})
 
         t0 = time.perf_counter()
-        with httpx.Client(timeout=self.timeout_seconds) as client:
-            resp = client.post(
-                self.BASE_URL,
-                headers=headers,
-                json={
-                    "model": self.model_name,
-                    "messages": messages,
-                    "temperature": temperature,
-                    "response_format": {"type": "json_object"},
-                },
-            )
-            if resp.status_code != 200:
-                raise LLMExecutionError(f"OpenAI API returned HTTP {resp.status_code}: {resp.text}")
-            data = resp.json()
+        try:
+            with httpx.Client(timeout=self.timeout_seconds) as client:
+                resp = client.post(
+                    self.BASE_URL,
+                    headers=headers,
+                    json={
+                        "model": self.model_name,
+                        "messages": messages,
+                        "temperature": temperature,
+                        "response_format": {"type": "json_object"},
+                    },
+                )
+        except httpx.RequestError as e:
+            raise LLMExecutionError(f"Network error communicating with OpenAI API: {e}")
+
+        if resp.status_code != 200:
+            raise LLMExecutionError(f"OpenAI API returned HTTP {resp.status_code}: {resp.text}")
+        data = resp.json()
 
         latency_ms = (time.perf_counter() - t0) * 1000
         raw_text = data["choices"][0]["message"]["content"]

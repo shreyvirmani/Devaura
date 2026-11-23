@@ -42,10 +42,102 @@ from evaluation.historical.ground_truth import HISTORICAL_BUGS
 
 
 class TestProviderSelectionAndInvariants:
-    """Verifies Cases A, B, C, D and the No Silent Fallback invariant."""
+    """Verifies Cases A, B, C, D, E and the No Silent Fallback invariant."""
 
-    def test_case_a_live_valid_key(self, monkeypatch):
-        """Case A: live mode + valid key -> instantiates live provider correctly."""
+    def test_case_a_missing_api_key(self, monkeypatch):
+        """Case A: Missing API Key -> raises LLMConfigurationError, never falls back."""
+        monkeypatch.setenv("DEVAURA_LLM_MODE", "live")
+        monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+        monkeypatch.delenv("GOOGLE_API_KEY", raising=False)
+
+        with pytest.raises(LLMConfigurationError, match="GEMINI_API_KEY or GOOGLE_API_KEY is unset"):
+            ProviderFactory.get_provider(mode="live", provider_name="gemini")
+
+        provider = GeminiProvider(api_key="")
+        with pytest.raises(LLMConfigurationError, match="Gemini API key is not configured"):
+            provider.generate("test")
+
+    def test_case_b_invalid_api_key(self):
+        """Case B: Invalid API Key -> raises LLMExecutionError / 401, never falls back."""
+        provider = OpenAIProvider(model_name="gpt-4o-mini", api_key="invalid_openai_key_test")
+
+        class DummySchema(BaseModel):
+            result: str
+
+        with pytest.raises(LLMExecutionError) as exc_info:
+            provider.generate_structured("test prompt", DummySchema)
+
+        assert "OpenAI API returned HTTP 401" in str(exc_info.value)
+        assert not isinstance(provider, DeterministicMockLLMProvider)
+
+    def test_case_c_network_error(self, monkeypatch):
+        """Case C: Network Error / Connection Refused -> raises LLMExecutionError, never falls back."""
+        import httpx
+        provider = GeminiProvider(api_key="valid_dummy_key")
+
+        def mock_post(*args, **kwargs):
+            raise httpx.ConnectError("Connection refused by remote host")
+
+        monkeypatch.setattr(httpx.Client, "post", mock_post)
+
+        with pytest.raises(LLMExecutionError, match="Network error communicating with Gemini API"):
+            provider.generate("test prompt")
+
+    def test_case_d_rate_limit_429(self, monkeypatch):
+        """Case D: Rate Limit / HTTP 429 -> raises LLMExecutionError, never falls back."""
+        import httpx
+        import time
+        provider = GeminiProvider(api_key="valid_dummy_key")
+
+        class MockResponse:
+            status_code = 429
+            text = '{"error": {"code": 429, "message": "RESOURCE_EXHAUSTED", "status": "RESOURCE_EXHAUSTED"}}'
+
+            def json(self):
+                return {"error": {"code": 429, "message": "RESOURCE_EXHAUSTED"}}
+
+        monkeypatch.setattr(time, "sleep", lambda s: None)
+        monkeypatch.setattr(httpx.Client, "post", lambda *args, **kwargs: MockResponse())
+
+        with pytest.raises(LLMExecutionError, match="Gemini API returned HTTP 429"):
+            provider.generate("test prompt")
+
+    def test_case_e_empty_or_malformed_json(self, monkeypatch):
+        """Case E: Empty Response / Malformed JSON -> raises LLMExecutionError, never falls back."""
+        import httpx
+        provider = GeminiProvider(api_key="valid_dummy_key")
+
+        # 1. No candidates returned
+        class MockEmptyResponse:
+            status_code = 200
+            def json(self):
+                return {"candidates": []}
+
+        monkeypatch.setattr(httpx.Client, "post", lambda *args, **kwargs: MockEmptyResponse())
+
+        class DummySchema(BaseModel):
+            field: str
+
+        with pytest.raises(LLMExecutionError, match="Gemini returned no candidates"):
+            provider.generate_structured("test", DummySchema)
+
+        # 2. Malformed JSON returned
+        class MockMalformedResponse:
+            status_code = 200
+            def json(self):
+                return {
+                    "candidates": [{
+                        "content": {"parts": [{"text": "NOT VALID JSON {{"}]}
+                    }]
+                }
+
+        monkeypatch.setattr(httpx.Client, "post", lambda *args, **kwargs: MockMalformedResponse())
+
+        with pytest.raises(LLMExecutionError, match="Failed to validate Gemini JSON"):
+            provider.generate_structured("test", DummySchema)
+
+    def test_live_valid_key_provider_instantiation(self, monkeypatch):
+        """Valid key instantiates live provider with configured settings."""
         monkeypatch.setenv("DEVAURA_LLM_MODE", "live")
         monkeypatch.setenv("DEVAURA_LLM_PROVIDER", "gemini")
         monkeypatch.setenv("GEMINI_API_KEY", "test_mock_gemini_api_key_valid_len_32")
@@ -56,17 +148,8 @@ class TestProviderSelectionAndInvariants:
         assert provider.model_name == "gemini-2.5-flash"
         assert provider.api_key == "test_mock_gemini_api_key_valid_len_32"
 
-    def test_case_b_live_missing_key_raises(self, monkeypatch):
-        """Case B: live mode + missing key -> raises LLMConfigurationError."""
-        monkeypatch.setenv("DEVAURA_LLM_MODE", "live")
-        monkeypatch.delenv("GEMINI_API_KEY", raising=False)
-        monkeypatch.delenv("GOOGLE_API_KEY", raising=False)
-
-        with pytest.raises(LLMConfigurationError, match="GEMINI_API_KEY or GOOGLE_API_KEY is unset"):
-            ProviderFactory.get_provider(mode="live", provider_name="gemini")
-
-    def test_case_c_deterministic_mode(self, monkeypatch):
-        """Case C: deterministic mode -> returns DeterministicMockLLMProvider regardless of keys."""
+    def test_deterministic_mode_explicit(self, monkeypatch):
+        """Deterministic mode returns DeterministicMockLLMProvider regardless of keys."""
         monkeypatch.delenv("GEMINI_API_KEY", raising=False)
         monkeypatch.delenv("GOOGLE_API_KEY", raising=False)
         monkeypatch.delenv("OPENAI_API_KEY", raising=False)
@@ -74,20 +157,6 @@ class TestProviderSelectionAndInvariants:
         provider = ProviderFactory.get_provider(mode="deterministic")
         assert isinstance(provider, DeterministicMockLLMProvider)
         assert provider.provider_name() == "deterministic-mock"
-
-    def test_case_d_live_invalid_key_raises(self, monkeypatch):
-        """Case D: live mode + invalid key -> raises LLMExecutionError / auth error on call (no silent fallback)."""
-        provider = OpenAIProvider(model_name="gpt-4o-mini", api_key="invalid_openai_key_test")
-
-        class DummySchema(BaseModel):
-            result: str
-
-        with pytest.raises(LLMExecutionError) as exc_info:
-            provider.generate_structured("test prompt", DummySchema)
-
-        assert "OpenAI API returned HTTP 401" in str(exc_info.value)
-        # Ensure it NEVER falls back silently to mock mode
-        assert not isinstance(provider, DeterministicMockLLMProvider)
 
     def test_no_silent_fallback_invariant(self, monkeypatch):
         """Enforces that under NO circumstance does live mode quietly fall back to mock mode."""

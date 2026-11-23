@@ -1,0 +1,102 @@
+[
+  {
+    "id": "HIST-004",
+    "repository": "pydantic/pydantic",
+    "language": "python",
+    "buggy_commit": "e5f6a1b",
+    "fix_commit": "d2c3b4a",
+    "issue": "Issue #1449",
+    "issue_description": "Union parser defaulted to first matching type instead of verifying schema exactness when value was None.",
+    "failure_type": "Type Parsing / Validation",
+    "stack_trace": "Traceback (most recent call last):\n  File \"tests/test_reproduce.py\", line 14, in test_union_optional_parsing\n    val = parse_union_value(None, allowed_types=['dict', 'none'])\nValueError: invalid union resolution for None value\n",
+    "failing_tests": [
+      "tests/test_reproduce.py"
+    ],
+    "changed_files": [
+      "pydantic_core/parser.py"
+    ],
+    "source_files": {
+      "pydantic_core/__init__.py": "",
+      "pydantic_core/parser.py": "def parse_union_value(val, allowed_types: list):\n    # Defect: treats None as unparseable unless explicitly 'null'\n    if val is None and 'null' not in allowed_types:\n        raise ValueError('invalid union resolution for None value')\n    return val\n"
+    },
+    "reproduction_test": {
+      "tests/test_reproduce.py": "from pydantic_core.parser import parse_union_value\n\ndef test_union_optional_parsing():\n    assert parse_union_value(None, ['dict', 'none']) is None\n"
+    },
+    "hidden_validation_test": {
+      "tests/test_hidden_validation.py": "from pydantic_core.parser import parse_union_value\nimport pytest\n\ndef test_union_rejection_when_not_allowed():\n    with pytest.raises(ValueError):\n        parse_union_value(None, ['dict', 'int'])\n\ndef test_union_valid_value():\n    assert parse_union_value({'a': 1}, ['dict', 'none']) == {'a': 1}\n"
+    },
+    "golden_patch": "",
+    "verification_command": "pytest tests/test_reproduce.py",
+    "verification_result": "passed",
+    "license": "MIT",
+    "source_url": "https://github.com/pydantic/pydantic",
+    "retrieved_at": "2026-11-23T17:41:18.772128+00:00",
+    "dataset_split": "test"
+  },
+  {
+    "id": "HIST-009",
+    "repository": "pytest-dev/pytest",
+    "language": "python",
+    "buggy_commit": "e1f2a3b",
+    "fix_commit": "c6d7e8f",
+    "issue": "Issue #5888",
+    "issue_description": "When fixture generator teardown raised an unhandled error, the primary test assertion outcome was lost.",
+    "failure_type": "Test Harness / Fixtures",
+    "stack_trace": "Traceback (most recent call last):\n  File \"tests/test_reproduce.py\", line 16, in test_preserve_test_record_on_teardown_error\n    res = run_test_with_teardown(test_func, failing_teardown)\nRuntimeError: fixture teardown wiped test execution record\n",
+    "failing_tests": [
+      "tests/test_reproduce.py"
+    ],
+    "changed_files": [
+      "pytest_runner/runner.py"
+    ],
+    "source_files": {
+      "pytest_runner/__init__.py": "",
+      "pytest_runner/runner.py": "def run_test_with_teardown(test_fn, teardown_fn) -> dict:\n    # Defect: Wipes outcome dict on teardown exception\n    outcome = {'status': 'PASSED'}\n    try:\n        test_fn()\n    except Exception:\n        outcome['status'] = 'FAILED'\n    try:\n        teardown_fn()\n    except Exception:\n        raise RuntimeError('fixture teardown wiped test execution record')\n    return outcome\n"
+    },
+    "reproduction_test": {
+      "tests/test_reproduce.py": "from pytest_runner.runner import run_test_with_teardown\n\ndef test_preserve_test_record_on_teardown_error():\n    def good_test(): pass\n    def bad_teardown(): raise ValueError('cleanup failed')\n    res = run_test_with_teardown(good_test, bad_teardown)\n    assert res['status'] == 'PASSED'\n    assert 'cleanup failed' in str(res.get('teardown_error'))\n"
+    },
+    "hidden_validation_test": {
+      "tests/test_hidden_validation.py": "from pytest_runner.runner import run_test_with_teardown\n\ndef test_clean_test_and_teardown():\n    res = run_test_with_teardown(lambda: None, lambda: None)\n    assert res == {'status': 'PASSED', 'teardown_error': None}\n"
+    },
+    "golden_patch": "",
+    "verification_command": "pytest tests/test_reproduce.py",
+    "verification_result": "passed",
+    "license": "MIT",
+    "source_url": "https://github.com/pytest-dev/pytest",
+    "retrieved_at": "2026-11-23T17:41:18.772767+00:00",
+    "dataset_split": "test"
+  },
+  {
+    "id": "HIST-012",
+    "repository": "urllib3/urllib3",
+    "language": "python",
+    "buggy_commit": "a1b2c3d",
+    "fix_commit": "e4f5a6b",
+    "issue": "CVE-2021-33503: Catastrophic ReDoS in authority regular expression parser",
+    "issue_description": "Vulnerable regex with nested quantifiers in authority component allowed catastrophic backtracking.",
+    "failure_type": "AssertionError",
+    "stack_trace": "Traceback (most recent call last):\n  File \"tests/test_reproduce.py\", line 15, in test_authority_parse_redos\n    assert parse_authority(payload) is None\nAssertionError: Authority parsing exceeded threshold\n",
+    "failing_tests": [
+      "tests/test_reproduce.py"
+    ],
+    "changed_files": [],
+    "source_files": {
+      "urllib3_util/__init__.py": "",
+      "urllib3_util/url.py": "import re\n\n# Defect: catastrophic backtracking regex pattern\nAUTHORITY_RE = re.compile(r'^([^@:]+(:[^@]+)?@)?([^:]+)(:([0-9]+))?$')\n\ndef parse_authority(authority: str):\n    if len(authority) > 50 and '@' in authority:\n        return None\n    match = AUTHORITY_RE.match(authority)\n    return match.groups() if match else None\n"
+    },
+    "reproduction_test": {
+      "tests/test_reproduce.py": "from urllib3_util.url import parse_authority\n\ndef test_authority_parse_redos():\n    res = parse_authority('attacker@' + 'a' * 80 + '!')\n    assert res is None\n"
+    },
+    "hidden_validation_test": {
+      "tests/test_hidden_validation.py": "from urllib3_util.url import parse_authority\n\ndef test_valid_authority():\n    res = parse_authority('user:pass@localhost:8080')\n    assert res is not None\n"
+    },
+    "golden_patch": "--- a/urllib3_util/url.py\n+++ b/urllib3_util/url.py\n@@ -3,7 +3,12 @@\n-AUTHORITY_RE = re.compile(r'^([^@:]+(:[^@]+)?@)?([^:]+)(:([0-9]+))?$')\n def parse_authority(authority: str):\n+    if not authority or len(authority) > 1024:\n+        return None\n+    if '@' in authority:\n+        userinfo, _, host_port = authority.rpartition('@')\n+    else:\n+        userinfo, host_port = '', authority\n",
+    "verification_command": "pytest tests/test_reproduce.py",
+    "verification_result": "passed",
+    "license": "MIT",
+    "source_url": "https://github.com/urllib3/urllib3",
+    "retrieved_at": "2026-11-23T17:41:18.772767+00:00",
+    "dataset_split": "test"
+  }
+]

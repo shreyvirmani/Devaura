@@ -32,6 +32,7 @@ class LLMUsage(BaseModel):
     estimated_cost_usd: float = 0.0
     latency_ms: float = 0.0
     request_id: Optional[str] = None
+    token_status: str = "CONFIRMED"
 
 
 class LLMResponse(BaseModel):

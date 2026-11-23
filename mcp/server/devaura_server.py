@@ -43,7 +43,6 @@ from agent.pr.models import (
 )
 from agent.pr.orchestrator import PROrchestrator
 from integrations.github.client import GitHubClient
-from integrations.github.mock_provider import MockGitProvider
 from integrations.github.models import (
     BranchInfo,
     CIStatus,
@@ -966,7 +965,7 @@ def create_devaura_native_server() -> MCPServer:
             ctx = record.get("context")
             latest_ver = record.get("latest_verification")
 
-            class DummyRepair:
+            class SessionRepairSnapshot:
                 def __init__(self):
                     self.id = repair_id
                     self.status = record.get("status", "VERIFIED")
@@ -974,13 +973,13 @@ def create_devaura_native_server() -> MCPServer:
                     self.repository_id = ctx.repository_id if ctx else f"repo-{owner}/{repo}"
                     self.base_revision = record.get("base_revision", "HEAD")
                     self.workspace = type(
-                        "DummyWorkspace",
+                        "WorkspaceSnapshot",
                         (),
                         {"isolated_path": exec_res.isolated_path if exec_res else os.getcwd()},
                     )()
                     self.patch = patch
 
-            repair_obj = DummyRepair()
+            repair_obj = SessionRepairSnapshot()
 
             verified_res = None
             if latest_ver and hasattr(latest_ver, "overall_result") and latest_ver.overall_result == "PASS":
@@ -1139,8 +1138,13 @@ def create_devaura_native_server() -> MCPServer:
             if not pr_ctx:
                 return json.dumps({"error": f"PR context not found for {repair_id}"}, indent=2)
 
-            token = os.environ.get("GITHUB_TOKEN")
-            provider = GitHubClient(token=token) if token else MockGitProvider()
+            token = os.environ.get("GITHUB_TOKEN") or os.environ.get("DEVAURA_GITHUB_TOKEN")
+            if not token:
+                return json.dumps({
+                    "status": "PUSH_FAILED",
+                    "error": "GITHUB_TOKEN is not configured. Live GitHub operations require valid credentials. Silent mock fallback is disabled.",
+                }, indent=2)
+            provider = GitHubClient(token=token.strip())
 
             exec_res = record.get("execution_result")
             target_path = exec_res.isolated_path if exec_res else os.getcwd()
@@ -1195,20 +1199,25 @@ def create_devaura_native_server() -> MCPServer:
             if approval_token:
                 approval.approval_token = approval_token
 
-            token = os.environ.get("GITHUB_TOKEN")
-            provider = GitHubClient(token=token) if token else MockGitProvider()
+            token = os.environ.get("GITHUB_TOKEN") or os.environ.get("DEVAURA_GITHUB_TOKEN")
+            if not token:
+                return json.dumps({
+                    "status": "PUSH_FAILED",
+                    "error": "GITHUB_TOKEN is not configured. Live GitHub operations require valid credentials. Silent mock fallback is disabled.",
+                }, indent=2)
+            provider = GitHubClient(token=token.strip())
 
             orchestrator = PROrchestrator()
             exec_res = record.get("execution_result")
             target_path = exec_res.isolated_path if exec_res else os.getcwd()
 
-            class DummyRepair:
+            class ActiveRepairSnapshot:
                 def __init__(self):
                     self.id = repair_id
-                    self.workspace = type("DummyWorkspace", (), {"isolated_path": target_path})()
+                    self.workspace = type("WorkspaceSnapshot", (), {"isolated_path": target_path})()
 
             result = await orchestrator.execute_pull_request_creation(
-                repair=DummyRepair(),
+                repair=ActiveRepairSnapshot(),
                 context=pr_ctx,
                 approval=approval,
                 provider=provider,
@@ -1252,8 +1261,13 @@ def create_devaura_native_server() -> MCPServer:
             if not pr_res:
                 return json.dumps({"error": f"No active PR for repair {repair_id}"}, indent=2)
 
-            token = os.environ.get("GITHUB_TOKEN")
-            provider = GitHubClient(token=token) if token else MockGitProvider()
+            token = os.environ.get("GITHUB_TOKEN") or os.environ.get("DEVAURA_GITHUB_TOKEN")
+            if not token:
+                return json.dumps({
+                    "status": "PUSH_FAILED",
+                    "error": "GITHUB_TOKEN is not configured. Live GitHub operations require valid credentials. Silent mock fallback is disabled.",
+                }, indent=2)
+            provider = GitHubClient(token=token.strip())
 
             owner, repo = pr_res.repository.split("/") if "/" in pr_res.repository else ("shreyvirmani", "Devaura")
             ci_status = await provider.get_ci_status(owner=owner, repo=repo, commit_sha=pr_res.commit_sha or "HEAD")

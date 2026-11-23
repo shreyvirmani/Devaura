@@ -1,11 +1,11 @@
-"""Devaura Deterministic Mock Git Provider.
+"""Devaura Test-Only Deterministic Mock Git Provider.
 
-Used for rigorous unit, integration, and benchmark testing without external
-network dependencies, fake credentials, or mutating remote repositories.
+WARNING: This provider is strictly for isolated test suites (e.g. tests/test_pr_cases.py, tests/test_reliability.py).
+It must NEVER be imported, instantiated, or used as a fallback in production or runtime code paths.
 """
 
 from datetime import datetime, timezone
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 from integrations.github.models import (
     BranchInfo,
     CICheckInfo,
@@ -216,3 +216,27 @@ class MockGitProvider(GitProvider):
 
     async def get_review_status(self, owner: str, repo: str, pr_number: int) -> ReviewInfo:
         return await self.get_reviews(owner=owner, repo=repo, pr_number=pr_number)
+
+    async def get_issue(self, owner: str, repo: str, issue_number: int) -> Dict[str, Any]:
+        """Test-only mock issue fetch."""
+        self._check_simulated_failures()
+        return {
+            "issue_number": issue_number,
+            "title": f"Test Issue #{issue_number}",
+            "body": "Test issue description for unit testing.",
+            "author": "test-user",
+            "state": "open",
+            "url": f"https://github.com/{owner}/{repo}/issues/{issue_number}",
+        }
+
+    async def get_repository(self, owner: str, repo: str) -> Dict[str, Any]:
+        """Test-only mock repository fetch."""
+        self._check_simulated_failures()
+        return {
+            "repository": f"{owner}/{repo}",
+            "default_branch": "main",
+            "language": "Python",
+            "license": "MIT",
+            "description": "Test repository",
+            "url": f"https://github.com/{owner}/{repo}",
+        }

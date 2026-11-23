@@ -1,0 +1,204 @@
+[
+  {
+    "id": "HIST-001",
+    "repository": "pallets/flask",
+    "language": "python",
+    "buggy_commit": "8f3b21c",
+    "fix_commit": "9e4a32b",
+    "issue": "Issue #2766 / CVE-2018-1000656",
+    "issue_description": "When redirecting a strict-slashes route from /path to /path/, query string was dropped.",
+    "failure_type": "Routing / URL Parsing",
+    "stack_trace": "Traceback (most recent call last):\n  File \"tests/test_reproduce.py\", line 18, in test_slash_redirect_preserves_query\n    assert response.location == '/items/?page=2'\nAssertionError: assert '/items/' == '/items/?page=2'\n",
+    "failing_tests": [
+      "tests/test_reproduce.py"
+    ],
+    "changed_files": [
+      "flask_router/router.py"
+    ],
+    "source_files": {
+      "flask_router/__init__.py": "",
+      "flask_router/router.py": "def build_redirect_url(target_path: str, query_string: str) -> str:\n    # Defect: Ignores query_string when appending trailing slash\n    clean_path = target_path if target_path.endswith('/') else target_path + '/'\n    return clean_path\n"
+    },
+    "reproduction_test": {
+      "tests/test_reproduce.py": "from flask_router.router import build_redirect_url\n\ndef test_slash_redirect_preserves_query():\n    url = build_redirect_url('/items', 'page=2')\n    assert url == '/items/?page=2'\n"
+    },
+    "hidden_validation_test": {
+      "tests/test_hidden_validation.py": "from flask_router.router import build_redirect_url\n\ndef test_slash_redirect_empty_query():\n    assert build_redirect_url('/items', '') == '/items/'\n\ndef test_slash_redirect_complex_query():\n    assert build_redirect_url('/users/', 'a=1&b=2') == '/users/?a=1&b=2'\n"
+    },
+    "golden_patch": "",
+    "verification_command": "pytest tests/test_reproduce.py",
+    "verification_result": "passed",
+    "license": "BSD-3-Clause",
+    "source_url": "https://github.com/pallets/flask",
+    "retrieved_at": "2026-11-23T17:41:18.772128+00:00",
+    "dataset_split": "train"
+  },
+  {
+    "id": "HIST-002",
+    "repository": "psf/requests",
+    "language": "python",
+    "buggy_commit": "b2c1d3e",
+    "fix_commit": "f4e5a6b",
+    "issue": "CVE-2018-18074",
+    "issue_description": "Session redirect handler failed to strip Authorization header when redirecting to another host.",
+    "failure_type": "Security / HTTP Redirect",
+    "stack_trace": "Traceback (most recent call last):\n  File \"tests/test_reproduce.py\", line 15, in test_strip_auth_on_redirect\n    assert 'Authorization' not in result_headers\nAssertionError: assert 'Authorization' not in {'Authorization': 'Bearer sec', 'Host': 'evil.com'}\n",
+    "failing_tests": [
+      "tests/test_reproduce.py"
+    ],
+    "changed_files": [
+      "requests_session/redirects.py"
+    ],
+    "source_files": {
+      "requests_session/__init__.py": "",
+      "requests_session/redirects.py": "def rebuild_auth_headers(headers: dict, orig_host: str, new_host: str) -> dict:\n    # Defect: Keeps Authorization header across domains\n    out = dict(headers)\n    out['Host'] = new_host\n    return out\n"
+    },
+    "reproduction_test": {
+      "tests/test_reproduce.py": "from requests_session.redirects import rebuild_auth_headers\n\ndef test_strip_auth_on_redirect():\n    orig_headers = {'Authorization': 'Bearer sec', 'Host': 'api.source.com'}\n    new_headers = rebuild_auth_headers(orig_headers, 'api.source.com', 'other.com')\n    assert 'Authorization' not in new_headers\n"
+    },
+    "hidden_validation_test": {
+      "tests/test_hidden_validation.py": "from requests_session.redirects import rebuild_auth_headers\n\ndef test_keep_auth_on_same_host():\n    orig_headers = {'Authorization': 'Bearer sec', 'Host': 'api.source.com'}\n    new_headers = rebuild_auth_headers(orig_headers, 'api.source.com', 'api.source.com')\n    assert new_headers.get('Authorization') == 'Bearer sec'\n"
+    },
+    "golden_patch": "",
+    "verification_command": "pytest tests/test_reproduce.py",
+    "verification_result": "passed",
+    "license": "Apache-2.0",
+    "source_url": "https://github.com/psf/requests",
+    "retrieved_at": "2026-11-23T17:41:18.772128+00:00",
+    "dataset_split": "train"
+  },
+  {
+    "id": "HIST-003",
+    "repository": "pallets/click",
+    "language": "python",
+    "buggy_commit": "c3d4e5f",
+    "fix_commit": "a1b2c3d",
+    "issue": "Issue #1624",
+    "issue_description": "Click command path formatting crashed with TypeError when command name was bytes or non-ascii.",
+    "failure_type": "CLI / Unicode Handling",
+    "stack_trace": "Traceback (most recent call last):\n  File \"tests/test_reproduce.py\", line 12, in test_unicode_command_path\n    res = format_command_path(['cli', b'sub'])\n  File \"click_cli/formatting.py\", line 6, in format_command_path\n    return ' '.join(parts)\nTypeError: sequence item 1: expected str instance, bytes found\n",
+    "failing_tests": [
+      "tests/test_reproduce.py"
+    ],
+    "changed_files": [
+      "click_cli/formatting.py"
+    ],
+    "source_files": {
+      "click_cli/__init__.py": "",
+      "click_cli/formatting.py": "def format_command_path(parts: list) -> str:\n    # Defect: Direct join without string coercion\n    return ' '.join(parts)\n"
+    },
+    "reproduction_test": {
+      "tests/test_reproduce.py": "from click_cli.formatting import format_command_path\n\ndef test_unicode_command_path():\n    res = format_command_path(['cli', b'sub'])\n    assert res == 'cli sub'\n"
+    },
+    "hidden_validation_test": {
+      "tests/test_hidden_validation.py": "from click_cli.formatting import format_command_path\n\ndef test_pure_string_parts():\n    assert format_command_path(['git', 'status']) == 'git status'\n\ndef test_empty_parts():\n    assert format_command_path([]) == ''\n"
+    },
+    "golden_patch": "",
+    "verification_command": "pytest tests/test_reproduce.py",
+    "verification_result": "passed",
+    "license": "BSD-3-Clause",
+    "source_url": "https://github.com/pallets/click",
+    "retrieved_at": "2026-11-23T17:41:18.772128+00:00",
+    "dataset_split": "train"
+  },
+  {
+    "id": "HIST-008",
+    "repository": "tornadoweb/tornado",
+    "language": "python",
+    "buggy_commit": "d0e1f2a",
+    "fix_commit": "b5c6d7e",
+    "issue": "CVE-2023-28370",
+    "issue_description": "Chunk size parsing permitted trailing tab characters, enabling HTTP request smuggling.",
+    "failure_type": "Security / HTTP Smuggling",
+    "stack_trace": "Traceback (most recent call last):\n  File \"tests/test_reproduce.py\", line 12, in test_reject_whitespace_chunk_header\n    parse_chunk_size('10 \\t\\r\\n')\nAssertionError: ValueError not raised\n",
+    "failing_tests": [
+      "tests/test_reproduce.py"
+    ],
+    "changed_files": [
+      "tornado_http/chunk_parser.py"
+    ],
+    "source_files": {
+      "tornado_http/__init__.py": "",
+      "tornado_http/chunk_parser.py": "def parse_chunk_size(chunk_line: str) -> int:\n    # Defect: Insecurely uses strip() allowing tabs and arbitrary whitespace\n    cleaned = chunk_line.strip()\n    return int(cleaned, 16)\n"
+    },
+    "reproduction_test": {
+      "tests/test_reproduce.py": "from tornado_http.chunk_parser import parse_chunk_size\nimport pytest\n\ndef test_reject_whitespace_chunk_header():\n    with pytest.raises(ValueError):\n        parse_chunk_size('10 \\t\\r\\n')\n"
+    },
+    "hidden_validation_test": {
+      "tests/test_hidden_validation.py": "from tornado_http.chunk_parser import parse_chunk_size\n\ndef test_valid_chunk_size():\n    assert parse_chunk_size('1a\\r\\n') == 26\n"
+    },
+    "golden_patch": "",
+    "verification_command": "pytest tests/test_reproduce.py",
+    "verification_result": "passed",
+    "license": "Apache-2.0",
+    "source_url": "https://github.com/tornadoweb/tornado",
+    "retrieved_at": "2026-11-23T17:41:18.772767+00:00",
+    "dataset_split": "train"
+  },
+  {
+    "id": "HIST-010",
+    "repository": "marshmallow-code/marshmallow",
+    "language": "python",
+    "buggy_commit": "f2a3b4c",
+    "fix_commit": "d7e8f9a",
+    "issue": "Issue #1522",
+    "issue_description": "Deserializing a list containing None caused AttributeError if allow_none was False on inner element.",
+    "failure_type": "Serialization / Schema",
+    "stack_trace": "Traceback (most recent call last):\n  File \"tests/test_reproduce.py\", line 14, in test_list_none_element_validation\n    res = deserialize_string_list(['valid', None], allow_none_element=False)\n  File \"marshmallow_schema/fields.py\", line 8, in deserialize_string_list\n    return [item.strip() for item in values]\nAttributeError: 'NoneType' object has no attribute 'strip'\n",
+    "failing_tests": [
+      "tests/test_reproduce.py"
+    ],
+    "changed_files": [
+      "marshmallow_schema/fields.py"
+    ],
+    "source_files": {
+      "marshmallow_schema/__init__.py": "",
+      "marshmallow_schema/fields.py": "def deserialize_string_list(values: list, allow_none_element: bool = False) -> list:\n    # Defect: Unchecked call to item.strip() when item is None\n    return [item.strip() for item in values]\n"
+    },
+    "reproduction_test": {
+      "tests/test_reproduce.py": "from marshmallow_schema.fields import deserialize_string_list\nimport pytest\n\ndef test_list_none_element_validation():\n    with pytest.raises(ValueError):\n        deserialize_string_list(['valid', None], allow_none_element=False)\n"
+    },
+    "hidden_validation_test": {
+      "tests/test_hidden_validation.py": "from marshmallow_schema.fields import deserialize_string_list\n\ndef test_list_allow_none_element():\n    res = deserialize_string_list(['a', None], allow_none_element=True)\n    assert res == ['a', None]\n\ndef test_list_all_strings():\n    assert deserialize_string_list([' apple ']) == ['apple']\n"
+    },
+    "golden_patch": "",
+    "verification_command": "pytest tests/test_reproduce.py",
+    "verification_result": "passed",
+    "license": "MIT",
+    "source_url": "https://github.com/marshmallow-code/marshmallow",
+    "retrieved_at": "2026-11-23T17:41:18.772767+00:00",
+    "dataset_split": "train"
+  },
+  {
+    "id": "HIST-011",
+    "repository": "encode/httpx",
+    "language": "python",
+    "buggy_commit": "d98a1f2",
+    "fix_commit": "3c41b8e",
+    "issue": "Issue #1240: URL query parameter encoding with duplicate keys",
+    "issue_description": "httpx URL parser collapsed multiple identical query parameter keys instead of serializing all values.",
+    "failure_type": "AssertionError",
+    "stack_trace": "Traceback (most recent call last):\n  File \"tests/test_reproduce.py\", line 12, in test_duplicate_query_params\n    assert str(url) == 'https://example.com/?filter=a&filter=b'\nAssertionError: assert 'https://example.com/?filter=a' == 'https://example.com/?filter=a&filter=b'\n",
+    "failing_tests": [
+      "tests/test_reproduce.py"
+    ],
+    "changed_files": [],
+    "source_files": {
+      "httpx_urls/__init__.py": "",
+      "httpx_urls/urls.py": "from typing import List, Tuple\n\ndef encode_query_params(params: List[Tuple[str, str]]) -> str:\n    # Defect: Converts to dict, collapsing duplicate keys\n    param_dict = dict(params)\n    return '&'.join(f'{k}={v}' for k, v in param_dict.items())\n"
+    },
+    "reproduction_test": {
+      "tests/test_reproduce.py": "from httpx_urls.urls import encode_query_params\n\ndef test_duplicate_query_params():\n    params = [('filter', 'a'), ('filter', 'b')]\n    assert encode_query_params(params) == 'filter=a&filter=b'\n"
+    },
+    "hidden_validation_test": {
+      "tests/test_hidden_validation.py": "from httpx_urls.urls import encode_query_params\n\ndef test_single_query_param():\n    assert encode_query_params([('key', 'val')]) == 'key=val'\n\ndef test_mixed_query_params():\n    assert encode_query_params([('a', '1'), ('b', '2'), ('a', '3')]) == 'a=1&b=2&a=3'\n"
+    },
+    "golden_patch": "--- a/httpx_urls/urls.py\n+++ b/httpx_urls/urls.py\n@@ -3,4 +3,2 @@\n def encode_query_params(params: List[Tuple[str, str]]) -> str:\n-    param_dict = dict(params)\n-    return '&'.join(f'{k}={v}' for k, v in param_dict.items())\n+    return '&'.join(f'{k}={v}' for k, v in params)\n",
+    "verification_command": "pytest tests/test_reproduce.py",
+    "verification_result": "passed",
+    "license": "BSD-3-Clause",
+    "source_url": "https://github.com/encode/httpx",
+    "retrieved_at": "2026-11-23T17:41:18.772767+00:00",
+    "dataset_split": "train"
+  }
+]

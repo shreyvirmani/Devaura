@@ -532,33 +532,9 @@ export default function RepairWorkspacePage() {
         const err = await res.json();
         setActionMessage(`PR creation failed: ${err.detail || "Error"}`);
       }
-    } catch {
-      const mockRecord: PRRecordData = {
-        id: "pr-record-01",
-        repair_id: activeRepair.id,
-        pr_number: 42,
-        pr_url: "https://github.com/shreyvirmani/Devaura/pull/42",
-        pr_title: prContext?.pr_title || "fix(repair): verified automated fix",
-        pr_body: prContext?.pr_body || "PR details",
-        pr_state: "open",
-        repair_branch: prContext?.repair_branch || `devaura/repair/${activeRepair.id.slice(0, 8)}`,
-        commit_sha: "7f4c9a1",
-        status: "PR_CREATED",
-        ci_status: {
-          overall_status: "PASSED",
-          total_checks: 3,
-          passed_checks: 3,
-          failed_checks: 0,
-        },
-        review_status: {
-          review_status: "PENDING",
-          approved_by: [],
-          changes_requested: false,
-        },
-        created_at: new Date().toISOString(),
-      };
-      setPrRecord(mockRecord);
-      setActionMessage("PR #42 opened on GitHub (Demo Mode)!");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Network error contacting API";
+      setActionMessage(`PR creation failed: ${msg}. Silent mock fallback is disabled.`);
     } finally {
       setPrLoading(false);
     }

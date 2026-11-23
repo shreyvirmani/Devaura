@@ -1,0 +1,65 @@
+{
+  "dataset_version": "v1.0.0",
+  "dataset_hash": "d9fe5b09f572550b31ba67242207730ab6f100e2c29282db5045e6b890fa54bf",
+  "creation_timestamp": "2026-11-23T17:41:18.773397+00:00",
+  "total_records": 12,
+  "split_counts": {
+    "train": 6,
+    "validation": 3,
+    "test": 3
+  },
+  "train_repositories": [
+    "encode/httpx",
+    "marshmallow-code/marshmallow",
+    "pallets/click",
+    "pallets/flask",
+    "psf/requests",
+    "tornadoweb/tornado"
+  ],
+  "validation_repositories": [
+    "expressjs/express",
+    "sqlalchemy/sqlalchemy",
+    "tiangolo/fastapi"
+  ],
+  "test_repositories": [
+    "pydantic/pydantic",
+    "pytest-dev/pytest",
+    "urllib3/urllib3"
+  ],
+  "all_repositories": [
+    "encode/httpx",
+    "expressjs/express",
+    "marshmallow-code/marshmallow",
+    "pallets/click",
+    "pallets/flask",
+    "psf/requests",
+    "pydantic/pydantic",
+    "pytest-dev/pytest",
+    "sqlalchemy/sqlalchemy",
+    "tiangolo/fastapi",
+    "tornadoweb/tornado",
+    "urllib3/urllib3"
+  ],
+  "languages": [
+    "python"
+  ],
+  "bug_categories": [
+    "AssertionError",
+    "CLI / Unicode Handling",
+    "Database / SQL Compilation",
+    "Dependency Injection / Routing",
+    "Routing / URL Parsing",
+    "Security / HTTP Redirect",
+    "Security / HTTP Smuggling",
+    "Security / Query Parsing",
+    "Serialization / Schema",
+    "Test Harness / Fixtures",
+    "Type Parsing / Validation"
+  ],
+  "excluded_records": [],
+  "licenses": [
+    "Apache-2.0",
+    "BSD-3-Clause",
+    "MIT"
+  ]
+}

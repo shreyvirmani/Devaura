@@ -194,14 +194,17 @@ class GeminiProvider(LLMProvider):
             if parts:
                 text = parts[0].get("text", "")
 
-        meta = data.get("usageMetadata") or {}
+        raw_meta = data.get("usageMetadata")
+        token_status = "CONFIRMED" if raw_meta else "UNKNOWN"
+        meta = raw_meta or {}
         input_tokens = meta.get("promptTokenCount", 0)
         output_tokens = meta.get("candidatesTokenCount", 0)
-        cost = self._estimate_cost(input_tokens, output_tokens)
+        cost = self._estimate_cost(input_tokens, output_tokens) if token_status == "CONFIRMED" else 0.0
 
-        self.total_input_tokens += input_tokens
-        self.total_output_tokens += output_tokens
-        self.total_cost_usd += cost
+        if token_status == "CONFIRMED":
+            self.total_input_tokens += input_tokens
+            self.total_output_tokens += output_tokens
+            self.total_cost_usd += cost
 
         usage = LLMUsage(
             provider=self.provider_name(),
@@ -212,6 +215,7 @@ class GeminiProvider(LLMProvider):
             estimated_cost_usd=cost,
             latency_ms=round(latency_ms, 2),
             request_id=str(uuid.uuid4())[:8],
+            token_status=token_status,
         )
 
         return LLMResponse(content=text, usage=usage)
@@ -279,14 +283,17 @@ class GeminiProvider(LLMProvider):
         except Exception as e:
             raise LLMExecutionError(f"Failed to validate Gemini JSON against {schema.__name__}: {e}. Raw: {raw_text[:200]}")
 
-        meta = data.get("usageMetadata") or {}
+        raw_meta = data.get("usageMetadata")
+        token_status = "CONFIRMED" if raw_meta else "UNKNOWN"
+        meta = raw_meta or {}
         input_tokens = meta.get("promptTokenCount", 0)
         output_tokens = meta.get("candidatesTokenCount", 0)
-        cost = self._estimate_cost(input_tokens, output_tokens)
+        cost = self._estimate_cost(input_tokens, output_tokens) if token_status == "CONFIRMED" else 0.0
 
-        self.total_input_tokens += input_tokens
-        self.total_output_tokens += output_tokens
-        self.total_cost_usd += cost
+        if token_status == "CONFIRMED":
+            self.total_input_tokens += input_tokens
+            self.total_output_tokens += output_tokens
+            self.total_cost_usd += cost
 
         usage = LLMUsage(
             provider=self.provider_name(),
@@ -297,6 +304,7 @@ class GeminiProvider(LLMProvider):
             estimated_cost_usd=cost,
             latency_ms=round(latency_ms, 2),
             request_id=str(uuid.uuid4())[:8],
+            token_status=token_status,
         )
 
         return instance, usage
@@ -366,14 +374,17 @@ class OpenAIProvider(LLMProvider):
 
         latency_ms = (time.perf_counter() - t0) * 1000
         text = data["choices"][0]["message"]["content"]
-        usage_data = data.get("usage") or {}
+        raw_usage = data.get("usage")
+        token_status = "CONFIRMED" if raw_usage else "UNKNOWN"
+        usage_data = raw_usage or {}
         input_tokens = usage_data.get("prompt_tokens", 0)
         output_tokens = usage_data.get("completion_tokens", 0)
-        cost = self._estimate_cost(input_tokens, output_tokens)
+        cost = self._estimate_cost(input_tokens, output_tokens) if token_status == "CONFIRMED" else 0.0
 
-        self.total_input_tokens += input_tokens
-        self.total_output_tokens += output_tokens
-        self.total_cost_usd += cost
+        if token_status == "CONFIRMED":
+            self.total_input_tokens += input_tokens
+            self.total_output_tokens += output_tokens
+            self.total_cost_usd += cost
 
         usage = LLMUsage(
             provider=self.provider_name(),
@@ -384,6 +395,7 @@ class OpenAIProvider(LLMProvider):
             estimated_cost_usd=cost,
             latency_ms=round(latency_ms, 2),
             request_id=data.get("id"),
+            token_status=token_status,
         )
         return LLMResponse(content=text, usage=usage)
 
@@ -439,14 +451,17 @@ class OpenAIProvider(LLMProvider):
         except Exception as e:
             raise LLMExecutionError(f"Failed to validate OpenAI JSON against {schema.__name__}: {e}")
 
-        usage_data = data.get("usage") or {}
+        raw_usage = data.get("usage")
+        token_status = "CONFIRMED" if raw_usage else "UNKNOWN"
+        usage_data = raw_usage or {}
         input_tokens = usage_data.get("prompt_tokens", 0)
         output_tokens = usage_data.get("completion_tokens", 0)
-        cost = self._estimate_cost(input_tokens, output_tokens)
+        cost = self._estimate_cost(input_tokens, output_tokens) if token_status == "CONFIRMED" else 0.0
 
-        self.total_input_tokens += input_tokens
-        self.total_output_tokens += output_tokens
-        self.total_cost_usd += cost
+        if token_status == "CONFIRMED":
+            self.total_input_tokens += input_tokens
+            self.total_output_tokens += output_tokens
+            self.total_cost_usd += cost
 
         usage = LLMUsage(
             provider=self.provider_name(),
@@ -457,6 +472,7 @@ class OpenAIProvider(LLMProvider):
             estimated_cost_usd=cost,
             latency_ms=round(latency_ms, 2),
             request_id=data.get("id"),
+            token_status=token_status,
         )
         return instance, usage
 
@@ -646,7 +662,17 @@ class ProviderFactory:
         provider_name: Optional[str] = None,
         model_name: Optional[str] = None,
     ) -> LLMProvider:
-        active_mode = (mode or os.getenv("DEVAURA_LLM_MODE") or LLMMode.DETERMINISTIC.value).lower()
+        env_mode = os.getenv("DEVAURA_LLM_MODE")
+        if mode:
+            active_mode = mode.lower()
+        elif env_mode:
+            active_mode = env_mode.lower()
+        elif os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY") or os.getenv("OPENAI_API_KEY"):
+            # If real credentials exist in environment, prioritize real live LLM execution
+            active_mode = LLMMode.LIVE.value
+        else:
+            active_mode = LLMMode.DETERMINISTIC.value
+
         active_provider = (provider_name or os.getenv("DEVAURA_LLM_PROVIDER") or "gemini").lower()
 
         if active_mode == LLMMode.LIVE.value:

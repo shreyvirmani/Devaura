@@ -1,5 +1,8 @@
 {
   "dataset_name": "Devaura-Benchmark-v1",
+  "benchmark_type": "SYNTHETIC_FIXTURE_TRACK_A",
+  "provenance": "DETERMINISTIC_SYNTHETIC_FIXTURES",
+  "description": "Deterministic fixture dataset for offline plumbing and regression testing",
   "total_bugs": 36,
   "categories": [
     "A-Exceptions",

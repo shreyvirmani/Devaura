@@ -326,6 +326,44 @@ class GitHubClient(GitProvider):
         except httpx.RequestError:
             return ReviewInfo(status=ReviewStatus.UNKNOWN)
 
+    async def get_issue(self, owner: str, repo: str, issue_number: int) -> Dict[str, Any]:
+        """Fetch issue title, description, and author from GitHub."""
+        url = f"{self.base_url}/repos/{owner}/{repo}/issues/{issue_number}"
+        try:
+            async with httpx.AsyncClient(timeout=self.timeout_seconds) as client:
+                res = await client.get(url, headers=self._get_headers())
+                self._handle_response_error(res, f"get_issue({issue_number})")
+                data = res.json()
+                return {
+                    "issue_number": issue_number,
+                    "title": data.get("title", ""),
+                    "body": self._sanitize(data.get("body") or ""),
+                    "author": (data.get("user") or {}).get("login", "unknown"),
+                    "state": data.get("state", "open"),
+                    "url": data.get("html_url", ""),
+                }
+        except httpx.RequestError as exc:
+            raise GitNetworkError(f"Network error querying GitHub issue: {self._sanitize(str(exc))}")
+
+    async def get_repository(self, owner: str, repo: str) -> Dict[str, Any]:
+        """Fetch repository metadata and default branch from GitHub."""
+        url = f"{self.base_url}/repos/{owner}/{repo}"
+        try:
+            async with httpx.AsyncClient(timeout=self.timeout_seconds) as client:
+                res = await client.get(url, headers=self._get_headers())
+                self._handle_response_error(res, f"get_repository({owner}/{repo})")
+                data = res.json()
+                return {
+                    "repository": f"{owner}/{repo}",
+                    "default_branch": data.get("default_branch", "main"),
+                    "language": data.get("language", "Python"),
+                    "license": (data.get("license") or {}).get("spdx_id", "UNKNOWN"),
+                    "description": data.get("description", ""),
+                    "url": data.get("html_url", ""),
+                }
+        except httpx.RequestError as exc:
+            raise GitNetworkError(f"Network error querying GitHub repository: {self._sanitize(str(exc))}")
+
     def _parse_pr_json(self, data: Dict[str, Any], owner: str, repo: str) -> PullRequestResult:
         pr_state = PullRequestState.OPEN
         if data.get("merged", False):

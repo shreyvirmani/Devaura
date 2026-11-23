@@ -6,7 +6,7 @@ Bitbucket, and Mock providers for testing) ensuring zero vendor lock-in.
 
 from abc import ABC, abstractmethod
 import time
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 from integrations.github.models import (
     BranchInfo,
     CIStatusInfo,
@@ -191,6 +191,16 @@ class GitProvider(ABC):
     @abstractmethod
     async def get_reviews(self, owner: str, repo: str, pr_number: int) -> ReviewInfo:
         """Retrieve review decision status for a pull request."""
+        pass
+
+    @abstractmethod
+    async def get_issue(self, owner: str, repo: str, issue_number: int) -> Dict[str, Any]:
+        """Retrieve issue details from provider."""
+        pass
+
+    @abstractmethod
+    async def get_repository(self, owner: str, repo: str) -> Dict[str, Any]:
+        """Retrieve repository metadata from provider."""
         pass
 
     async def get_review_status(self, owner: str, repo: str, pr_number: int) -> ReviewInfo:

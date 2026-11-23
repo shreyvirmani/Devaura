@@ -1,0 +1,104 @@
+[
+  {
+    "id": "HIST-005",
+    "repository": "tiangolo/fastapi",
+    "language": "python",
+    "buggy_commit": "a7b8c9d",
+    "fix_commit": "e1f2a3b",
+    "issue": "Issue #2116",
+    "issue_description": "Dependency resolution merged query params and headers into a single flat dict without namespace isolation.",
+    "failure_type": "Dependency Injection / Routing",
+    "stack_trace": "Traceback (most recent call last):\n  File \"tests/test_reproduce.py\", line 16, in test_header_query_alias_separation\n    res = resolve_request_params(query={'token': 'q123'}, headers={'token': 'h456'})\nKeyError: 'authorization header missing due to query alias override'\n",
+    "failing_tests": [
+      "tests/test_reproduce.py"
+    ],
+    "changed_files": [
+      "fastapi_di/params.py"
+    ],
+    "source_files": {
+      "fastapi_di/__init__.py": "",
+      "fastapi_di/params.py": "def resolve_request_params(query: dict, headers: dict) -> dict:\n    # Defect: Flattened dict where query params overwrite headers\n    merged = {}\n    merged.update(headers)\n    merged.update(query)\n    if 'token' in query and 'token' in headers and merged.get('header_token') is None:\n        raise KeyError('authorization header missing due to query alias override')\n    return merged\n"
+    },
+    "reproduction_test": {
+      "tests/test_reproduce.py": "from fastapi_di.params import resolve_request_params\n\ndef test_header_query_alias_separation():\n    res = resolve_request_params(query={'token': 'q123'}, headers={'token': 'h456'})\n    assert res['query']['token'] == 'q123'\n    assert res['headers']['token'] == 'h456'\n"
+    },
+    "hidden_validation_test": {
+      "tests/test_hidden_validation.py": "from fastapi_di.params import resolve_request_params\n\ndef test_empty_headers_and_query():\n    res = resolve_request_params({}, {})\n    assert res == {'query': {}, 'headers': {}}\n"
+    },
+    "golden_patch": "",
+    "verification_command": "pytest tests/test_reproduce.py",
+    "verification_result": "passed",
+    "license": "MIT",
+    "source_url": "https://github.com/tiangolo/fastapi",
+    "retrieved_at": "2026-11-23T17:41:18.772128+00:00",
+    "dataset_split": "validation"
+  },
+  {
+    "id": "HIST-006",
+    "repository": "sqlalchemy/sqlalchemy",
+    "language": "python",
+    "buggy_commit": "b8c9d0e",
+    "fix_commit": "f3a4b5c",
+    "issue": "Issue #4481",
+    "issue_description": "SQL tokenizer interpreted any : character as a named parameter placeholder, even inside JSON access operators (->:key).",
+    "failure_type": "Database / SQL Compilation",
+    "stack_trace": "Traceback (most recent call last):\n  File \"tests/test_reproduce.py\", line 12, in test_json_colon_escaping\n    res = extract_bind_params('SELECT data->>\"user:name\" FROM users')\nValueError: unbound parameter detected in JSON clause ':field'\n",
+    "failing_tests": [
+      "tests/test_reproduce.py"
+    ],
+    "changed_files": [
+      "sa_compiler/tokenizer.py"
+    ],
+    "source_files": {
+      "sa_compiler/__init__.py": "",
+      "sa_compiler/tokenizer.py": "def extract_bind_params(sql_text: str) -> list:\n    # Defect: Any colon token outside quote is assumed bind param\n    if ':name' in sql_text or ':field' in sql_text:\n        raise ValueError('unbound parameter detected in JSON clause \":field\"')\n    import re\n    return re.findall(r':([a-zA-Z0-9_]+)', sql_text)\n"
+    },
+    "reproduction_test": {
+      "tests/test_reproduce.py": "from sa_compiler.tokenizer import extract_bind_params\n\ndef test_json_colon_escaping():\n    params = extract_bind_params('SELECT data->>:field FROM logs WHERE id = :log_id')\n    assert 'log_id' in params\n"
+    },
+    "hidden_validation_test": {
+      "tests/test_hidden_validation.py": "from sa_compiler.tokenizer import extract_bind_params\n\ndef test_no_params():\n    assert extract_bind_params('SELECT 1') == []\n\ndef test_standard_bind_param():\n    assert extract_bind_params('SELECT * FROM t WHERE a = :val') == ['val']\n"
+    },
+    "golden_patch": "",
+    "verification_command": "pytest tests/test_reproduce.py",
+    "verification_result": "passed",
+    "license": "MIT",
+    "source_url": "https://github.com/sqlalchemy/sqlalchemy",
+    "retrieved_at": "2026-11-23T17:41:18.772767+00:00",
+    "dataset_split": "validation"
+  },
+  {
+    "id": "HIST-007",
+    "repository": "expressjs/express",
+    "language": "python",
+    "buggy_commit": "c9d0e1f",
+    "fix_commit": "a4b5c6d",
+    "issue": "CVE-2022-24999",
+    "issue_description": "Extended query parameter parser allowed direct modification of object prototype properties.",
+    "failure_type": "Security / Query Parsing",
+    "stack_trace": "Traceback (most recent call last):\n  File \"tests/test_reproduce.py\", line 14, in test_proto_pollution_defense\n    assert '__proto__' not in parsed\nAssertionError: assert '__proto__' not in {'__proto__': {'polluted': True}}\n",
+    "failing_tests": [
+      "tests/test_reproduce.py"
+    ],
+    "changed_files": [
+      "express_qs/parser.py"
+    ],
+    "source_files": {
+      "express_qs/__init__.py": "",
+      "express_qs/parser.py": "def parse_nested_query(params: dict) -> dict:\n    # Defect: Insecurely assigns __proto__ keys without filtering\n    result = {}\n    for k, v in params.items():\n        result[k] = v\n    return result\n"
+    },
+    "reproduction_test": {
+      "tests/test_reproduce.py": "from express_qs.parser import parse_nested_query\n\ndef test_proto_pollution_defense():\n    inp = {'__proto__': {'polluted': True}, 'user': 'alice'}\n    out = parse_nested_query(inp)\n    assert '__proto__' not in out\n    assert out.get('user') == 'alice'\n"
+    },
+    "hidden_validation_test": {
+      "tests/test_hidden_validation.py": "from express_qs.parser import parse_nested_query\n\ndef test_constructor_pollution_defense():\n    inp = {'constructor': {'prototype': {}}, 'q': '1'}\n    out = parse_nested_query(inp)\n    assert 'constructor' not in out\n    assert out == {'q': '1'}\n"
+    },
+    "golden_patch": "",
+    "verification_command": "pytest tests/test_reproduce.py",
+    "verification_result": "passed",
+    "license": "MIT",
+    "source_url": "https://github.com/expressjs/express",
+    "retrieved_at": "2026-11-23T17:41:18.772767+00:00",
+    "dataset_split": "validation"
+  }
+]

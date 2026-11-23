@@ -49,7 +49,6 @@ from database.models import (
     Repository,
 )
 from integrations.github.client import GitHubClient
-from integrations.github.mock_provider import MockGitProvider
 from integrations.github.models import (
     CIStatusInfo,
     PullRequestPayload,
@@ -75,10 +74,17 @@ _PR_CONTEXT_STORE: Dict[str, PRContext] = {}
 
 
 def get_git_provider() -> GitProvider:
-    token = os.environ.get("GITHUB_TOKEN")
-    if token:
-        return GitHubClient(token=token)
-    return MockGitProvider()
+    """Retrieve production GitProvider.
+    
+    In runtime and production paths, returns real authenticated GitHubClient.
+    If GITHUB_TOKEN is unset, strictly raises GitHubAuthRequiredError (NO silent mock fallback).
+    """
+    token = os.environ.get("GITHUB_TOKEN") or os.environ.get("DEVAURA_GITHUB_TOKEN")
+    if token and len(token.strip()) > 0:
+        return GitHubClient(token=token.strip())
+    raise GitHubAuthRequiredError(
+        "GitHub token not configured. Real GitHub operations require GITHUB_TOKEN in .env. Silent mock fallback is disabled."
+    )
 
 
 # ------------------------------------------------------------------------------

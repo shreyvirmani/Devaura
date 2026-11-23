@@ -2377,7 +2377,39 @@ Phase 9.1 validates that Devaura's LLM pipeline executes against real external L
 
 ---
 
-# 60. Final Rule
+# 60. Real Data Pipeline, Real-World Dataset & Ingestion Architecture
+
+Devaura operates on real open-source software defect data and real external LLM reasoning, with strict elimination of inappropriate runtime mocks.
+
+### Core Declarations
+
+> **"Devaura is powered by a real external LLM and evaluated on real-world software failure data; model parameter fine-tuning has not yet been performed."**
+
+1. **Zero Mock Fallback Invariant:**
+   - Production routes (`apps/api/routes/`) and MCP servers (`mcp/server/`) strictly reject silent mock fallbacks (`try: real except: mock`).
+   - If `GITHUB_TOKEN` is unset, `GitHubAuthRequiredError` is raised with explicit HTTP 401 diagnostics.
+   - If LLM API credentials fail, `LLMExecutionError` or `LLMQuotaExceededError` is raised. Mocks exist exclusively within `tests/` for unit isolation.
+2. **Real Data Pipeline (`data/`):**
+   - `data/ingestion/`: Production GitHub and git repository ingesters extracting real issues, PRs, diffs, and test suites.
+   - `data/provenance/`: `ProvenanceTracker` recording commit SHAs, URLs, licenses, and timestamps with immutable SHA-256 integrity hashing.
+   - `data/validation/`:
+     * `LicenseValidator`: Strictly validates permissive open-source licenses (`MIT`, `Apache-2.0`, `BSD-3-Clause`) and rejects proprietary/viral copyleft licenses.
+     * `SecretDetector`: Automated pattern detection and redaction (`[REDACTED_SECRET]`) for GitHub PATs, Google API keys, OpenAI/Anthropic tokens, and private keys.
+     * `GroundTruthValidator`: Strictly guards against leakage of golden patches, fixed source code, or withheld validation tests into agent prompts.
+   - `data/splits/`: `RepositorySplitter` enforcing strict **repository-level partitioning** (zero repository overlap across Train, Validation, and Held-Out Test).
+3. **Dataset Manifest (v1.0.0):**
+   - Hash: `d9fe5b09f572550b31ba67242207730ab6f100e2c29282db5045e6b890fa54bf`
+   - Total Defects: 12 real-world software defects across 12 distinct repositories.
+   - Train Split (6 repos): Flask, Requests, Click, Tornado, Marshmallow, HTTPX.
+   - Validation Split (3 repos): FastAPI, SQLAlchemy, Express.
+   - Held-Out Test Split (3 repos): Pydantic, Pytest, Urllib3.
+4. **Air-Gapped Hidden Test Protection:**
+   - Hidden validation tests reside strictly in `evaluation/historical/hidden_tests/` and are never copied to the agent's repair workspace or injected into prompt context.
+   - Post-repair verification executes within isolated reproduction sandboxes.
+
+---
+
+# 61. Final Rule
 
 **Never sacrifice correctness, security, or verifiability merely to make Devaura appear autonomous.**
 

@@ -1,10 +1,16 @@
+"""Devaura Test-Only Mock MCP Server.
+
+WARNING: This module is strictly for isolated test suites (tests/test_mcp_client.py, tests/test_mcp_e2e.py).
+It must NEVER be imported, executed, or registered in production or runtime code paths.
+"""
+
 import json
 from mcp.models import RiskLevel
 from mcp.server.mcpserver import MCPServer
 
 
 def create_mock_mcp_server(name: str = "mock-mcp-server") -> MCPServer:
-    """Create a deterministic Mock MCP Server for testing."""
+    """Create a deterministic Mock MCP Server strictly for protocol testing."""
     server = MCPServer(
         name=name,
         version="1.0.0",

@@ -70,20 +70,6 @@ const initialServers: MCPServer[] = [
       { name: "create_pull_request", risk: "DANGEROUS", desc: "Opens Pull Request on GitHub with mandatory human sign-off.", enabled: true },
     ],
   },
-  {
-    id: "srv_mock_test",
-    name: "Mock Test Server",
-    transport: "native (internal://mock)",
-    endpoint: "internal://mock",
-    status: "DISCONNECTED",
-    trust: "TRUSTED",
-    tools: [
-      { name: "mock_get_issue", risk: "SAFE", desc: "Fetches simulated issue context.", enabled: true },
-      { name: "mock_search_code", risk: "SAFE", desc: "Simulated code search.", enabled: true },
-      { name: "mock_run_tests", risk: "CONTROLLED", desc: "Simulated test execution.", enabled: true },
-      { name: "mock_dangerous_push", risk: "DANGEROUS", desc: "Simulated dangerous push requiring human approval.", enabled: true },
-    ],
-  },
 ];
 
 export default function MCPServerPage() {

@@ -31,6 +31,10 @@ def setup_test_env(monkeypatch):
     monkeypatch.delenv("GITHUB_TOKEN", raising=False)
     from agent.pr.git_manager import GitStateManager
     monkeypatch.setattr(GitStateManager, "validate_working_tree_clean", lambda self, allowed_files: (True, None))
+    # Test fixture isolation: provide MockGitProvider for route integration testing when GITHUB_TOKEN is unset
+    from integrations.github.mock_provider import MockGitProvider
+    import apps.api.routes.pull_requests as pr_routes
+    monkeypatch.setattr(pr_routes, "get_git_provider", lambda: MockGitProvider())
 
 
 @pytest_asyncio.fixture

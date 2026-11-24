@@ -43,22 +43,35 @@ class RepairOutcomeState(str, Enum):
 
 class FailureCategory(str, Enum):
     NONE = "NONE"
-    WRONG_LOCALIZATION = "WRONG_LOCALIZATION"
-    WRONG_ROOT_CAUSE = "WRONG_ROOT_CAUSE"
-    INSUFFICIENT_EVIDENCE = "INSUFFICIENT_EVIDENCE"
-    BAD_PATCH = "BAD_PATCH"
-    PATCH_SCOPE_ERROR = "PATCH_SCOPE_ERROR"
-    SYNTAX_ERROR = "SYNTAX_ERROR"
-    TYPE_ERROR = "TYPE_ERROR"
+    INPUT_FAILURE = "INPUT_FAILURE"
+    LOCALIZATION_FAILURE = "LOCALIZATION_FAILURE"
+    ROOT_CAUSE_FAILURE = "ROOT_CAUSE_FAILURE"
+    CONTEXT_FAILURE = "CONTEXT_FAILURE"
+    PLAN_FAILURE = "PLAN_FAILURE"
+    PATCH_SYNTAX_FAILURE = "PATCH_SYNTAX_FAILURE"
+    PATCH_SCOPE_FAILURE = "PATCH_SCOPE_FAILURE"
+    PATCH_APPLY_FAILURE = "PATCH_APPLY_FAILURE"
     TEST_FAILURE = "TEST_FAILURE"
-    REGRESSION = "REGRESSION"
-    HALLUCINATED_API = "HALLUCINATED_API"
-    DEPENDENCY_ERROR = "DEPENDENCY_ERROR"
+    REGRESSION_FAILURE = "REGRESSION_FAILURE"
     INFRASTRUCTURE_FAILURE = "INFRASTRUCTURE_FAILURE"
     LLM_FAILURE = "LLM_FAILURE"
-    QUOTA_FAILURE = "QUOTA_FAILURE"
-    TIMEOUT = "TIMEOUT"
-    NO_PROGRESS = "NO_PROGRESS"
+    VERIFICATION_FAILURE = "VERIFICATION_FAILURE"
+    SECURITY_BLOCK = "SECURITY_BLOCK"
+
+    # Backward-compatible aliases
+    WRONG_LOCALIZATION = "LOCALIZATION_FAILURE"
+    WRONG_ROOT_CAUSE = "ROOT_CAUSE_FAILURE"
+    INSUFFICIENT_EVIDENCE = "CONTEXT_FAILURE"
+    BAD_PATCH = "PATCH_SYNTAX_FAILURE"
+    PATCH_SCOPE_ERROR = "PATCH_SCOPE_FAILURE"
+    SYNTAX_ERROR = "PATCH_SYNTAX_FAILURE"
+    TYPE_ERROR = "TEST_FAILURE"
+    REGRESSION = "REGRESSION_FAILURE"
+    HALLUCINATED_API = "PATCH_SCOPE_FAILURE"
+    DEPENDENCY_ERROR = "INFRASTRUCTURE_FAILURE"
+    QUOTA_FAILURE = "LLM_FAILURE"
+    TIMEOUT = "INFRASTRUCTURE_FAILURE"
+    NO_PROGRESS = "PLAN_FAILURE"
 
 
 class TokenStatus(str, Enum):
@@ -92,6 +105,8 @@ class InvestigationRecord(BaseModel):
     root_cause_correct: bool = False
     evidence_precision: float = 0.0
     evidence_recall: float = 0.0
+    evidence_provided_location: bool = False
+    independently_inferred: bool = False
 
 
 class RepairRecord(BaseModel):
@@ -214,6 +229,8 @@ class BugVarianceRecord(BaseModel):
     quota_limited: bool
     successful_runs: int
     reliable_success: bool  # True if >= majority of completed runs succeed (e.g. 2/3 or 3/3)
+    majority_success: bool = False  # True if >= majority of completed runs succeed (e.g. 2/3 or 3/3)
+    perfect_consistency: bool = False  # True if all completed runs succeed
     best_of_n_success: bool  # True if >= 1 run succeeded
     outcomes: List[str]
     localization_consistency: str  # e.g. "3/3"
@@ -243,6 +260,8 @@ class BenchmarkSummary(BaseModel):
     # Investigation metrics
     localization_top1: MetricFraction
     localization_top3: MetricFraction
+    evidence_provided_localization: MetricFraction = Field(default_factory=lambda: MetricFraction.calculate(0, 0))
+    independently_inferred_localization: MetricFraction = Field(default_factory=lambda: MetricFraction.calculate(0, 0))
     root_cause_accuracy: MetricFraction
     avg_evidence_precision: float
 
@@ -255,9 +274,11 @@ class BenchmarkSummary(BaseModel):
     correct_repair_rate: MetricFraction
     false_repair_rate: MetricFraction
 
-    # Reliability metrics
+    # Reliability metrics (strictly separated)
     run_level_success: MetricFraction
     bug_level_reliable_success: MetricFraction
+    majority_reliability: MetricFraction = Field(default_factory=lambda: MetricFraction.calculate(0, 0))
+    perfect_consistency: MetricFraction = Field(default_factory=lambda: MetricFraction.calculate(0, 0))
     best_of_3_success: MetricFraction
 
     # Efficiency metrics
@@ -350,6 +371,7 @@ class BenchmarkSummary(BaseModel):
             b_quota = any(r.execution.status == ExecutionStatus.QUOTA_FAILURE.value for r in bug_recs)
 
             is_reliable = b_succ >= (b_comp // 2 + 1) if b_comp > 0 else False
+            is_perfect = (b_succ == b_comp and b_comp > 0)
             best_of = b_succ >= 1
 
             bug_variances.append(
@@ -362,6 +384,8 @@ class BenchmarkSummary(BaseModel):
                     quota_limited=b_quota,
                     successful_runs=b_succ,
                     reliable_success=is_reliable,
+                    majority_success=is_reliable,
+                    perfect_consistency=is_perfect,
                     best_of_n_success=best_of,
                     outcomes=[r.repair.outcome for r in bug_recs],
                     localization_consistency=f"{b_loc}/{b_comp}" if b_comp > 0 else "0/0",
@@ -381,6 +405,12 @@ class BenchmarkSummary(BaseModel):
         ev_prec_vals = [r.investigation.evidence_precision for r in records if r.investigation.evidence_precision > 0]
         avg_ev_prec = round(sum(ev_prec_vals) / max(1, len(ev_prec_vals)), 4) if ev_prec_vals else 0.0
 
+        ev_prov_records = [r for r in records if r.investigation.evidence_provided_location]
+        ev_prov_top1 = sum(1 for r in ev_prov_records if r.investigation.localized and r.investigation.localization_rank == 1)
+
+        indep_records = [r for r in records if r.investigation.independently_inferred]
+        indep_top1 = sum(1 for r in indep_records if r.investigation.localized and r.investigation.localization_rank == 1)
+
         # Repair
         pgen_c = sum(1 for r in records if r.repair.patch_generated)
         papp_c = sum(1 for r in records if r.repair.patch_applies)
@@ -391,7 +421,8 @@ class BenchmarkSummary(BaseModel):
         false_rep_c = sum(1 for r in records if r.repair.false_repair)
 
         # Reliability
-        reliable_bugs_c = sum(1 for b in bug_variances if b.reliable_success)
+        reliable_bugs_c = sum(1 for b in bug_variances if b.majority_success)
+        perfect_bugs_c = sum(1 for b in bug_variances if b.perfect_consistency)
         best_of_bugs_c = sum(1 for b in bug_variances if b.best_of_n_success)
 
         # Efficiency
@@ -433,6 +464,8 @@ class BenchmarkSummary(BaseModel):
             infrastructure_failures=infra_fails,
             localization_top1=MetricFraction.calculate(top1_c, total),
             localization_top3=MetricFraction.calculate(top3_c, total),
+            evidence_provided_localization=MetricFraction.calculate(ev_prov_top1, len(ev_prov_records)),
+            independently_inferred_localization=MetricFraction.calculate(indep_top1, len(indep_records)),
             root_cause_accuracy=MetricFraction.calculate(rc_c, total),
             avg_evidence_precision=avg_ev_prec,
             patch_generation_rate=MetricFraction.calculate(pgen_c, total),
@@ -444,6 +477,8 @@ class BenchmarkSummary(BaseModel):
             false_repair_rate=MetricFraction.calculate(false_rep_c, total),
             run_level_success=MetricFraction.calculate(correct_c, total),
             bug_level_reliable_success=MetricFraction.calculate(reliable_bugs_c, unique_bugs_count),
+            majority_reliability=MetricFraction.calculate(reliable_bugs_c, unique_bugs_count),
+            perfect_consistency=MetricFraction.calculate(perfect_bugs_c, unique_bugs_count),
             best_of_3_success=MetricFraction.calculate(best_of_bugs_c, unique_bugs_count),
             avg_input_tokens=round(sum(confirmed_in) / len(confirmed_in), 1) if confirmed_in else None,
             avg_output_tokens=round(sum(confirmed_out) / len(confirmed_out), 1) if confirmed_out else None,

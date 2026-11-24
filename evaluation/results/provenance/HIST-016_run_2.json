@@ -1,0 +1,39 @@
+{
+  "evaluation_id": "9d0bd4fb-34ec-4064-b3c5-f021d07c0934",
+  "bug_id": "HIST-016",
+  "repository": "gin-gonic/gin",
+  "split": "test",
+  "run_index": 2,
+  "provider": "deterministic-mock",
+  "model": "devaura-deterministic-llm-v1",
+  "timestamp": "2026-11-24T11:37:23.590423+00:00",
+  "patch_hash": "c26059a86879e86540edc681c2ed27c2b05b040e7526e5b4648a4a6cda487211",
+  "execution_status": "SUCCESS",
+  "outcome": "CORRECT_REPAIR",
+  "failure_category": "NONE",
+  "localization": {
+    "localized_top1": true,
+    "localization_rank": 1,
+    "evidence_provided_location": false,
+    "independently_inferred": true,
+    "evidence_precision": 0.5
+  },
+  "verification": {
+    "original_failure_fixed": true,
+    "hidden_tests_passed": true,
+    "regression_tests_passed": true,
+    "correct_repair": true,
+    "false_repair": false
+  },
+  "telemetry": {
+    "total_tokens": 1761,
+    "cost_usd": 0.000235,
+    "latency_ms": 11330.27
+  },
+  "safety_invariants": {
+    "manifest_verified": true,
+    "syntax_ast_verified": true,
+    "no_secrets": true,
+    "no_ground_truth_leakage": true
+  }
+}

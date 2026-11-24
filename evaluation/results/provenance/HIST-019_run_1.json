@@ -1,0 +1,39 @@
+{
+  "evaluation_id": "2c0607b3-7a2a-4e3e-9f38-621b2b822943",
+  "bug_id": "HIST-019",
+  "repository": "serde-rs/serde",
+  "split": "test",
+  "run_index": 1,
+  "provider": "deterministic-mock",
+  "model": "devaura-deterministic-llm-v1",
+  "timestamp": "2026-11-24T11:45:33.423943+00:00",
+  "patch_hash": "5d0970dcabc3688cba7a0b20ea8a2437cfb863cb5671ed552efee7fe4e3b4e0c",
+  "execution_status": "SUCCESS",
+  "outcome": "CORRECT_REPAIR",
+  "failure_category": "NONE",
+  "localization": {
+    "localized_top1": true,
+    "localization_rank": 1,
+    "evidence_provided_location": true,
+    "independently_inferred": false,
+    "evidence_precision": 0.5
+  },
+  "verification": {
+    "original_failure_fixed": true,
+    "hidden_tests_passed": true,
+    "regression_tests_passed": true,
+    "correct_repair": true,
+    "false_repair": false
+  },
+  "telemetry": {
+    "total_tokens": 1829,
+    "cost_usd": 0.000241,
+    "latency_ms": 10542.38
+  },
+  "safety_invariants": {
+    "manifest_verified": true,
+    "syntax_ast_verified": true,
+    "no_secrets": true,
+    "no_ground_truth_leakage": true
+  }
+}

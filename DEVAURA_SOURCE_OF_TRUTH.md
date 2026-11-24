@@ -2403,7 +2403,7 @@ Devaura operates on real open-source software defect data and real external LLM 
    - Train Split (6 repos): Flask, Requests, Click, Tornado, Marshmallow, HTTPX.
    - Validation Split (3 repos): FastAPI, SQLAlchemy, Express.
    - Held-Out Test Split (3 repos): Pydantic, Pytest, Urllib3.
-4. **Air-Gapped Hidden Test Protection:**
+4. **Evaluator-Isolated Hidden Test Protection:**
    - Hidden validation tests reside strictly in `evaluation/historical/hidden_tests/` and are never copied to the agent's repair workspace or injected into prompt context.
    - Post-repair verification executes within isolated reproduction sandboxes.
 
@@ -2424,7 +2424,7 @@ Phase 9.2 establishes rigorous, auditable, and statistically honest evaluation f
    - All rate and percentage metrics strictly enforce explicit numerators and denominators (`MetricFraction`: `numerator`, `denominator`, `percentage`, `formatted`).
    - Outcome states are fine-grained (15 distinct states):
      * `PATCH_NOT_GENERATED`, `PATCH_GENERATED`, `PATCH_INVALID`, `PATCH_DOES_NOT_APPLY`, `PATCH_APPLIES`, `ORIGINAL_FAILURE_FIXED`, `HIDDEN_TESTS_FAILED`, `REGRESSION_FAILED`, `CORRECT_REPAIR`, `FALSE_REPAIR`, `INFRASTRUCTURE_FAILURE`, `LLM_FAILURE`, `QUOTA_FAILURE`, `TIMEOUT`, `REPAIR_ABORTED`.
-3. **Air-Gapped Physical Workspace Isolation:**
+3. **Sandboxed Physical Workspace Isolation:**
    - **Agent Workspace (`agent_ws`):** Receives solely unpatched source code at `buggy_commit` and the visible reproduction test (`test_reproduce.py`). Future fix commit SHA is completely unreferenced and unreachable in git history.
    - **Evaluator Workspace (`eval_ws`):** Independent physical clone where candidate patches are applied and withheld hidden validation tests (`test_hidden_validation.py`) are executed.
    - Agent discovery attacks (`find`, `ls`, `git log`, `grep`, environment inspection) are structurally incapable of observing hidden tests.

@@ -1,0 +1,39 @@
+{
+  "evaluation_id": "922acba6-f535-488f-8a6b-01c66d8e3086",
+  "bug_id": "HIST-014",
+  "repository": "axios/axios",
+  "split": "test",
+  "run_index": 3,
+  "provider": "deterministic-mock",
+  "model": "devaura-deterministic-llm-v1",
+  "timestamp": "2026-11-24T11:36:32.294176+00:00",
+  "patch_hash": "f9f25797e4eeb5a56a97c53e1b9d2f6552d4de49aaadc8652791308bd940c1ea",
+  "execution_status": "SUCCESS",
+  "outcome": "CORRECT_REPAIR",
+  "failure_category": "NONE",
+  "localization": {
+    "localized_top1": true,
+    "localization_rank": 1,
+    "evidence_provided_location": false,
+    "independently_inferred": true,
+    "evidence_precision": 0.5
+  },
+  "verification": {
+    "original_failure_fixed": true,
+    "hidden_tests_passed": true,
+    "regression_tests_passed": true,
+    "correct_repair": true,
+    "false_repair": false
+  },
+  "telemetry": {
+    "total_tokens": 1841,
+    "cost_usd": 0.000245,
+    "latency_ms": 10430.32
+  },
+  "safety_invariants": {
+    "manifest_verified": true,
+    "syntax_ast_verified": true,
+    "no_secrets": true,
+    "no_ground_truth_leakage": true
+  }
+}

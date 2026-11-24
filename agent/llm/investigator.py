@@ -208,8 +208,25 @@ class LLMInvestigator:
             if not valid_cites:
                 conf = min(conf, 0.3)  # Heavy penalty for unbacked hypotheses
 
-            # Normalize file paths
-            clean_files = [f.replace("\\", "/").strip() for f in c.affected_files if f.strip()]
+            # Enforce repository manifest invariant: All affected files must exist in workspace_root
+            existing_clean_files = []
+            for f in c.affected_files:
+                f_norm = f.replace("\\", "/").strip()
+                if not f_norm or ".." in f_norm.split("/") or f_norm.startswith("/"):
+                    continue
+                full_p = os.path.join(self.workspace_root, f_norm)
+                if os.path.exists(full_p) and os.path.isfile(full_p):
+                    existing_clean_files.append(f_norm)
+
+            # If the candidate explicitly proposed affected files, but none exist in workspace manifest,
+            # discard candidate as an unindexed or hallucinated non-existent path.
+            if c.affected_files and not existing_clean_files:
+                logger.warning(
+                    f"Candidate '{c.candidate_id}' proposed non-existent repository path(s): {c.affected_files}. Discarding."
+                )
+                continue
+
+            clean_files = existing_clean_files
 
             schema = RootCauseCandidateSchema(
                 candidate_id=c.candidate_id or f"RC-{uuid.uuid4().hex[:6]}",

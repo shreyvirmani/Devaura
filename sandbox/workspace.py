@@ -7,6 +7,8 @@ Guarantees that the original repository remains 100% untouched.
 import os
 import re
 import shutil
+import stat
+import subprocess
 import uuid
 from typing import Dict, List, Optional, Tuple
 
@@ -28,16 +30,18 @@ class IsolatedWorkspace:
         source_repo_path: str,
         workspace_id: Optional[str] = None,
         base_dir: Optional[str] = None,
+        buggy_commit: Optional[str] = None,
     ):
         self.source_repo_path = os.path.abspath(source_repo_path)
         self.workspace_id = workspace_id or str(uuid.uuid4())
         root_sandbox_dir = base_dir or os.path.join(self.source_repo_path, self.DEFAULT_SANDBOX_BASE)
         self.workspace_path = os.path.abspath(os.path.join(root_sandbox_dir, self.workspace_id))
+        self.buggy_commit = buggy_commit
 
     def create(self) -> str:
         """Create isolated sandbox directory by copying source files (excluding heavy caches)."""
         if os.path.exists(self.workspace_path):
-            shutil.rmtree(self.workspace_path, ignore_errors=True)
+            self.cleanup()
 
         os.makedirs(os.path.dirname(self.workspace_path), exist_ok=True)
 
@@ -51,6 +55,8 @@ class IsolatedWorkspace:
             self.DEFAULT_SANDBOX_BASE,
             "devaura.db*",
             "*.pyc",
+            "bug_meta.json",
+            "*.meta.json",
         )
 
         shutil.copytree(
@@ -59,8 +65,58 @@ class IsolatedWorkspace:
             ignore=ignore_func,
             dirs_exist_ok=True,
         )
+
+        # Initialize local isolated git repository at buggy revision
+        self._init_isolated_git()
+
         logger.info(f"Created isolated sandbox at: {self.workspace_path}")
         return self.workspace_path
+
+    def _init_isolated_git(self) -> None:
+        """Initialize a local isolated Git repository strictly scoped to this workspace.
+
+        This prevents Git commands from traversing up to the parent repository,
+        ensuring fix_commit, future commits, reflog, and parent history are inaccessible.
+        """
+        try:
+            # 1. git init
+            subprocess.run(
+                ["git", "init"],
+                cwd=self.workspace_path,
+                capture_output=True,
+                check=True,
+                text=True,
+            )
+            # 2. configure local identity directly in .git/config (avoids process spawns)
+            git_config_path = os.path.join(self.workspace_path, ".git", "config")
+            if os.path.exists(git_config_path):
+                with open(git_config_path, "a", encoding="utf-8") as f:
+                    f.write("\n[user]\n\tname = Devaura Sandbox\n\temail = sandbox@devaura.local\n")
+            # 3. add all files in workspace
+            subprocess.run(
+                ["git", "add", "-A"],
+                cwd=self.workspace_path,
+                capture_output=True,
+                check=True,
+                text=True,
+            )
+            commit_msg = f"Buggy state: {self.buggy_commit or self.workspace_id}"
+            subprocess.run(
+                [
+                    "git",
+                    "-c", "user.name=Devaura Sandbox",
+                    "-c", "user.email=sandbox@devaura.local",
+                    "commit",
+                    "-m", commit_msg,
+                    "--allow-empty"
+                ],
+                cwd=self.workspace_path,
+                capture_output=True,
+                check=True,
+                text=True,
+            )
+        except Exception as e:
+            logger.warning(f"Failed to initialize isolated git repo in {self.workspace_path}: {e}")
 
     def apply_patch(self, unified_diff: str) -> List[str]:
         """Apply unified diff inside the isolated sandbox workspace.
@@ -170,6 +226,8 @@ class IsolatedWorkspace:
             for bline in block:
                 marker = bline[0] if bline else " "
                 content = bline[1:]
+                if not content.endswith("\n"):
+                    content += "\n"
 
                 if marker == " ":
                     new_block_lines.append(content)
@@ -235,7 +293,14 @@ class IsolatedWorkspace:
     def cleanup(self) -> None:
         """Safely destroy sandbox workspace directory."""
         if os.path.exists(self.workspace_path):
+            def _remove_readonly(func, path, excinfo):
+                try:
+                    os.chmod(path, stat.S_IWRITE)
+                    func(path)
+                except Exception:
+                    pass
+
             try:
-                shutil.rmtree(self.workspace_path, ignore_errors=True)
+                shutil.rmtree(self.workspace_path, onerror=_remove_readonly)
             except Exception as e:
                 logger.warning(f"Failed to cleanup sandbox {self.workspace_path}: {e}")

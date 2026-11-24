@@ -35,6 +35,10 @@ from agent.repair.models import (
 )
 from agent.repair.patch_generator import PatchScopeGuard, ScopeViolationError
 from agent.repair.risk_analyzer import PatchRiskAnalyzer
+from agent.repair.structural_validator import (
+    PatchStructuralValidationError,
+    PatchStructuralValidator,
+)
 from apps.api.logger import logger
 
 
@@ -115,7 +119,16 @@ class LLMPatchGenerator:
         for cf in changed_files:
             self._validate_file_safety(cf)
 
-        # Check 5: Evidence citation validation
+        # Check 5: Structural & Repository Manifest Validation (AST and Path Invariant)
+        validator = PatchStructuralValidator(workspace_root=self.workspace_root)
+        is_struct_valid, struct_msg, struct_cat = validator.validate(diff, changed_files)
+        if not is_struct_valid:
+            if struct_cat == "PATCH_SCOPE_FAILURE":
+                raise ScopeViolationError(struct_msg or "Patch scope or repository manifest violation.")
+            else:
+                raise PatchStructuralValidationError(struct_msg or "Structural validation failed.", category=struct_cat)
+
+        # Check 6: Evidence citation validation
         valid_ev_ids = {e.get("evidence_id") for e in context.supporting_evidence if e.get("evidence_id")}
         has_citations = any(change.evidence_ids for change in plan.proposed_changes)
         if not has_citations and not proposal.cited_evidence_ids:

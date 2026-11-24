@@ -1,0 +1,39 @@
+{
+  "evaluation_id": "47d59c5c-9f5a-4299-bb14-428961de9d8b",
+  "bug_id": "HIST-022",
+  "repository": "boto/botocore",
+  "split": "test",
+  "run_index": 2,
+  "provider": "deterministic-mock",
+  "model": "devaura-deterministic-llm-v1",
+  "timestamp": "2026-11-24T11:40:28.101202+00:00",
+  "patch_hash": "3f8c8eaf12d656fbc045b4e8601c8511ff9a7e70798f3b60b4b113c585fff67d",
+  "execution_status": "SUCCESS",
+  "outcome": "CORRECT_REPAIR",
+  "failure_category": "NONE",
+  "localization": {
+    "localized_top1": true,
+    "localization_rank": 1,
+    "evidence_provided_location": false,
+    "independently_inferred": true,
+    "evidence_precision": 0.5
+  },
+  "verification": {
+    "original_failure_fixed": true,
+    "hidden_tests_passed": true,
+    "regression_tests_passed": true,
+    "correct_repair": true,
+    "false_repair": false
+  },
+  "telemetry": {
+    "total_tokens": 1801,
+    "cost_usd": 0.000242,
+    "latency_ms": 10478.57
+  },
+  "safety_invariants": {
+    "manifest_verified": true,
+    "syntax_ast_verified": true,
+    "no_secrets": true,
+    "no_ground_truth_leakage": true
+  }
+}

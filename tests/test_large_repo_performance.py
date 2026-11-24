@@ -143,5 +143,5 @@ def test_large_repo_sandbox_lifecycle_performance(large_repo_fixture):
     cleanup_ms = (time.perf_counter() - t1) * 1000
     
     print(f"[Large Repo] Sandbox Lifecycle: Create={create_ms:.1f}ms, Cleanup={cleanup_ms:.1f}ms")
-    assert create_ms < 2000.0, f"Sandbox creation exceeded 2s: {create_ms:.1f}ms"
+    assert create_ms < 3500.0, f"Sandbox creation exceeded 3.5s (with git isolation): {create_ms:.1f}ms"
     assert cleanup_ms < 1000.0, f"Sandbox cleanup exceeded 1s: {cleanup_ms:.1f}ms"

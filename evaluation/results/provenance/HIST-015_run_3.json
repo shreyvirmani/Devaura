@@ -1,0 +1,39 @@
+{
+  "evaluation_id": "9a20505c-ac14-495c-ae4d-ed16df2d5d21",
+  "bug_id": "HIST-015",
+  "repository": "lodash/lodash",
+  "split": "test",
+  "run_index": 3,
+  "provider": "deterministic-mock",
+  "model": "devaura-deterministic-llm-v1",
+  "timestamp": "2026-11-24T11:37:03.816681+00:00",
+  "patch_hash": "86c6a2675bf5103fa439053f739af8a671f770f8caa734b53e422349fc728df7",
+  "execution_status": "SUCCESS",
+  "outcome": "CORRECT_REPAIR",
+  "failure_category": "NONE",
+  "localization": {
+    "localized_top1": true,
+    "localization_rank": 1,
+    "evidence_provided_location": false,
+    "independently_inferred": true,
+    "evidence_precision": 0.5
+  },
+  "verification": {
+    "original_failure_fixed": true,
+    "hidden_tests_passed": true,
+    "regression_tests_passed": true,
+    "correct_repair": true,
+    "false_repair": false
+  },
+  "telemetry": {
+    "total_tokens": 1802,
+    "cost_usd": 0.00024,
+    "latency_ms": 9809.09
+  },
+  "safety_invariants": {
+    "manifest_verified": true,
+    "syntax_ast_verified": true,
+    "no_secrets": true,
+    "no_ground_truth_leakage": true
+  }
+}

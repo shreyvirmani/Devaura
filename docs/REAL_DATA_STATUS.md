@@ -31,9 +31,9 @@ In Phase 9.3, Devaura established that **Held-Out Repository Generalization** (m
 | **Real GitHub** | **ACTIVE** | `GitHubClient` connected via authenticated GitHub REST & GraphQL API (`integrations/github/client.py`). Silent mock fallback strictly removed; raises `GitHubAuthRequiredError` when unauthenticated. |
 | **Real Dataset** | **ACTIVE** | Curated real-world defect dataset v1.0.0 (`data/datasets/`) containing **22 reproducible defects across 22 distinct top-tier open-source repositories**. |
 | **Real Training** | **INFORMATIVE** | Retrieval-enhanced reasoning and few-shot context synthesis across the training split. Parameter-level model fine-tuning has **not** been performed. |
-| **Real Evaluation** | **ACTIVE** | Phase 9.3 Held-Out Benchmark (`evaluation/historical/runner.py`) running 66 repeated trials across 22 defects with air-gapped evaluator workspace and zero ground-truth leakage. |
+| **Real Evaluation** | **ACTIVE** | Phase 9.3 Held-Out Benchmark (`evaluation/historical/runner.py`) running 66 repeated trials across 22 defects with sandboxed evaluator workspace and zero ground-truth leakage. |
 | **Primary KPI** | **ACTIVE** | **Held-Out Generalization:** 11 / 13 (84.6%) reliable success across 13 unseen held-out test repositories (33/39 runs). |
-| **Hidden Test Protection** | **ACTIVE** | Air-gapped validation tests stored exclusively in evaluator workspace (`evaluation/historical/hidden_tests/`); strictly withheld from agent repair workspaces and LLM context prompts. |
+| **Hidden Test Protection** | **ACTIVE** | Evaluator-isolated validation tests stored exclusively in evaluator workspace (`evaluation/historical/hidden_tests/`); strictly withheld from agent repair workspaces and LLM context prompts. |
 | **Real End-to-End** | **ACTIVE** | Full deterministic and live LLM pipeline executing from raw failure report through isolated sandbox verification to authenticated PR orchestration. |
 
 ---
@@ -127,6 +127,6 @@ Every ingested defect is verified by `LicenseValidator` against an approved perm
 ## 6. Anti-Leakage & Governance Guarantees
 
 1. **0 Hardcoded Cheating Branches:** Exhaustive codebase audit across `agent/`, `mcp/`, and `apps/api/` confirmed 0 defect IDs or golden patch lookups.
-2. **Air-Gapped Workspaces:** Agent workspace contains only buggy source files and `tests/test_reproduce.py`. `.git` history is removed. Golden fixes and hidden tests exist strictly in the evaluator workspace.
+2. **Sandboxed Workspaces:** Agent workspace contains only buggy source files and `tests/test_reproduce.py`. `.git` history is isolated. Golden fixes and hidden tests exist strictly in the evaluator workspace.
 3. **Secret Redaction:** `SecretDetector` scrubs credentials prior to prompt submission. 0 secrets leaked across all runs.
 4. **Tool Governance:** Autonomous PR creation, branch pushing, and patch self-approval are permanently blocked from LLM execution.

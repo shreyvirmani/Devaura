@@ -1,0 +1,39 @@
+{
+  "evaluation_id": "07436e42-c252-44b2-9002-433a43e95647",
+  "bug_id": "HIST-020",
+  "repository": "google/guava",
+  "split": "test",
+  "run_index": 2,
+  "provider": "deterministic-mock",
+  "model": "devaura-deterministic-llm-v1",
+  "timestamp": "2026-11-24T11:39:27.831174+00:00",
+  "patch_hash": "cc4ce274d605f124991c726ce5130cab5c49b06b9486d031f5d2418cde47b1e8",
+  "execution_status": "SUCCESS",
+  "outcome": "CORRECT_REPAIR",
+  "failure_category": "NONE",
+  "localization": {
+    "localized_top1": true,
+    "localization_rank": 1,
+    "evidence_provided_location": false,
+    "independently_inferred": true,
+    "evidence_precision": 0.5
+  },
+  "verification": {
+    "original_failure_fixed": true,
+    "hidden_tests_passed": true,
+    "regression_tests_passed": true,
+    "correct_repair": true,
+    "false_repair": false
+  },
+  "telemetry": {
+    "total_tokens": 1777,
+    "cost_usd": 0.000239,
+    "latency_ms": 10056.84
+  },
+  "safety_invariants": {
+    "manifest_verified": true,
+    "syntax_ast_verified": true,
+    "no_secrets": true,
+    "no_ground_truth_leakage": true
+  }
+}

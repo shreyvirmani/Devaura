@@ -102,14 +102,17 @@ class PatchScopeGuard:
         if ".git" in normalized.split("/"):
             raise ScopeViolationError("Security: Modification of internal .git structures is strictly forbidden.")
 
-        # 4. File existence and size check
+        # 4. Repository Manifest Invariant & Size Check
         full_path = os.path.join(repo_root, file_path)
-        if os.path.exists(full_path):
-            size = os.path.getsize(full_path)
-            if size > cls.MAX_FILE_SIZE_BYTES:
-                raise ScopeViolationError(
-                    f"Safety: File '{file_path}' size ({size} bytes) exceeds safety threshold of {cls.MAX_FILE_SIZE_BYTES} bytes."
-                )
+        if not os.path.exists(full_path) or not os.path.isfile(full_path):
+            raise ScopeViolationError(
+                f"Repository manifest violation: Proposed target file '{file_path}' does not exist in workspace manifest."
+            )
+        size = os.path.getsize(full_path)
+        if size > cls.MAX_FILE_SIZE_BYTES:
+            raise ScopeViolationError(
+                f"Safety: File '{file_path}' size ({size} bytes) exceeds safety threshold of {cls.MAX_FILE_SIZE_BYTES} bytes."
+            )
 
 
 class PatchGenerator:

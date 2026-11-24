@@ -22,7 +22,7 @@ Evaluating on only 3 held-out repositories introduced extreme statistical varian
 Devaura explicitly redefines its headline metric:
 - **Primary Metric:** **Held-Out Repository Generalization** (measured **strictly on the held-out test split**).
 - **Secondary Metrics:** Development Performance (Train & Validation splits) and Aggregate Performance (all defects).
-- **Anti-Leakage Enforcement:** Zero ground-truth leakage, air-gapped physical workspace isolation, and 0 lines of benchmark hardcoding across the codebase.
+- **Anti-Leakage Enforcement:** Zero ground-truth leakage, sandboxed workspace isolation, evaluator-isolated hidden tests, and 0 lines of benchmark hardcoding across the codebase.
 
 To establish meaningful statistical confidence, Phase 9.3 expanded the held-out test set from 3 repositories to **13 repositories** (encompassing Python, JavaScript, Go, Rust, and Java). Across 39 independent executions (3 repeated runs per defect):
 - **Primary Held-Out Bug-Level Reliable Success:** **11 / 13 (84.6%)**
@@ -198,7 +198,7 @@ Devaura's benchmark integrity is enforced by physical barriers, not software ass
 
 1. **Runtime Hardcoding Audit:**
    An exhaustive regex audit across `agent/`, `mcp/`, and `apps/api/` searching for defect IDs (`HIST-`), repository names, or golden patch lookup tables returned **0 hardcoded cheating branches**.
-2. **Air-Gapped Physical Sandboxes:**
+2. **Sandboxed Physical Workspaces:**
    - **Agent Workspace:** Pristine filesystem clone containing only buggy source files and `tests/test_reproduce.py`. `.git` history is explicitly deleted or decoupled so future commits (`fix_commit`) are physically unreachable.
    - **Evaluator Workspace:** Separate isolated directory. Golden patches and hidden tests are copied exclusively into this evaluator directory after candidate patch generation.
 3. **Secret Redaction:**
@@ -218,4 +218,4 @@ Devaura's benchmark integrity is enforced by physical barriers, not software ass
 
 ## 10. Conclusion
 
-Phase 9.3 demonstrates that Devaura's repair pipeline generalizes to completely held-out, unseen open-source software defects across multiple programming languages with an **84.6% reliable success rate (11/13 repositories)**, validated under zero ground-truth leakage and air-gapped physical verification.
+Phase 9.3 demonstrates that Devaura's repair pipeline generalizes to completely held-out, unseen open-source software defects across multiple programming languages with an **84.6% reliable success rate (11/13 repositories)**, validated under zero ground-truth leakage and sandboxed physical verification.

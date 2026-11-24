@@ -218,14 +218,14 @@ export default function EvaluationDashboardPage() {
               Devaura Phase 9.3: Held-Out Generalization &amp; Benchmark Integrity Audit
             </h1>
             <span className="px-2.5 py-0.5 rounded-full text-xs font-mono bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 font-semibold">
-              Phase 9.3 Verified
+              Phase 9.4 Hardened
             </span>
             <span className="px-2.5 py-0.5 rounded-full text-xs font-mono bg-purple-500/10 text-purple-400 border border-purple-500/20">
               66 Runs &bull; 22 Repositories
             </span>
           </div>
           <p className="text-sm text-gray-400 mt-1">
-            Held-out repository evaluation &bull; 13 strictly held-out test repositories &bull; 3 repeated trials per defect &bull; zero ground-truth leakage &bull; air-gapped physical workspace isolation
+            Held-out repository evaluation &bull; 13 strictly held-out test repositories &bull; 3 repeated trials per defect &bull; zero ground-truth leakage &bull; sandboxed repository execution &amp; evaluator-isolated hidden tests
           </p>
         </div>
 
@@ -453,6 +453,51 @@ export default function EvaluationDashboardPage() {
                 </div>
                 <div className="text-xl font-bold text-white font-mono mt-1">20 / 22 (90.9%)</div>
                 <div className="text-[10px] text-gray-400 mt-0.5">60 / 66 runs passed (90.9%)</div>
+              </div>
+            </div>
+
+            {/* Phase 9.4 Metric Separation & Integrity Safeguards */}
+            <div className="space-y-3 pt-2">
+              <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+                <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                Phase 9.4 Metric Semantics &amp; Integrity Invariants
+              </h3>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+                <div className="p-3 rounded-lg bg-[#080d1a] border border-emerald-500/30">
+                  <span className="text-[10px] font-mono text-gray-400 uppercase">Run-Level Success</span>
+                  <div className="text-lg font-bold text-emerald-400 font-mono mt-1">33 / 39</div>
+                  <div className="text-[10px] text-gray-400 mt-0.5">84.6% (39 runs)</div>
+                </div>
+
+                <div className="p-3 rounded-lg bg-[#080d1a] border border-emerald-500/30">
+                  <span className="text-[10px] font-mono text-gray-400 uppercase">Majority Reliability (&ge;2/3)</span>
+                  <div className="text-lg font-bold text-emerald-400 font-mono mt-1">11 / 13</div>
+                  <div className="text-[10px] text-gray-400 mt-0.5">84.6% of Defects</div>
+                </div>
+
+                <div className="p-3 rounded-lg bg-[#080d1a] border border-emerald-500/30">
+                  <span className="text-[10px] font-mono text-gray-400 uppercase">Perfect Consistency (3/3)</span>
+                  <div className="text-lg font-bold text-emerald-400 font-mono mt-1">11 / 13</div>
+                  <div className="text-[10px] text-gray-400 mt-0.5">84.6% Unanimous</div>
+                </div>
+
+                <div className="p-3 rounded-lg bg-[#080d1a] border border-blue-500/30">
+                  <span className="text-[10px] font-mono text-gray-400 uppercase">Best-of-3 Success</span>
+                  <div className="text-lg font-bold text-blue-400 font-mono mt-1">11 / 13</div>
+                  <div className="text-[10px] text-gray-400 mt-0.5">84.6% (&ge;1/3)</div>
+                </div>
+
+                <div className="p-3 rounded-lg bg-[#080d1a] border border-purple-500/30">
+                  <span className="text-[10px] font-mono text-gray-400 uppercase">Evidence-Provided Top-1</span>
+                  <div className="text-lg font-bold text-purple-300 font-mono mt-1">12 / 12</div>
+                  <div className="text-[10px] text-gray-400 mt-0.5">100.0% (4 Defects)</div>
+                </div>
+
+                <div className="p-3 rounded-lg bg-[#080d1a] border border-indigo-500/30">
+                  <span className="text-[10px] font-mono text-gray-400 uppercase">Inferred Localization Top-1</span>
+                  <div className="text-lg font-bold text-indigo-300 font-mono mt-1">24 / 27</div>
+                  <div className="text-[10px] text-gray-400 mt-0.5">88.9% (9 Defects)</div>
+                </div>
               </div>
             </div>
 

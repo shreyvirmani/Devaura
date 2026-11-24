@@ -12,9 +12,14 @@ When active, tests real GitHub API communication:
 
 import os
 import uuid
+import base64
+import httpx
+import dotenv
 import pytest
 from integrations.github.client import GitHubClient
 from integrations.github.models import PullRequestPayload, PullRequestState
+
+dotenv.load_dotenv()
 
 
 @pytest.mark.asyncio
@@ -25,7 +30,7 @@ from integrations.github.models import PullRequestPayload, PullRequestState
 async def test_live_github_pr_lifecycle():
     token = os.getenv("GITHUB_TOKEN")
     owner = os.getenv("GITHUB_OWNER", "shreyvirmani")
-    repo = os.getenv("GITHUB_REPO", "Devaura")
+    repo = os.getenv("GITHUB_REPO", "devaura-disposable-e2e")
     run_id = str(uuid.uuid4())[:8]
     branch_name = f"devaura/test-pr-{run_id}"
 
@@ -33,7 +38,10 @@ async def test_live_github_pr_lifecycle():
 
     try:
         # 1. Fetch default branch info
-        base_branch = await client.get_default_branch(owner=owner, repo=repo)
+        repo_info = await client.get_repository(owner=owner, repo=repo)
+        default_branch_name = repo_info["default_branch"]
+        base_branch = await client.get_branch(owner=owner, repo=repo, branch=default_branch_name)
+        assert base_branch is not None
         assert base_branch.name in {"main", "master"}
         assert len(base_branch.sha) >= 7
 
@@ -42,18 +50,28 @@ async def test_live_github_pr_lifecycle():
             await client.push_branch(
                 owner=owner,
                 repo=repo,
-                branch_name=base_branch.name,
-                commit_sha="invalid_sha_direct_push",
+                branch=base_branch.name,
+                local_repo_path=".",
             )
 
         # 3. Create test branch
         created_branch = await client.create_branch(
             owner=owner,
             repo=repo,
-            branch_name=branch_name,
-            from_sha=base_branch.sha,
+            branch=branch_name,
+            base_sha=base_branch.sha,
         )
         assert created_branch.name == branch_name
+
+        # 3b. Push probe commit via GitHub Contents API so branch has >= 1 commit ahead of main
+        content_url = f"{client.base_url}/repos/{owner}/{repo}/contents/e2e_probe_{run_id}.txt"
+        commit_payload = {
+            "message": f"test: e2e probe commit {run_id}",
+            "content": base64.b64encode(b"probe").decode(),
+            "branch": branch_name,
+        }
+        async with httpx.AsyncClient(timeout=client.timeout_seconds) as http_c:
+            await http_c.put(content_url, headers=client._get_headers(), json=commit_payload)
 
         # 4. Create Draft PR
         payload = PullRequestPayload(
@@ -94,7 +112,7 @@ async def test_live_github_pr_lifecycle():
         assert ci_status is not None
 
         # 7. Query Review status
-        review_status = await client.get_review_status(
+        review_status = await client.get_reviews(
             owner=owner,
             repo=repo,
             pr_number=pr_result.pr_number,
@@ -110,7 +128,7 @@ async def test_live_github_pr_lifecycle():
         assert closed_pr.state == PullRequestState.CLOSED
 
         # 9. Clean up: Delete test branch
-        await client.delete_branch(owner=owner, repo=repo, branch_name=branch_name)
+        await client.delete_branch(owner=owner, repo=repo, branch=branch_name)
 
     finally:
-        await client.close()
+        pass

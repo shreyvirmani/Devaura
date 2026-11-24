@@ -260,8 +260,15 @@ class BenchmarkSummary(BaseModel):
     # Investigation metrics
     localization_top1: MetricFraction
     localization_top3: MetricFraction
+    localization_top5: MetricFraction = Field(default_factory=lambda: MetricFraction.calculate(0, 0))
     evidence_provided_localization: MetricFraction = Field(default_factory=lambda: MetricFraction.calculate(0, 0))
+    evidence_provided_top1: MetricFraction = Field(default_factory=lambda: MetricFraction.calculate(0, 0))
+    evidence_provided_top3: MetricFraction = Field(default_factory=lambda: MetricFraction.calculate(0, 0))
+    evidence_provided_top5: MetricFraction = Field(default_factory=lambda: MetricFraction.calculate(0, 0))
     independently_inferred_localization: MetricFraction = Field(default_factory=lambda: MetricFraction.calculate(0, 0))
+    independently_inferred_top1: MetricFraction = Field(default_factory=lambda: MetricFraction.calculate(0, 0))
+    independently_inferred_top3: MetricFraction = Field(default_factory=lambda: MetricFraction.calculate(0, 0))
+    independently_inferred_top5: MetricFraction = Field(default_factory=lambda: MetricFraction.calculate(0, 0))
     root_cause_accuracy: MetricFraction
     avg_evidence_precision: float
 
@@ -401,15 +408,20 @@ class BenchmarkSummary(BaseModel):
         # Investigation
         top1_c = sum(1 for r in records if r.investigation.localized and r.investigation.localization_rank == 1)
         top3_c = sum(1 for r in records if r.investigation.localized and (r.investigation.localization_rank or 99) <= 3)
+        top5_c = sum(1 for r in records if r.investigation.localized and (r.investigation.localization_rank or 99) <= 5)
         rc_c = sum(1 for r in records if r.investigation.root_cause_correct)
         ev_prec_vals = [r.investigation.evidence_precision for r in records if r.investigation.evidence_precision > 0]
         avg_ev_prec = round(sum(ev_prec_vals) / max(1, len(ev_prec_vals)), 4) if ev_prec_vals else 0.0
 
         ev_prov_records = [r for r in records if r.investigation.evidence_provided_location]
         ev_prov_top1 = sum(1 for r in ev_prov_records if r.investigation.localized and r.investigation.localization_rank == 1)
+        ev_prov_top3 = sum(1 for r in ev_prov_records if r.investigation.localized and (r.investigation.localization_rank or 99) <= 3)
+        ev_prov_top5 = sum(1 for r in ev_prov_records if r.investigation.localized and (r.investigation.localization_rank or 99) <= 5)
 
         indep_records = [r for r in records if r.investigation.independently_inferred]
         indep_top1 = sum(1 for r in indep_records if r.investigation.localized and r.investigation.localization_rank == 1)
+        indep_top3 = sum(1 for r in indep_records if r.investigation.localized and (r.investigation.localization_rank or 99) <= 3)
+        indep_top5 = sum(1 for r in indep_records if r.investigation.localized and (r.investigation.localization_rank or 99) <= 5)
 
         # Repair
         pgen_c = sum(1 for r in records if r.repair.patch_generated)
@@ -464,8 +476,15 @@ class BenchmarkSummary(BaseModel):
             infrastructure_failures=infra_fails,
             localization_top1=MetricFraction.calculate(top1_c, total),
             localization_top3=MetricFraction.calculate(top3_c, total),
+            localization_top5=MetricFraction.calculate(top5_c, total),
             evidence_provided_localization=MetricFraction.calculate(ev_prov_top1, len(ev_prov_records)),
+            evidence_provided_top1=MetricFraction.calculate(ev_prov_top1, len(ev_prov_records)),
+            evidence_provided_top3=MetricFraction.calculate(ev_prov_top3, len(ev_prov_records)),
+            evidence_provided_top5=MetricFraction.calculate(ev_prov_top5, len(ev_prov_records)),
             independently_inferred_localization=MetricFraction.calculate(indep_top1, len(indep_records)),
+            independently_inferred_top1=MetricFraction.calculate(indep_top1, len(indep_records)),
+            independently_inferred_top3=MetricFraction.calculate(indep_top3, len(indep_records)),
+            independently_inferred_top5=MetricFraction.calculate(indep_top5, len(indep_records)),
             root_cause_accuracy=MetricFraction.calculate(rc_c, total),
             avg_evidence_precision=avg_ev_prec,
             patch_generation_rate=MetricFraction.calculate(pgen_c, total),

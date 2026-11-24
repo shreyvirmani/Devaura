@@ -34,6 +34,7 @@ from integrations.github.provider import (
     GitHubAuthRequiredError,
     PullRequestAlreadyExistsError,
     PullRequestCreationError,
+    SecurityBlockError,
 )
 
 
@@ -363,6 +364,30 @@ class GitHubClient(GitProvider):
                 }
         except httpx.RequestError as exc:
             raise GitNetworkError(f"Network error querying GitHub repository: {self._sanitize(str(exc))}")
+
+    async def close_pull_request(self, owner: str, repo: str, pr_number: int) -> PullRequestResult:
+        """Close an open pull request."""
+        url = f"{self.base_url}/repos/{owner}/{repo}/pulls/{pr_number}"
+        payload = {"state": "closed"}
+        try:
+            async with httpx.AsyncClient(timeout=self.timeout_seconds) as client:
+                res = await client.patch(url, headers=self._get_headers(), json=payload)
+                self._handle_response_error(res, f"close_pull_request({pr_number})")
+                return self._parse_pr_json(res.json(), owner, repo)
+        except httpx.RequestError as exc:
+            raise GitNetworkError(f"Network error closing pull request: {self._sanitize(str(exc))}")
+
+    async def delete_branch(self, owner: str, repo: str, branch: str) -> bool:
+        """Delete a remote git branch."""
+        if branch in {"main", "master", "develop", "prod", "production"}:
+            raise SecurityBlockError(f"Cannot delete protected branch '{branch}'")
+        url = f"{self.base_url}/repos/{owner}/{repo}/git/refs/heads/{branch}"
+        try:
+            async with httpx.AsyncClient(timeout=self.timeout_seconds) as client:
+                res = await client.delete(url, headers=self._get_headers())
+                return res.status_code in (200, 204, 404)
+        except httpx.RequestError as exc:
+            raise GitNetworkError(f"Network error deleting branch: {self._sanitize(str(exc))}")
 
     def _parse_pr_json(self, data: Dict[str, Any], owner: str, repo: str) -> PullRequestResult:
         pr_state = PullRequestState.OPEN

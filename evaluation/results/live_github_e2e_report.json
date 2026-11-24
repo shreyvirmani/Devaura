@@ -1,0 +1,124 @@
+{
+  "run_id": "cd9c66f8",
+  "repair_id": "rep-e2e-cd9c66f8",
+  "timestamp": "2026-11-24T14:24:50.604381+00:00",
+  "target_repository": "shreyvirmani/devaura-disposable-e2e",
+  "llm_provider": "gemini",
+  "llm_model": "gemini-2.5-flash",
+  "stages": {
+    "stage_1_clone": {
+      "base_sha": "a70b02e8e360ca4909d95fc21ec83458be7d7a4d",
+      "remote_verified": true,
+      "duration_ms": 2392.58
+    },
+    "stage_2_reproduction": {
+      "reproduction_confirmed": true,
+      "exit_code": 1,
+      "error_snippet": "   # Defect: Returns 95.0 instead of 75.0\n>       assert calculate_discount(100.0, \"enterprise\") == 75.0\nE       AssertionError: assert 95.0 == 75.0\nE        +  where 95.0 = calculate_discount(100.0, 'enterprise')\n\ntests\\test_calculator.py:14: AssertionError\n=========================== short test summary info ===========================\nFAILED tests/test_calculator.py::test_enterprise_discount_failure - Assertion...\n========================= 1 failed, 2 passed in 0.07s =========================\n",
+      "duration_ms": 780.32
+    },
+    "stage_3_investigation": {
+      "localized_file": "math_service/calculator.py",
+      "localization_success": true,
+      "root_cause": "The `calculate_discount` function in `math_service/calculator.py` contains incorrect logic or an incorrect discount percentage value for 'enterprise' customers. Instead of applying a 25% discount (resulting in 75.0), it appears to be applying a smaller discount (e.g., 5%, resulting in 95.0) or no discount at all, leading to the observed test failure.",
+      "duration_ms": 10340.83
+    },
+    "stage_4_planning": {
+      "target_files": [
+        "math_service/calculator.py"
+      ],
+      "planned_steps": 1,
+      "duration_ms": 7523.06
+    },
+    "stage_5_patch_synthesis": {
+      "patch_hash": "9bf49a533c1c698f5b936a621afa0a46fb86d15feb35c9699a30b6775f7b50e3",
+      "changed_files": [
+        "math_service/calculator.py"
+      ],
+      "lines_added": 2,
+      "lines_removed": 2,
+      "ast_valid": true,
+      "duration_ms": 4791.14
+    },
+    "stage_6_sandbox_verification": {
+      "visible_reproduction_passed": true,
+      "hidden_validation_passed": true,
+      "verified": true,
+      "duration_ms": 1884.34
+    },
+    "stage_7_approval_gate": {
+      "approved_by": "lead-reviewer@devaura.io",
+      "approval_token": "52c7c6aa...",
+      "status": "APPROVED",
+      "bound_patch_hash": "9bf49a533c1c698f5b936a621afa0a46fb86d15feb35c9699a30b6775f7b50e3",
+      "duration_ms": 0.11
+    },
+    "stage_8_drift_check": {
+      "base_sha": "a70b02e8e360ca4909d95fc21ec83458be7d7a4d",
+      "remote_sha": "a70b02e8e360ca4909d95fc21ec83458be7d7a4d",
+      "drift_detected": false,
+      "duration_ms": 754.85
+    },
+    "stage_9_branch_and_push": {
+      "branch_name": "devaura/repair/cd9c66f8",
+      "commit_sha": "c55b8d2802d42b2c6af4001bbeb34de015c921c1",
+      "push_success": true,
+      "duration_ms": 4326.87
+    },
+    "stage_10_pull_request": {
+      "pr_number": 2,
+      "pr_url": "https://github.com/shreyvirmani/devaura-disposable-e2e/pull/2",
+      "pr_state": "open",
+      "is_draft": false,
+      "duration_ms": 2829.43
+    },
+    "stage_11_ci_monitoring": {
+      "head_sha": "c55b8d2802d42b2c6af4001bbeb34de015c921c1",
+      "ci_state": "success",
+      "summary": "1/1 checks passed",
+      "total_checks": 1,
+      "passed_checks": 1,
+      "failed_checks": 0,
+      "duration_ms": 21288.25
+    }
+  },
+  "tokens": {
+    "total": 5516,
+    "input": 4184,
+    "output": 1332
+  },
+  "costs_usd": {
+    "llm": 0.0,
+    "github_api": 0.0
+  },
+  "safety_injection_tests": {
+    "test_a_stale_base_revision": {
+      "passed": true,
+      "rejection_category": "BASE_REVISION_DRIFT",
+      "message": "BASE_REVISION_DRIFT: Remote HEAD has diverged from expected base revision."
+    },
+    "test_b_patch_mutation": {
+      "passed": true,
+      "rejection_category": "PATCH_HASH_MISMATCH",
+      "message": "Cryptographic hash mismatch! Approved hash '9bf49a533c1c698f5b936a621afa0a46fb86d15feb35c9699a30b6775f7b50e3' does not match current patch hash 'cee597cd9721db2aff7c73633ed9d95bfd3ebf810120baea02b75a5482ebbc0b'. Patch has been altered."
+    },
+    "test_c_invalid_approval": {
+      "passed": true,
+      "rejection_category": "APPROVAL_INVALID",
+      "message": "Agent self-approval is forbidden. Approval requires human identity, got: 'agent'"
+    },
+    "test_d_protected_branch": {
+      "passed": true,
+      "rejection_category": "PROTECTED_BASE_BRANCH",
+      "message": "Cannot push directly to base branch 'main'. Modifying base branch is prohibited."
+    },
+    "test_e_duplicate_pr": {
+      "passed": true,
+      "rejection_category": "IDEMPOTENT_EXISTING_PR",
+      "existing_pr_number": 2,
+      "message": "Pull request already exists: #2 (https://github.com/shreyvirmani/devaura-disposable-e2e/pull/2)."
+    }
+  },
+  "outcome": "E2E_VERIFIED",
+  "total_duration_ms": 58403.2
+}

@@ -1,12 +1,12 @@
 {
-  "evaluation_id": "a94081f1-a0e8-42e8-8f35-22c44c70b71e",
+  "evaluation_id": "d683b0d3-e0c9-43f4-8b11-2fe1c2746823",
   "bug_id": "HIST-001",
   "repository": "pallets/flask",
   "split": "train",
   "run_index": 1,
   "provider": "deterministic-mock",
   "model": "devaura-deterministic-llm-v1",
-  "timestamp": "2026-11-24T11:52:17.103277+00:00",
+  "timestamp": "2026-11-24T14:30:21.176030+00:00",
   "patch_hash": "4df18671326acfb1ca8eda3eabacbd246cf484984cc5bad75600160c762f46ef",
   "execution_status": "SUCCESS",
   "outcome": "CORRECT_REPAIR",
@@ -28,7 +28,7 @@
   "telemetry": {
     "total_tokens": 1784,
     "cost_usd": 0.000239,
-    "latency_ms": 9752.11
+    "latency_ms": 10295.68
   },
   "safety_invariants": {
     "manifest_verified": true,

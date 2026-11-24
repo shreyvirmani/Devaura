@@ -2492,7 +2492,52 @@ Phase 9.3 establishes held-out repository generalization as Devaura's primary ca
 
 ---
 
-# 63. Final Rule
+# 63. Phase 9.4 Benchmark Integrity & Repair Validation Hardening
+
+- **Status:** IMPLEMENTED — benchmark integrity hardened and scientifically audited.
+- **Audited Empirical Finding:**
+  > "Devaura achieved 11/13 majority-reliable verified repairs across 13 held-out defects and 39 independent runs under the current evaluation protocol."
+- **Invariants Hardened:**
+  1. **Git Isolation:** Sandboxed execution creates an isolated, local Git repository at `buggy_commit`; parent repo history and `fix_commit` are unreachable.
+  2. **Structural AST Validation:** `PatchStructuralValidator` validates Python AST via `ast.parse` before sandbox deployment, rejecting syntax and indentation errors.
+  3. **Repository Manifest Guard:** Enforces that all patched files must exist in the workspace file manifest, preventing hallucinated file paths.
+  4. **Baseline A Unassisted Localization:** Removed ground-truth fallback in Baseline A; candidates are extracted solely from failure evidence.
+  5. **Cryptographic Manifest:** Pinned 22 defects, hidden tests, and 34 verified provenance records in `benchmark_manifest_v1.json`.
+  6. **Empirical Baseline Interpretation:** Code Intelligence produced a large localization improvement over the tested raw-LLM baseline on this held-out benchmark. The full evaluated pipeline substantially outperformed the two tested baseline configurations. The current baselines do not constitute a complete causal ablation study.
+
+---
+
+# 64. Phase 10: Real-World End-to-End Validation & Operational Hardening
+
+- **Status:** IMPLEMENTED
+- **Autonomous Merge:** NOT IMPLEMENTED (permanently prohibited without explicit human review).
+- **Autonomous Deployment:** NOT IMPLEMENTED (permanently prohibited).
+- **Production Reliability:** NOT ESTABLISHED (evaluated empirically under controlled held-out defects and disposable real-repository boundaries).
+- **Deliverables & Evidence:**
+  1. **Multi-Tier Causal Ablation Framework (Tiers A through F):**
+     - Evaluated incremental contribution across representative defects (`HIST-012`, `HIST-013`, `HIST-017`).
+     - Tiers: Tier A (Raw LLM), Tier B (LLM + Code Intel), Tier C (Tier B + Repair Planning), Tier D (Tier C + Structural Validation), Tier E (Tier D + Sandbox Verification), Tier F (Full Bounded Repair Loop).
+     - Documented in `docs/ABLATION_STUDY.md` and `evaluation/results/ablation_matrix_v1.json`.
+  2. **Live GitHub End-to-End Repair & PR Lifecycle:**
+     - Target Disposable Repository: [`shreyvirmani/devaura-disposable-e2e`](https://github.com/shreyvirmani/devaura-disposable-e2e)
+     - Live External LLM Provider: Google Gemini (`gemini-2.5-flash`)
+     - Pull Request Created: [PR #2](https://github.com/shreyvirmani/devaura-disposable-e2e/pull/2) (`fix(calculator): apply 25% discount for enterprise customer tier`)
+     - Base Revision: `a70b02e8e360ca4909d95fc21ec83458be7d7a4d`
+     - Repair Commit: `c55b8d2802d42b2c6af4001bbeb34de015c921c1`
+     - Approved Patch Hash: `9bf49a533c1c698f5b936a621afa0a46fb86d15feb35c9699a30b6775f7b50e3`
+     - Remote CI Status: **`success` (1/1 checks passed)** via GitHub Actions
+     - Documented in `docs/REAL_GITHUB_E2E.md` and `evaluation/results/live_github_e2e_report.json`.
+  3. **Controlled Negative Safety Injection Tests (A through E):**
+     - Test A: Stale base revision drift ($409$ Conflict / `BASE_REVISION_DRIFT`) -> PASSED
+     - Test B: Post-verification patch mutation (`PATCH_HASH_MISMATCH`) -> PASSED
+     - Test C: Agent self-approval / invalid token (`APPROVAL_INVALID`) -> PASSED
+     - Test D: Push to protected base branch attempt (`PROTECTED_BASE_BRANCH`) -> PASSED
+     - Test E: Duplicate PR creation idempotency (`IDEMPOTENT_EXISTING_PR`) -> PASSED
+- **Operational Boundary:** Real external LLM $\to$ isolated sandbox verification $\to$ human approval token binding $\to$ real GitHub commit & PR $\to$ CI check monitoring.
+
+---
+
+# 65. Final Rule
 
 **Never sacrifice correctness, security, or verifiability merely to make Devaura appear autonomous.**
 

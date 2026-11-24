@@ -225,7 +225,7 @@ export default function EvaluationDashboardPage() {
             </span>
           </div>
           <p className="text-sm text-gray-400 mt-1">
-            Held-out repository evaluation &bull; 13 strictly held-out test repositories &bull; 3 repeated trials per defect &bull; zero ground-truth leakage &bull; sandboxed repository execution &amp; evaluator-isolated hidden tests
+            Devaura achieved 11/13 majority-reliable verified repairs across 13 held-out defects and 39 independent runs under the current evaluation protocol &bull; 0/39 false repairs &bull; sandboxed repository execution &amp; evaluator-isolated hidden tests
           </p>
         </div>
 
@@ -499,6 +499,37 @@ export default function EvaluationDashboardPage() {
                   <div className="text-[10px] text-gray-400 mt-0.5">88.9% (9 Defects)</div>
                 </div>
               </div>
+
+              {/* Independent Localization Hierarchy (Top-1, Top-3, Top-5) */}
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 pt-1">
+                <div className="p-2.5 rounded-lg bg-[#080d1a] border border-[#1e293b]">
+                  <span className="text-[10px] font-mono text-gray-400 uppercase">Overall Top-1</span>
+                  <div className="text-base font-bold text-white font-mono mt-0.5">36 / 39 (92.3%)</div>
+                </div>
+                <div className="p-2.5 rounded-lg bg-[#080d1a] border border-[#1e293b]">
+                  <span className="text-[10px] font-mono text-gray-400 uppercase">Overall Top-3</span>
+                  <div className="text-base font-bold text-white font-mono mt-0.5">39 / 39 (100.0%)</div>
+                </div>
+                <div className="p-2.5 rounded-lg bg-[#080d1a] border border-[#1e293b]">
+                  <span className="text-[10px] font-mono text-gray-400 uppercase">Overall Top-5</span>
+                  <div className="text-base font-bold text-white font-mono mt-0.5">39 / 39 (100.0%)</div>
+                </div>
+                <div className="p-2.5 rounded-lg bg-[#080d1a] border border-purple-500/20">
+                  <span className="text-[10px] font-mono text-gray-400 uppercase">Evidence-Provided (1/3/5)</span>
+                  <div className="text-base font-bold text-purple-300 font-mono mt-0.5">100% / 100% / 100%</div>
+                  <div className="text-[9px] text-gray-400">12/12 &bull; 12/12 &bull; 12/12</div>
+                </div>
+                <div className="p-2.5 rounded-lg bg-[#080d1a] border border-indigo-500/20">
+                  <span className="text-[10px] font-mono text-gray-400 uppercase">Inferred Top-1 / Top-3</span>
+                  <div className="text-base font-bold text-indigo-300 font-mono mt-0.5">88.9% / 100.0%</div>
+                  <div className="text-[9px] text-gray-400">24/27 &bull; 27/27</div>
+                </div>
+                <div className="p-2.5 rounded-lg bg-[#080d1a] border border-indigo-500/20">
+                  <span className="text-[10px] font-mono text-gray-400 uppercase">Inferred Top-5</span>
+                  <div className="text-base font-bold text-indigo-300 font-mono mt-0.5">27 / 27 (100.0%)</div>
+                  <div className="text-[9px] text-gray-400">Ranked within Top-5</div>
+                </div>
+              </div>
             </div>
 
             {/* Held-Out Baselines Comparison */}
@@ -541,6 +572,9 @@ export default function EvaluationDashboardPage() {
                     </tr>
                   </tbody>
                 </table>
+              </div>
+              <div className="p-3 bg-slate-900/60 border border-slate-700/50 rounded-lg text-xs text-gray-300 leading-relaxed">
+                <span className="font-semibold text-purple-300">Empirical Baseline Interpretation:</span> Code Intelligence produced a large localization improvement over the tested raw-LLM baseline on this held-out benchmark. The full evaluated pipeline substantially outperformed the two tested baseline configurations. <em>Note: The current baselines do not constitute a complete causal ablation study.</em>
               </div>
             </div>
 

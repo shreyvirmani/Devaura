@@ -1,0 +1,493 @@
+{
+  "evaluated_at": "2026-11-24T14:15:05.672968+00:00",
+  "target_defects": [
+    "HIST-012",
+    "HIST-013",
+    "HIST-017"
+  ],
+  "tiers": {
+    "A": "Raw LLM",
+    "B": "LLM + Code Intelligence",
+    "C": "Tier B + Repair Planning",
+    "D": "Tier C + Structural Validation",
+    "E": "Tier D + Sandbox Verification",
+    "F": "Full Bounded Repair Loop"
+  },
+  "total_evaluations": 18,
+  "results": [
+    {
+      "configuration": "A",
+      "config_name": "Raw LLM",
+      "bug_id": "HIST-012",
+      "repository": "urllib3",
+      "localization": true,
+      "localization_rank": 1,
+      "root_cause": true,
+      "patch_generation": false,
+      "patch_applicability": false,
+      "visible_reproduction": false,
+      "hidden_validation": false,
+      "regression": true,
+      "final_verified_repair": false,
+      "latency_ms": 3738.3,
+      "token_usage": {
+        "total": 350,
+        "input": 300,
+        "output": 50
+      },
+      "cost_usd": 8e-05,
+      "failure_category": "PLAN_FAILURE",
+      "details": {
+        "stage": "patch_generation"
+      }
+    },
+    {
+      "configuration": "B",
+      "config_name": "LLM + Code Intelligence",
+      "bug_id": "HIST-012",
+      "repository": "urllib3",
+      "localization": true,
+      "localization_rank": 1,
+      "root_cause": true,
+      "patch_generation": true,
+      "patch_applicability": true,
+      "visible_reproduction": false,
+      "hidden_validation": false,
+      "regression": false,
+      "final_verified_repair": false,
+      "latency_ms": 3954.0,
+      "token_usage": {
+        "total": 831,
+        "input": 630,
+        "output": 201
+      },
+      "cost_usd": 0.0,
+      "failure_category": "TEST_FAILURE",
+      "details": {
+        "note": "Verification not enabled in this tier"
+      }
+    },
+    {
+      "configuration": "C",
+      "config_name": "Tier B + Repair Planning",
+      "bug_id": "HIST-012",
+      "repository": "urllib3",
+      "localization": true,
+      "localization_rank": 1,
+      "root_cause": true,
+      "patch_generation": true,
+      "patch_applicability": true,
+      "visible_reproduction": false,
+      "hidden_validation": false,
+      "regression": false,
+      "final_verified_repair": false,
+      "latency_ms": 3904.1,
+      "token_usage": {
+        "total": 1872,
+        "input": 1407,
+        "output": 465
+      },
+      "cost_usd": 0.0,
+      "failure_category": "TEST_FAILURE",
+      "details": {
+        "note": "Verification not enabled in this tier"
+      }
+    },
+    {
+      "configuration": "D",
+      "config_name": "Tier C + Structural Validation",
+      "bug_id": "HIST-012",
+      "repository": "urllib3",
+      "localization": true,
+      "localization_rank": 1,
+      "root_cause": true,
+      "patch_generation": true,
+      "patch_applicability": true,
+      "visible_reproduction": false,
+      "hidden_validation": false,
+      "regression": false,
+      "final_verified_repair": false,
+      "latency_ms": 4001.0,
+      "token_usage": {
+        "total": 1872,
+        "input": 1407,
+        "output": 465
+      },
+      "cost_usd": 0.0,
+      "failure_category": "TEST_FAILURE",
+      "details": {
+        "note": "Verification not enabled in this tier"
+      }
+    },
+    {
+      "configuration": "E",
+      "config_name": "Tier D + Sandbox Verification",
+      "bug_id": "HIST-012",
+      "repository": "urllib3",
+      "localization": true,
+      "localization_rank": 1,
+      "root_cause": true,
+      "patch_generation": true,
+      "patch_applicability": true,
+      "visible_reproduction": false,
+      "hidden_validation": false,
+      "regression": true,
+      "final_verified_repair": false,
+      "latency_ms": 8113.0,
+      "token_usage": {
+        "total": 1872,
+        "input": 1407,
+        "output": 465
+      },
+      "cost_usd": 0.0,
+      "failure_category": "TEST_FAILURE",
+      "details": {
+        "repro_stdout": "id authority component\n\nurllib3_util\\url.py:10: ValueError\n=========================== short test summary info ===========================\nFAILED tests\\test_reproduce.py::test_ipv6_authority_parsing - ValueError: Inv...\n============================== 1 failed in 2.08s ==============================\n",
+        "hidden_stdout": "ojects\\Devaura\nconfigfile: pytest.ini\nplugins: anyio-4.16.0, asyncio-1.5.0\nasyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=function, asyncio_default_test_loop_scope=function\ncollected 0 items\n\n============================ no tests ran in 0.01s ============================\n"
+      }
+    },
+    {
+      "configuration": "F",
+      "config_name": "Full Bounded Repair Loop",
+      "bug_id": "HIST-012",
+      "repository": "urllib3",
+      "localization": true,
+      "localization_rank": 1,
+      "root_cause": true,
+      "patch_generation": true,
+      "patch_applicability": true,
+      "visible_reproduction": false,
+      "hidden_validation": false,
+      "regression": true,
+      "final_verified_repair": false,
+      "latency_ms": 8340.0,
+      "token_usage": {
+        "total": 1872,
+        "input": 1407,
+        "output": 465
+      },
+      "cost_usd": 0.0,
+      "failure_category": "TEST_FAILURE",
+      "details": {
+        "repro_stdout": "id authority component\n\nurllib3_util\\url.py:10: ValueError\n=========================== short test summary info ===========================\nFAILED tests\\test_reproduce.py::test_ipv6_authority_parsing - ValueError: Inv...\n============================== 1 failed in 2.20s ==============================\n",
+        "hidden_stdout": "ojects\\Devaura\nconfigfile: pytest.ini\nplugins: anyio-4.16.0, asyncio-1.5.0\nasyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=function, asyncio_default_test_loop_scope=function\ncollected 0 items\n\n============================ no tests ran in 0.01s ============================\n"
+      }
+    },
+    {
+      "configuration": "A",
+      "config_name": "Raw LLM",
+      "bug_id": "HIST-013",
+      "repository": "chalk",
+      "localization": true,
+      "localization_rank": 1,
+      "root_cause": true,
+      "patch_generation": false,
+      "patch_applicability": false,
+      "visible_reproduction": false,
+      "hidden_validation": false,
+      "regression": true,
+      "final_verified_repair": false,
+      "latency_ms": 3902.2,
+      "token_usage": {
+        "total": 350,
+        "input": 300,
+        "output": 50
+      },
+      "cost_usd": 8e-05,
+      "failure_category": "PLAN_FAILURE",
+      "details": {
+        "stage": "patch_generation"
+      }
+    },
+    {
+      "configuration": "B",
+      "config_name": "LLM + Code Intelligence",
+      "bug_id": "HIST-013",
+      "repository": "chalk",
+      "localization": true,
+      "localization_rank": 1,
+      "root_cause": true,
+      "patch_generation": true,
+      "patch_applicability": true,
+      "visible_reproduction": false,
+      "hidden_validation": false,
+      "regression": false,
+      "final_verified_repair": false,
+      "latency_ms": 3914.7,
+      "token_usage": {
+        "total": 827,
+        "input": 626,
+        "output": 201
+      },
+      "cost_usd": 0.0,
+      "failure_category": "TEST_FAILURE",
+      "details": {
+        "note": "Verification not enabled in this tier"
+      }
+    },
+    {
+      "configuration": "C",
+      "config_name": "Tier B + Repair Planning",
+      "bug_id": "HIST-013",
+      "repository": "chalk",
+      "localization": true,
+      "localization_rank": 1,
+      "root_cause": true,
+      "patch_generation": true,
+      "patch_applicability": true,
+      "visible_reproduction": false,
+      "hidden_validation": false,
+      "regression": false,
+      "final_verified_repair": false,
+      "latency_ms": 3777.4,
+      "token_usage": {
+        "total": 1822,
+        "input": 1357,
+        "output": 465
+      },
+      "cost_usd": 0.0,
+      "failure_category": "TEST_FAILURE",
+      "details": {
+        "note": "Verification not enabled in this tier"
+      }
+    },
+    {
+      "configuration": "D",
+      "config_name": "Tier C + Structural Validation",
+      "bug_id": "HIST-013",
+      "repository": "chalk",
+      "localization": true,
+      "localization_rank": 1,
+      "root_cause": true,
+      "patch_generation": true,
+      "patch_applicability": true,
+      "visible_reproduction": false,
+      "hidden_validation": false,
+      "regression": false,
+      "final_verified_repair": false,
+      "latency_ms": 3747.0,
+      "token_usage": {
+        "total": 1822,
+        "input": 1357,
+        "output": 465
+      },
+      "cost_usd": 0.0,
+      "failure_category": "TEST_FAILURE",
+      "details": {
+        "note": "Verification not enabled in this tier"
+      }
+    },
+    {
+      "configuration": "E",
+      "config_name": "Tier D + Sandbox Verification",
+      "bug_id": "HIST-013",
+      "repository": "chalk",
+      "localization": true,
+      "localization_rank": 1,
+      "root_cause": true,
+      "patch_generation": true,
+      "patch_applicability": true,
+      "visible_reproduction": false,
+      "hidden_validation": false,
+      "regression": true,
+      "final_verified_repair": false,
+      "latency_ms": 7888.3,
+      "token_usage": {
+        "total": 1822,
+        "input": 1357,
+        "output": 465
+      },
+      "cost_usd": 0.0,
+      "failure_category": "TEST_FAILURE",
+      "details": {
+        "repro_stdout": "xceeds 4-bit ANSI space\n\nchalk_ansi\\color.py:5: ValueError\n=========================== short test summary info ===========================\nFAILED tests\\test_reproduce.py::test_rgb_ansi_formatting - ValueError: RGB ch...\n============================== 1 failed in 1.95s ==============================\n",
+        "hidden_stdout": "ojects\\Devaura\nconfigfile: pytest.ini\nplugins: anyio-4.16.0, asyncio-1.5.0\nasyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=function, asyncio_default_test_loop_scope=function\ncollected 0 items\n\n============================ no tests ran in 0.01s ============================\n"
+      }
+    },
+    {
+      "configuration": "F",
+      "config_name": "Full Bounded Repair Loop",
+      "bug_id": "HIST-013",
+      "repository": "chalk",
+      "localization": true,
+      "localization_rank": 1,
+      "root_cause": true,
+      "patch_generation": true,
+      "patch_applicability": true,
+      "visible_reproduction": false,
+      "hidden_validation": false,
+      "regression": true,
+      "final_verified_repair": false,
+      "latency_ms": 7907.6,
+      "token_usage": {
+        "total": 1822,
+        "input": 1357,
+        "output": 465
+      },
+      "cost_usd": 0.0,
+      "failure_category": "TEST_FAILURE",
+      "details": {
+        "repro_stdout": "xceeds 4-bit ANSI space\n\nchalk_ansi\\color.py:5: ValueError\n=========================== short test summary info ===========================\nFAILED tests\\test_reproduce.py::test_rgb_ansi_formatting - ValueError: RGB ch...\n============================== 1 failed in 2.04s ==============================\n",
+        "hidden_stdout": "ojects\\Devaura\nconfigfile: pytest.ini\nplugins: anyio-4.16.0, asyncio-1.5.0\nasyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=function, asyncio_default_test_loop_scope=function\ncollected 0 items\n\n============================ no tests ran in 0.01s ============================\n"
+      }
+    },
+    {
+      "configuration": "A",
+      "config_name": "Raw LLM",
+      "bug_id": "HIST-017",
+      "repository": "jinja2",
+      "localization": false,
+      "localization_rank": null,
+      "root_cause": false,
+      "patch_generation": false,
+      "patch_applicability": false,
+      "visible_reproduction": false,
+      "hidden_validation": false,
+      "regression": true,
+      "final_verified_repair": false,
+      "latency_ms": 5239.6,
+      "token_usage": {
+        "total": 350,
+        "input": 300,
+        "output": 50
+      },
+      "cost_usd": 8e-05,
+      "failure_category": "LOCALIZATION_FAILURE",
+      "details": {
+        "stage": "investigation"
+      }
+    },
+    {
+      "configuration": "B",
+      "config_name": "LLM + Code Intelligence",
+      "bug_id": "HIST-017",
+      "repository": "jinja2",
+      "localization": true,
+      "localization_rank": 1,
+      "root_cause": true,
+      "patch_generation": true,
+      "patch_applicability": true,
+      "visible_reproduction": false,
+      "hidden_validation": false,
+      "regression": false,
+      "final_verified_repair": false,
+      "latency_ms": 3863.1,
+      "token_usage": {
+        "total": 785,
+        "input": 582,
+        "output": 203
+      },
+      "cost_usd": 0.0,
+      "failure_category": "TEST_FAILURE",
+      "details": {
+        "note": "Verification not enabled in this tier"
+      }
+    },
+    {
+      "configuration": "C",
+      "config_name": "Tier B + Repair Planning",
+      "bug_id": "HIST-017",
+      "repository": "jinja2",
+      "localization": true,
+      "localization_rank": 1,
+      "root_cause": true,
+      "patch_generation": true,
+      "patch_applicability": true,
+      "visible_reproduction": false,
+      "hidden_validation": false,
+      "regression": false,
+      "final_verified_repair": false,
+      "latency_ms": 3837.1,
+      "token_usage": {
+        "total": 1770,
+        "input": 1301,
+        "output": 469
+      },
+      "cost_usd": 0.0,
+      "failure_category": "TEST_FAILURE",
+      "details": {
+        "note": "Verification not enabled in this tier"
+      }
+    },
+    {
+      "configuration": "D",
+      "config_name": "Tier C + Structural Validation",
+      "bug_id": "HIST-017",
+      "repository": "jinja2",
+      "localization": true,
+      "localization_rank": 1,
+      "root_cause": true,
+      "patch_generation": true,
+      "patch_applicability": true,
+      "visible_reproduction": false,
+      "hidden_validation": false,
+      "regression": false,
+      "final_verified_repair": false,
+      "latency_ms": 5611.1,
+      "token_usage": {
+        "total": 1770,
+        "input": 1301,
+        "output": 469
+      },
+      "cost_usd": 0.0,
+      "failure_category": "TEST_FAILURE",
+      "details": {
+        "note": "Verification not enabled in this tier"
+      }
+    },
+    {
+      "configuration": "E",
+      "config_name": "Tier D + Sandbox Verification",
+      "bug_id": "HIST-017",
+      "repository": "jinja2",
+      "localization": true,
+      "localization_rank": 1,
+      "root_cause": true,
+      "patch_generation": true,
+      "patch_applicability": true,
+      "visible_reproduction": false,
+      "hidden_validation": false,
+      "regression": true,
+      "final_verified_repair": false,
+      "latency_ms": 7806.3,
+      "token_usage": {
+        "total": 1770,
+        "input": 1301,
+        "output": 469
+      },
+      "cost_usd": 0.0,
+      "failure_category": "TEST_FAILURE",
+      "details": {
+        "repro_stdout": "T RAISE PermissionError\n\ntests\\test_reproduce.py:5: Failed\n=========================== short test summary info ===========================\nFAILED tests\\test_reproduce.py::test_sandbox_attribute_guard - Failed: DID NO...\n============================== 1 failed in 1.99s ==============================\n",
+        "hidden_stdout": "ojects\\Devaura\nconfigfile: pytest.ini\nplugins: anyio-4.16.0, asyncio-1.5.0\nasyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=function, asyncio_default_test_loop_scope=function\ncollected 0 items\n\n============================ no tests ran in 0.01s ============================\n"
+      }
+    },
+    {
+      "configuration": "F",
+      "config_name": "Full Bounded Repair Loop",
+      "bug_id": "HIST-017",
+      "repository": "jinja2",
+      "localization": true,
+      "localization_rank": 1,
+      "root_cause": true,
+      "patch_generation": true,
+      "patch_applicability": true,
+      "visible_reproduction": false,
+      "hidden_validation": false,
+      "regression": true,
+      "final_verified_repair": false,
+      "latency_ms": 7590.8,
+      "token_usage": {
+        "total": 1770,
+        "input": 1301,
+        "output": 469
+      },
+      "cost_usd": 0.0,
+      "failure_category": "TEST_FAILURE",
+      "details": {
+        "repro_stdout": "T RAISE PermissionError\n\ntests\\test_reproduce.py:5: Failed\n=========================== short test summary info ===========================\nFAILED tests\\test_reproduce.py::test_sandbox_attribute_guard - Failed: DID NO...\n============================== 1 failed in 1.85s ==============================\n",
+        "hidden_stdout": "ojects\\Devaura\nconfigfile: pytest.ini\nplugins: anyio-4.16.0, asyncio-1.5.0\nasyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=function, asyncio_default_test_loop_scope=function\ncollected 0 items\n\n============================ no tests ran in 0.01s ============================\n"
+      }
+    }
+  ]
+}

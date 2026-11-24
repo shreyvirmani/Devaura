@@ -1,0 +1,13 @@
+{
+  "bug_id": "HIST-011",
+  "project": "httpx",
+  "ecosystem": "python",
+  "cve_or_issue": "Issue #1240",
+  "category": "Networking / HTTP Query Serialization",
+  "title": "Duplicate query parameter keys collapsed during URL serialization",
+  "description": "httpx URL parser collapsed multiple identical query parameter keys instead of serializing all values.",
+  "error_message": "AssertionError: assert 'https://example.com/?filter=a' == 'https://example.com/?filter=a&filter=b'",
+  "stack_trace": "Traceback (most recent call last):\n  File \"tests/test_reproduce.py\", line 12, in test_duplicate_query_params\n    assert str(url) == 'https://example.com/?filter=a&filter=b'\nAssertionError: assert 'https://example.com/?filter=a' == 'https://example.com/?filter=a&filter=b'\n",
+  "test_command": "pytest tests/test_reproduce.py",
+  "context_files": []
+}

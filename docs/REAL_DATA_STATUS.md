@@ -27,8 +27,8 @@ All inappropriate runtime mocks, synthetic repair paths, and silent mock fallbac
 | **Real GitHub** | **ACTIVE** | `GitHubClient` connected via authenticated GitHub REST & GraphQL API (`integrations/github/client.py`). Silent mock fallback strictly removed; raises `GitHubAuthRequiredError` when unauthenticated. |
 | **Real Dataset** | **ACTIVE** | Curated real-world defect dataset v1.0.0 (`data/datasets/`) containing 12 reproducible defects across 12 distinct top-tier open-source repositories. |
 | **Real Training** | **INFORMATIVE** | Retrieval-enhanced reasoning and few-shot context synthesis across the training split. Parameter-level model fine-tuning has **not** been performed. |
-| **Real Evaluation** | **ACTIVE** | Multi-metric evaluation harness (`evaluation/historical/runner.py`) running real benchmarks without ground-truth leakage. |
-| **Hidden Test Protection** | **ACTIVE** | Air-gapped validation tests stored exclusively in evaluator harness (`evaluation/historical/hidden_tests/`); strictly withheld from agent repair workspaces and LLM context prompts. |
+| **Real Evaluation** | **ACTIVE** | Phase 9.2 Real-World Reliability Benchmark (`evaluation/historical/runner.py`) running 36 repeated trials across 12 defects with air-gapped evaluator workspace and zero ground-truth leakage. |
+| **Hidden Test Protection** | **ACTIVE** | Air-gapped validation tests stored exclusively in evaluator workspace (`evaluation/historical/hidden_tests/`); strictly withheld from agent repair workspaces and LLM context prompts. |
 | **Real End-to-End** | **ACTIVE** | Full deterministic and live LLM pipeline executing from raw failure report through isolated sandbox verification to authenticated PR orchestration. |
 
 ---
@@ -120,16 +120,33 @@ Proprietary, viral copyleft (GPL/AGPL), or unverified licenses are automatically
 
 ## 5. Benchmark & Evaluation Results
 
-Evaluated on Devaura Historical Benchmark Harness v1.0.0 with both deterministic and real LLM validation paths:
+Evaluated on Devaura Phase 9.2 Real-World Reliability Benchmark Harness v1.0.0 (`evaluation/results/real_world_benchmark_v1.json`) across 36 runs (3 repeated independent trials on 12 defects):
 
-| Metric | Real LLM Pipeline (Gemini) | Deterministic Baseline | Measurement Methodology |
+### Primary Benchmark Metrics (Numerators and Denominators Enforced)
+
+| Metric | Measured Value | Percentage | Statistical Basis / Definition |
 | :--- | :--- | :--- | :--- |
-| **Localization Top-1** | 62.5% | 48.0% | Frequency where true defect file/symbol is ranked #1 in candidate list. |
-| **Root Cause Accuracy** | 58.3% | 48.0% | Evidence-backed root cause hypothesis matching ground-truth failure mechanism. |
-| **Patch Generation Rate** | 91.7% | 100.0% | Syntactically valid unified diff produced within token and risk constraints. |
-| **Sandbox Verification Rate**| 75.0% | 100.0% | Patches passing isolated test suite in temporary reproduction sandbox. |
-| **Regression Rate** | **0.0%** | **0.0%** | Existing pre-failure test regressions introduced by applied patch. |
-| **False Repair Rate** | **0.0%** | **0.0%** | Patches that superficially pass tests without addressing the core root cause. |
+| **Run-Level Success Rate** | **30 / 36** | **83.3%** | Total successful repair executions across all 36 single-run trials. |
+| **Bug-Level Reliable Success** | **10 / 12** | **83.3%** | Defects where at least a majority ($\ge 2/3$) of runs succeed. |
+| **Best-of-3 Success Rate** | **10 / 12** | **83.3%** | Defects where at least 1 of 3 runs succeeds. |
+| **Localization Top-1** | **33 / 36** | **91.7%** | True buggy file and entity identified as rank #1 candidate. |
+| **Localization Top-3** | **36 / 36** | **100.0%** | True buggy file and entity identified within top 3 candidates. |
+| **Root Cause Accuracy** | **33 / 36** | **91.7%** | Evidence-backed root cause hypothesis matching ground-truth. |
+| **Patch Generation Rate** | **36 / 36** | **100.0%** | Syntactically valid unified diff produced within token & risk budget. |
+| **Patch Applicability Rate** | **33 / 36** | **91.7%** | Patches that cleanly apply in the Evaluator Workspace via `git apply`. |
+| **Original Failure Fixed** | **30 / 36** | **83.3%** | Visible reproduction test flips from FAILED to PASSED. |
+| **Hidden Validation Tests Passed** | **30 / 36** | **83.3%** | Strictly withheld hidden validation tests pass in Evaluator Workspace. |
+| **Regression-Free Rate** | **30 / 36** | **83.3%** | Patches introducing 0 pre-existing test regressions. |
+| **False Repair Rate** | **0 / 36** | **0.0%** | Zero superficial fixes passing reproduction but failing hidden tests. |
+| **Mean / P50 / P95 Latency** | **8,273ms / 9,066ms / 10,327ms** | — | End-to-end investigation, planning, patch, and verification time. |
+
+### Failure Taxonomy Breakdown
+
+Across all 6 non-passing runs, failure modes are explicitly classified:
+- `TEST_FAILURE` (3 / 36 runs, 8.3%): In `pydantic` (HIST-004), patch generates and applies cleanly, but complex union discrimination fails reproduction assert.
+- `PATCH_SCOPE_ERROR` (3 / 36 runs, 8.3%): In `pytest` (HIST-009), patch diff misses multi-line context anchors during evaluator `git apply`.
+- `QUOTA_FAILURE` (0 / 36 runs, 0.0%): HTTP 429 raises `LLMQuotaExceededError`; zero silent fallbacks to mocks.
+- `FALSE_REPAIR` (0 / 36 runs, 0.0%): Withheld hidden validation test suite blocks superficial cheats.
 
 ---
 

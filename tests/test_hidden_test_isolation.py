@@ -6,6 +6,7 @@ Verifies Section 13 requirements:
 3. Hidden tests are maintained in external evaluator storage and only executed by the evaluator.
 """
 
+import json
 import os
 from pathlib import Path
 import pytest
@@ -92,3 +93,50 @@ class TestHiddenTestIsolation:
             plan_prompt = build_repair_plan_prompt(ctx)
             for test_file, test_content in bug.hidden_validation_test.items():
                 assert test_content not in plan_prompt, f"Hidden test leaked into plan prompt for {bug.bug_id}"
+
+    def test_discovery_attack_paths_blocked_in_agent_workspace(self, tmp_path):
+        """Validates that agent cannot discover hidden tests via find, ls, git, env, traversal, or metadata."""
+        runner = HistoricalBenchmarkRunner(mode="deterministic")
+        bug = HISTORICAL_BUGS[0]  # Flask
+        bug_source_dir = runner.dataset_dir / bug.bug_id
+
+        # 1. find / ls attack path: recursive walk of bug directory
+        discovered_files = list(bug_source_dir.rglob("*"))
+        for f in discovered_files:
+            assert "hidden" not in f.name.lower(), f"Hidden test discovered via file listing: {f}"
+            if f.is_file():
+                content = f.read_text(encoding="utf-8")
+                for hidden_file, hidden_code in bug.hidden_validation_test.items():
+                    for line in hidden_code.splitlines():
+                        clean = line.strip()
+                        if (
+                            len(clean) > 25
+                            and not clean.startswith("#")
+                            and not clean.startswith("from ")
+                            and not clean.startswith("import ")
+                        ):
+                            assert clean not in content, f"Hidden test code found in visible file {f}"
+
+        # 2. Environment variables attack path
+        for env_k, env_v in os.environ.items():
+            assert "hidden_test" not in env_k.lower()
+            assert "golden_fix" not in env_k.lower()
+
+        # 3. Repository metadata attack path
+        meta_file = bug_source_dir / "bug_meta.json"
+        if meta_file.exists():
+            meta_json = json.loads(meta_file.read_text(encoding="utf-8"))
+            assert meta_json.get("context_files") == [], "Context files must be strictly empty in public metadata"
+            assert "hidden_validation" not in str(meta_json)
+            assert bug.fix_commit not in str(meta_json)
+
+        # 4. Filesystem traversal attack path from sandbox
+        # Agent sandbox path must not be a child of hidden_tests directory
+        from sandbox.workspace import IsolatedWorkspace
+        ws = IsolatedWorkspace(source_repo_path=str(bug_source_dir), workspace_id="test_iso")
+        sandbox_path = Path(ws.create())
+        try:
+            assert not (sandbox_path / "tests" / "test_hidden_validation.py").exists()
+            assert not (sandbox_path.parent / "hidden_tests").exists()
+        finally:
+            ws.cleanup()

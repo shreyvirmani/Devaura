@@ -1,7 +1,7 @@
 {
   "version": "1.0",
   "benchmark_track": "Track C (Historical Real-World Defects)",
-  "total_bugs": 10,
+  "total_bugs": 12,
   "bugs": [
     {
       "bug_id": "HIST-001",
@@ -130,6 +130,32 @@
       "description": "Deserializing a list containing None caused AttributeError if allow_none was False on inner element.",
       "error_message": "AttributeError: 'NoneType' object has no attribute 'strip'",
       "stack_trace": "Traceback (most recent call last):\n  File \"tests/test_reproduce.py\", line 14, in test_list_none_element_validation\n    res = deserialize_string_list(['valid', None], allow_none_element=False)\n  File \"marshmallow_schema/fields.py\", line 8, in deserialize_string_list\n    return [item.strip() for item in values]\nAttributeError: 'NoneType' object has no attribute 'strip'\n",
+      "test_command": "pytest tests/test_reproduce.py",
+      "context_files": []
+    },
+    {
+      "bug_id": "HIST-011",
+      "project": "httpx",
+      "ecosystem": "python",
+      "cve_or_issue": "Issue #1240",
+      "category": "Networking / HTTP Query Serialization",
+      "title": "Duplicate query parameter keys collapsed during URL serialization",
+      "description": "httpx URL parser collapsed multiple identical query parameter keys instead of serializing all values.",
+      "error_message": "AssertionError: assert 'https://example.com/?filter=a' == 'https://example.com/?filter=a&filter=b'",
+      "stack_trace": "Traceback (most recent call last):\n  File \"tests/test_reproduce.py\", line 12, in test_duplicate_query_params\n    assert str(url) == 'https://example.com/?filter=a&filter=b'\nAssertionError: assert 'https://example.com/?filter=a' == 'https://example.com/?filter=a&filter=b'\n",
+      "test_command": "pytest tests/test_reproduce.py",
+      "context_files": []
+    },
+    {
+      "bug_id": "HIST-012",
+      "project": "urllib3",
+      "ecosystem": "python",
+      "cve_or_issue": "Issue #2168 / CVE-2021-33503",
+      "category": "Security / URL Parsing",
+      "title": "Authority regex parser crashes on IPv6 addresses and complex authorities",
+      "description": "Regex-based authority parsing failed to match IPv6 addresses with bracketed colons, raising ValueError.",
+      "error_message": "ValueError: Invalid authority component",
+      "stack_trace": "Traceback (most recent call last):\n  File \"tests/test_reproduce.py\", line 6, in test_ipv6_authority_parsing\n    res = parse_authority('admin@[::1]:8080')\n  File \"urllib3_util/url.py\", line 9, in parse_authority\n    raise ValueError('Invalid authority component')\nValueError: Invalid authority component\n",
       "test_command": "pytest tests/test_reproduce.py",
       "context_files": []
     }

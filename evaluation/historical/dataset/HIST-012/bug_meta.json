@@ -1,0 +1,13 @@
+{
+  "bug_id": "HIST-012",
+  "project": "urllib3",
+  "ecosystem": "python",
+  "cve_or_issue": "Issue #2168 / CVE-2021-33503",
+  "category": "Security / URL Parsing",
+  "title": "Authority regex parser crashes on IPv6 addresses and complex authorities",
+  "description": "Regex-based authority parsing failed to match IPv6 addresses with bracketed colons, raising ValueError.",
+  "error_message": "ValueError: Invalid authority component",
+  "stack_trace": "Traceback (most recent call last):\n  File \"tests/test_reproduce.py\", line 6, in test_ipv6_authority_parsing\n    res = parse_authority('admin@[::1]:8080')\n  File \"urllib3_util/url.py\", line 9, in parse_authority\n    raise ValueError('Invalid authority component')\nValueError: Invalid authority component\n",
+  "test_command": "pytest tests/test_reproduce.py",
+  "context_files": []
+}

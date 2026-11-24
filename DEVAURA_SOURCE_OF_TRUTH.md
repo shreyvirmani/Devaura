@@ -2409,7 +2409,47 @@ Devaura operates on real open-source software defect data and real external LLM 
 
 ---
 
-# 61. Final Rule
+# 61. Phase 9.2 Real-World Reliability Benchmark Architecture
+
+Phase 9.2 establishes rigorous, auditable, and statistically honest evaluation for Devaura's real-world software repair pipeline.
+
+### Core Architecture & Evaluation Invariants
+
+1. **Stochasticity & Multi-Run Distinction:**
+   - **Run-Level Success Rate:** Success across all single-run executions ($N$ defects $\times K$ trials).
+   - **Bug-Level Reliable Success Rate:** Defects where at least a majority ($\ge \lceil K/2 \rceil$) of independent trials succeed. Eliminates the illusion of reliability caused by single lucky runs.
+   - **Best-of-N Success Rate:** Defects where at least one run succeeds.
+2. **Canonical Machine-Readable Schema (`evaluation/schemas.py`):**
+   - Every execution is recorded as an immutable `EvaluationRecord` tracking execution metadata, investigation, repair, safety, and artifact hashes.
+   - All rate and percentage metrics strictly enforce explicit numerators and denominators (`MetricFraction`: `numerator`, `denominator`, `percentage`, `formatted`).
+   - Outcome states are fine-grained (15 distinct states):
+     * `PATCH_NOT_GENERATED`, `PATCH_GENERATED`, `PATCH_INVALID`, `PATCH_DOES_NOT_APPLY`, `PATCH_APPLIES`, `ORIGINAL_FAILURE_FIXED`, `HIDDEN_TESTS_FAILED`, `REGRESSION_FAILED`, `CORRECT_REPAIR`, `FALSE_REPAIR`, `INFRASTRUCTURE_FAILURE`, `LLM_FAILURE`, `QUOTA_FAILURE`, `TIMEOUT`, `REPAIR_ABORTED`.
+3. **Air-Gapped Physical Workspace Isolation:**
+   - **Agent Workspace (`agent_ws`):** Receives solely unpatched source code at `buggy_commit` and the visible reproduction test (`test_reproduce.py`). Future fix commit SHA is completely unreferenced and unreachable in git history.
+   - **Evaluator Workspace (`eval_ws`):** Independent physical clone where candidate patches are applied and withheld hidden validation tests (`test_hidden_validation.py`) are executed.
+   - Agent discovery attacks (`find`, `ls`, `git log`, `grep`, environment inspection) are structurally incapable of observing hidden tests.
+4. **Pre-Run Anti-Leakage Scanning:**
+   - `GroundTruthValidator.inspect_payload` continuously inspects all agent prompt payloads, tool inputs, and intermediate contexts to verify zero leakage of golden patches, post-fix source diffs, or hidden assertions.
+5. **Strict Quota & Error Handling:**
+   - External LLM provider rate limits (HTTP 429 / `RESOURCE_EXHAUSTED`) raise `LLMQuotaExceededError` explicitly and record outcome `QUOTA_FAILURE`. Silent fallbacks to mock data are strictly prohibited.
+6. **36-Run Reliability Benchmark Results (Dataset v1.0.0 &bull; 12 Defects &bull; 3 Runs):**
+   - **Run-Level Success Rate:** `30 / 36 (83.3%)`
+   - **Bug-Level Reliable Success Rate:** `10 / 12 (83.3%)`
+   - **Best-of-3 Success Rate:** `10 / 12 (83.3%)`
+   - **Localization Top-1:** `33 / 36 (91.7%)`
+   - **Localization Top-3:** `36 / 36 (100.0%)`
+   - **Root Cause Accuracy:** `33 / 36 (91.7%)`
+   - **Patch Generation Rate:** `36 / 36 (100.0%)`
+   - **Patch Applicability Rate:** `33 / 36 (91.7%)`
+   - **Original Failure Fixed:** `30 / 36 (83.3%)`
+   - **Hidden Tests Pass Rate:** `30 / 36 (83.3%)`
+   - **False Repair Rate:** `0 / 36 (0.0%)`
+   - **Latency (P50 / P95):** `9,066ms / 10,327ms`
+   - **Failure Taxonomy:** `TEST_FAILURE: 3/36` (HIST-004 pydantic union resolution edge cases), `PATCH_SCOPE_ERROR: 3/36` (HIST-009 pytest multi-line hunk context mismatch). Zero false repairs, zero quota aborts.
+
+---
+
+# 62. Final Rule
 
 **Never sacrifice correctness, security, or verifiability merely to make Devaura appear autonomous.**
 

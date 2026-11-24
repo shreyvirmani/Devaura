@@ -71,3 +71,77 @@ class GroundTruthValidator:
                             raise GroundTruthLeakageError(
                                 f"Hidden test leakage detected: Code from '{test_file}' found in prompt!"
                             )
+
+    @classmethod
+    def inspect_payload(
+        cls,
+        payload_name: str,
+        content: str,
+        bug_id: str,
+        fix_commit_sha: Optional[str] = None,
+        golden_patch: Optional[str] = None,
+        fixed_source: Optional[Dict[str, str]] = None,
+        hidden_tests: Optional[Dict[str, str]] = None,
+        source_files: Optional[Dict[str, str]] = None,
+    ) -> None:
+        """Inspects arbitrary payload (prompts, tool results, retrieved files/history) for ground truth leaks."""
+        if not content:
+            return
+
+        # 1. Leakage of fixing commit SHA
+        if fix_commit_sha and len(fix_commit_sha) >= 6 and fix_commit_sha.lower() in content.lower():
+            raise GroundTruthLeakageError(
+                f"Ground-truth leakage detected in {payload_name}: Fixing commit SHA '{fix_commit_sha}' found!"
+            )
+
+        # 2. Golden patch lines
+        if golden_patch:
+            for line in golden_patch.splitlines():
+                line_str = line.strip()
+                if line_str.startswith("+") and not line_str.startswith("+++") and len(line_str) > 12:
+                    clean = line_str[1:].strip()
+                    if clean in content:
+                        raise GroundTruthLeakageError(
+                            f"Ground-truth leakage detected in {payload_name}: Golden patch snippet '{clean[:40]}' found!"
+                        )
+
+        # 3. Fixed source lines (post-fix code)
+        if fixed_source:
+            for file_path, src in fixed_source.items():
+                unpatched_src = (source_files or {}).get(file_path, "")
+                for line in src.splitlines():
+                    clean = line.strip()
+                    if len(clean) > 25 and clean in content and not clean.startswith("#"):
+                        if unpatched_src and clean in unpatched_src:
+                            continue
+                        raise GroundTruthLeakageError(
+                            f"Ground-truth leakage detected in {payload_name}: Post-fix source from '{file_path}' found!"
+                        )
+
+        # 4. Hidden test code or identifiers
+        if hidden_tests:
+            for test_file, test_src in hidden_tests.items():
+                test_name = test_file.split("/")[-1]
+                if test_name in content:
+                    raise GroundTruthLeakageError(
+                        f"Hidden test discovery detected in {payload_name}: Hidden test file '{test_name}' referenced!"
+                    )
+                for line in test_src.splitlines():
+                    clean = line.strip()
+                    if len(clean) > 20 and clean in content and not clean.startswith("#") and not clean.startswith("import"):
+                        raise GroundTruthLeakageError(
+                            f"Hidden test leakage detected in {payload_name}: Code from hidden test '{test_file}' found!"
+                        )
+
+        # 5. Prohibited benchmark labels / expected answers
+        forbidden_markers = [
+            "golden_patch",
+            "EXPECTED_CORRECT_ANSWER",
+            "BENCHMARK_ANSWER_KEY",
+            f"EXPECTED_FIX_{bug_id}",
+        ]
+        for marker in forbidden_markers:
+            if marker in content:
+                raise GroundTruthLeakageError(
+                    f"Ground-truth marker '{marker}' leaked into {payload_name}!"
+                )

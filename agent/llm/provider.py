@@ -45,6 +45,11 @@ class LLMExecutionError(RuntimeError):
     pass
 
 
+class LLMQuotaExceededError(LLMExecutionError):
+    """Raised when external LLM API quota or rate limits are exhausted."""
+    pass
+
+
 class LLMProvider(ABC):
     """Abstract interface for LLM operations in Devaura."""
 
@@ -183,6 +188,8 @@ class GeminiProvider(LLMProvider):
         if resp is None or resp.status_code != 200:
             err_msg = resp.text if resp is not None else "No response"
             code = resp.status_code if resp is not None else "Timeout"
+            if code == 429 or "RESOURCE_EXHAUSTED" in str(err_msg):
+                raise LLMQuotaExceededError(f"Gemini API returned HTTP 429 (quota exceeded): {err_msg}")
             raise LLMExecutionError(f"Gemini API returned HTTP {code}: {err_msg}")
         data = resp.json()
 
@@ -265,6 +272,8 @@ class GeminiProvider(LLMProvider):
         if resp is None or resp.status_code != 200:
             err_msg = resp.text if resp is not None else "No response"
             code = resp.status_code if resp is not None else "Timeout"
+            if code == 429 or "RESOURCE_EXHAUSTED" in str(err_msg):
+                raise LLMQuotaExceededError(f"Gemini API returned HTTP 429 (quota exceeded): {err_msg}")
             raise LLMExecutionError(f"Gemini API returned HTTP {code}: {err_msg}")
         data = resp.json()
 

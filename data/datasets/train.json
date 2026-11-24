@@ -30,7 +30,7 @@
     "verification_result": "passed",
     "license": "BSD-3-Clause",
     "source_url": "https://github.com/pallets/flask",
-    "retrieved_at": "2026-11-23T17:41:18.772128+00:00",
+    "retrieved_at": "2026-11-24T06:32:44.430655+00:00",
     "dataset_split": "train"
   },
   {
@@ -64,7 +64,7 @@
     "verification_result": "passed",
     "license": "Apache-2.0",
     "source_url": "https://github.com/psf/requests",
-    "retrieved_at": "2026-11-23T17:41:18.772128+00:00",
+    "retrieved_at": "2026-11-24T06:32:44.430655+00:00",
     "dataset_split": "train"
   },
   {
@@ -98,7 +98,7 @@
     "verification_result": "passed",
     "license": "BSD-3-Clause",
     "source_url": "https://github.com/pallets/click",
-    "retrieved_at": "2026-11-23T17:41:18.772128+00:00",
+    "retrieved_at": "2026-11-24T06:32:44.430655+00:00",
     "dataset_split": "train"
   },
   {
@@ -132,7 +132,7 @@
     "verification_result": "passed",
     "license": "Apache-2.0",
     "source_url": "https://github.com/tornadoweb/tornado",
-    "retrieved_at": "2026-11-23T17:41:18.772767+00:00",
+    "retrieved_at": "2026-11-24T06:32:44.431255+00:00",
     "dataset_split": "train"
   },
   {
@@ -166,7 +166,7 @@
     "verification_result": "passed",
     "license": "MIT",
     "source_url": "https://github.com/marshmallow-code/marshmallow",
-    "retrieved_at": "2026-11-23T17:41:18.772767+00:00",
+    "retrieved_at": "2026-11-24T06:32:44.431255+00:00",
     "dataset_split": "train"
   },
   {
@@ -175,14 +175,16 @@
     "language": "python",
     "buggy_commit": "d98a1f2",
     "fix_commit": "3c41b8e",
-    "issue": "Issue #1240: URL query parameter encoding with duplicate keys",
+    "issue": "Issue #1240",
     "issue_description": "httpx URL parser collapsed multiple identical query parameter keys instead of serializing all values.",
-    "failure_type": "AssertionError",
+    "failure_type": "Networking / HTTP Query Serialization",
     "stack_trace": "Traceback (most recent call last):\n  File \"tests/test_reproduce.py\", line 12, in test_duplicate_query_params\n    assert str(url) == 'https://example.com/?filter=a&filter=b'\nAssertionError: assert 'https://example.com/?filter=a' == 'https://example.com/?filter=a&filter=b'\n",
     "failing_tests": [
       "tests/test_reproduce.py"
     ],
-    "changed_files": [],
+    "changed_files": [
+      "httpx_urls/urls.py"
+    ],
     "source_files": {
       "httpx_urls/__init__.py": "",
       "httpx_urls/urls.py": "from typing import List, Tuple\n\ndef encode_query_params(params: List[Tuple[str, str]]) -> str:\n    # Defect: Converts to dict, collapsing duplicate keys\n    param_dict = dict(params)\n    return '&'.join(f'{k}={v}' for k, v in param_dict.items())\n"
@@ -193,12 +195,12 @@
     "hidden_validation_test": {
       "tests/test_hidden_validation.py": "from httpx_urls.urls import encode_query_params\n\ndef test_single_query_param():\n    assert encode_query_params([('key', 'val')]) == 'key=val'\n\ndef test_mixed_query_params():\n    assert encode_query_params([('a', '1'), ('b', '2'), ('a', '3')]) == 'a=1&b=2&a=3'\n"
     },
-    "golden_patch": "--- a/httpx_urls/urls.py\n+++ b/httpx_urls/urls.py\n@@ -3,4 +3,2 @@\n def encode_query_params(params: List[Tuple[str, str]]) -> str:\n-    param_dict = dict(params)\n-    return '&'.join(f'{k}={v}' for k, v in param_dict.items())\n+    return '&'.join(f'{k}={v}' for k, v in params)\n",
+    "golden_patch": "",
     "verification_command": "pytest tests/test_reproduce.py",
     "verification_result": "passed",
     "license": "BSD-3-Clause",
     "source_url": "https://github.com/encode/httpx",
-    "retrieved_at": "2026-11-23T17:41:18.772767+00:00",
+    "retrieved_at": "2026-11-24T06:32:44.431255+00:00",
     "dataset_split": "train"
   }
 ]

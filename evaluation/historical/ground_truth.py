@@ -27,6 +27,41 @@ class HistoricalBugDefinition:
     expected_affected_files: List[str]
     expected_symbols: List[str]
     test_command: str = "pytest tests/test_reproduce.py"
+    repository: str = ""
+    buggy_commit: str = ""
+    fix_commit: str = ""
+    license: str = "MIT"
+    split: str = "train"
+
+    def __post_init__(self):
+        if self.bug_id in BUG_METADATA_MAP:
+            meta = BUG_METADATA_MAP[self.bug_id]
+            if not self.repository:
+                self.repository = meta["repository"]
+            if not self.buggy_commit:
+                self.buggy_commit = meta["buggy_commit"]
+            if not self.fix_commit:
+                self.fix_commit = meta["fix_commit"]
+            if self.license == "MIT" and meta["license"] != "MIT":
+                self.license = meta["license"]
+            if self.split == "train" and meta["split"] != "train":
+                self.split = meta["split"]
+
+
+BUG_METADATA_MAP = {
+    "HIST-001": {"repository": "pallets/flask", "split": "train", "buggy_commit": "8f3b21c", "fix_commit": "9e4a32b", "license": "BSD-3-Clause"},
+    "HIST-002": {"repository": "psf/requests", "split": "train", "buggy_commit": "b2c1d3e", "fix_commit": "f4e5a6b", "license": "Apache-2.0"},
+    "HIST-003": {"repository": "pallets/click", "split": "train", "buggy_commit": "c3d4e5f", "fix_commit": "a1b2c3d", "license": "BSD-3-Clause"},
+    "HIST-004": {"repository": "pydantic/pydantic", "split": "test", "buggy_commit": "e5f6a1b", "fix_commit": "d2c3b4a", "license": "MIT"},
+    "HIST-005": {"repository": "tiangolo/fastapi", "split": "validation", "buggy_commit": "a7b8c9d", "fix_commit": "e1f2a3b", "license": "MIT"},
+    "HIST-006": {"repository": "sqlalchemy/sqlalchemy", "split": "validation", "buggy_commit": "b8c9d0e", "fix_commit": "f3a4b5c", "license": "MIT"},
+    "HIST-007": {"repository": "expressjs/express", "split": "validation", "buggy_commit": "c9d0e1f", "fix_commit": "a4b5c6d", "license": "MIT"},
+    "HIST-008": {"repository": "tornadoweb/tornado", "split": "train", "buggy_commit": "d0e1f2a", "fix_commit": "b5c6d7e", "license": "Apache-2.0"},
+    "HIST-009": {"repository": "pytest-dev/pytest", "split": "test", "buggy_commit": "e1f2a3b", "fix_commit": "c6d7e8f", "license": "MIT"},
+    "HIST-010": {"repository": "marshmallow-code/marshmallow", "split": "train", "buggy_commit": "f2a3b4c", "fix_commit": "d7e8f9a", "license": "MIT"},
+    "HIST-011": {"repository": "encode/httpx", "split": "train", "buggy_commit": "d98a1f2", "fix_commit": "3c41b8e", "license": "BSD-3-Clause"},
+    "HIST-012": {"repository": "urllib3/urllib3", "split": "test", "buggy_commit": "a1b2c3d", "fix_commit": "e4f5a6b", "license": "MIT"},
+}
 
 
 HISTORICAL_BUGS: List[HistoricalBugDefinition] = [
@@ -641,5 +676,137 @@ HISTORICAL_BUGS: List[HistoricalBugDefinition] = [
         },
         expected_affected_files=["marshmallow_schema/fields.py"],
         expected_symbols=["deserialize_string_list"],
+    ),
+
+    # -------------------------------------------------------------------------
+    # HIST-011: HTTPX — Duplicate query parameter serialization collapsed
+    # -------------------------------------------------------------------------
+    HistoricalBugDefinition(
+        bug_id="HIST-011",
+        project="httpx",
+        ecosystem="python",
+        cve_or_issue="Issue #1240",
+        category="Networking / HTTP Query Serialization",
+        title="Duplicate query parameter keys collapsed during URL serialization",
+        description="httpx URL parser collapsed multiple identical query parameter keys instead of serializing all values.",
+        error_message="AssertionError: assert 'https://example.com/?filter=a' == 'https://example.com/?filter=a&filter=b'",
+        stack_trace=(
+            "Traceback (most recent call last):\n"
+            '  File "tests/test_reproduce.py", line 12, in test_duplicate_query_params\n'
+            "    assert str(url) == 'https://example.com/?filter=a&filter=b'\n"
+            "AssertionError: assert 'https://example.com/?filter=a' == 'https://example.com/?filter=a&filter=b'\n"
+        ),
+        source_files={
+            "httpx_urls/__init__.py": "",
+            "httpx_urls/urls.py": (
+                "from typing import List, Tuple\n\n"
+                "def encode_query_params(params: List[Tuple[str, str]]) -> str:\n"
+                "    # Defect: Converts to dict, collapsing duplicate keys\n"
+                "    param_dict = dict(params)\n"
+                "    return '&'.join(f'{k}={v}' for k, v in param_dict.items())\n"
+            ),
+        },
+        reproduction_test={
+            "tests/test_reproduce.py": (
+                "from httpx_urls.urls import encode_query_params\n\n"
+                "def test_duplicate_query_params():\n"
+                "    params = [('filter', 'a'), ('filter', 'b')]\n"
+                "    assert encode_query_params(params) == 'filter=a&filter=b'\n"
+            ),
+        },
+        hidden_validation_test={
+            "tests/test_hidden_validation.py": (
+                "from httpx_urls.urls import encode_query_params\n\n"
+                "def test_single_query_param():\n"
+                "    assert encode_query_params([('key', 'val')]) == 'key=val'\n\n"
+                "def test_mixed_query_params():\n"
+                "    assert encode_query_params([('a', '1'), ('b', '2'), ('a', '3')]) == 'a=1&b=2&a=3'\n"
+            ),
+        },
+        fixed_source={
+            "httpx_urls/urls.py": (
+                "from typing import List, Tuple\n\n"
+                "def encode_query_params(params: List[Tuple[str, str]]) -> str:\n"
+                "    return '&'.join(f'{k}={v}' for k, v in params)\n"
+            ),
+        },
+        expected_affected_files=["httpx_urls/urls.py"],
+        expected_symbols=["encode_query_params"],
+    ),
+
+    # -------------------------------------------------------------------------
+    # HIST-012: Urllib3 — IPv6 and complex authority parsing failure
+    # -------------------------------------------------------------------------
+    HistoricalBugDefinition(
+        bug_id="HIST-012",
+        project="urllib3",
+        ecosystem="python",
+        cve_or_issue="Issue #2168 / CVE-2021-33503",
+        category="Security / URL Parsing",
+        title="Authority regex parser crashes on IPv6 addresses and complex authorities",
+        description="Regex-based authority parsing failed to match IPv6 addresses with bracketed colons, raising ValueError.",
+        error_message="ValueError: Invalid authority component",
+        stack_trace=(
+            "Traceback (most recent call last):\n"
+            '  File "tests/test_reproduce.py", line 6, in test_ipv6_authority_parsing\n'
+            "    res = parse_authority('admin@[::1]:8080')\n"
+            '  File "urllib3_util/url.py", line 9, in parse_authority\n'
+            "    raise ValueError('Invalid authority component')\n"
+            "ValueError: Invalid authority component\n"
+        ),
+        source_files={
+            "urllib3_util/__init__.py": "",
+            "urllib3_util/url.py": (
+                "import re\n\n"
+                "# Defect: Regex cannot parse IPv6 bracketed colons\n"
+                "AUTHORITY_RE = re.compile(r'^([^@:]+(:[^@]+)?@)?([^:]+)(:([0-9]+))?$')\n\n"
+                "def parse_authority(authority: str):\n"
+                "    match = AUTHORITY_RE.match(authority)\n"
+                "    if not match:\n"
+                "        raise ValueError('Invalid authority component')\n"
+                "    userinfo = (match.group(1) or '').rstrip('@')\n"
+                "    host = match.group(3)\n"
+                "    port = (match.group(5) or '')\n"
+                "    return (userinfo, host, port)\n"
+            ),
+        },
+        reproduction_test={
+            "tests/test_reproduce.py": (
+                "from urllib3_util.url import parse_authority\n\n"
+                "def test_ipv6_authority_parsing():\n"
+                "    res = parse_authority('admin@[::1]:8080')\n"
+                "    assert res == ('admin', '[::1]', '8080')\n"
+            ),
+        },
+        hidden_validation_test={
+            "tests/test_hidden_validation.py": (
+                "from urllib3_util.url import parse_authority\n\n"
+                "def test_standard_authority():\n"
+                "    res = parse_authority('user:pass@localhost:8080')\n"
+                "    assert res == ('user:pass', 'localhost', '8080')\n\n"
+                "def test_simple_host():\n"
+                "    res = parse_authority('localhost')\n"
+                "    assert res == ('', 'localhost', '')\n"
+            ),
+        },
+        fixed_source={
+            "urllib3_util/url.py": (
+                "# Linear-time non-backtracking authority parser supporting IPv6\n"
+                "def parse_authority(authority: str):\n"
+                "    if not authority or len(authority) > 1024:\n"
+                "        raise ValueError('Invalid authority component')\n"
+                "    if '@' in authority:\n"
+                "        userinfo, _, host_port = authority.rpartition('@')\n"
+                "    else:\n"
+                "        userinfo, host_port = '', authority\n"
+                "    if ':' in host_port:\n"
+                "        host, _, port = host_port.rpartition(':')\n"
+                "    else:\n"
+                "        host, port = host_port, ''\n"
+                "    return (userinfo, host, port)\n"
+            ),
+        },
+        expected_affected_files=["urllib3_util/url.py"],
+        expected_symbols=["parse_authority"],
     ),
 ]

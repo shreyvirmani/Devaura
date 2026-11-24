@@ -282,9 +282,9 @@ class TestHistoricalBenchmarkExecution:
     """Tests execution of the Track C historical benchmark runner."""
 
     def test_historical_dataset_manifest_integrity(self):
-        assert len(HISTORICAL_BUGS) == 10
+        assert len(HISTORICAL_BUGS) == 12
         bug_ids = [b.bug_id for b in HISTORICAL_BUGS]
-        assert len(set(bug_ids)) == 10
+        assert len(set(bug_ids)) == 12
         for b in HISTORICAL_BUGS:
             assert b.bug_id.startswith("HIST-")
             assert b.project
@@ -296,7 +296,7 @@ class TestHistoricalBenchmarkExecution:
     def test_single_historical_defect_evaluation(self):
         runner = HistoricalBenchmarkRunner(mode="deterministic")
         res = runner.evaluate_single_bug(HISTORICAL_BUGS[0])  # HIST-001 (flask)
-        assert res["bug_id"] == "HIST-001"
+        assert res.bug_id == "HIST-001" or res["bug_id"] == "HIST-001"
         assert res["localized_top1"] is True
         assert res["original_failure_fixed"] is True
         assert res["hidden_test_passed"] is True

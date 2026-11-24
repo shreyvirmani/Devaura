@@ -1,0 +1,13 @@
+{
+  "bug_id": "HIST-014",
+  "project": "axios",
+  "ecosystem": "javascript",
+  "cve_or_issue": "CVE-2020-28168 / Issue #3220",
+  "category": "Networking / HTTP Parameter Serialization",
+  "title": "Bracketed array notation dropped during query parameter serialization",
+  "description": "URL query parameter serializer collapsed array elements into repeated bare keys without bracket suffixes.",
+  "error_message": "AssertionError: assert 'tags=alpha&tags=beta' == 'tags[]=alpha&tags[]=beta'",
+  "stack_trace": "Traceback (most recent call last):\n  File \"tests/test_reproduce.py\", line 5, in test_array_param_serialization\n    assert res == 'tags[]=alpha&tags[]=beta'\nAssertionError: assert 'tags=alpha&tags=beta' == 'tags[]=alpha&tags[]=beta'\n",
+  "test_command": "pytest tests/test_reproduce.py",
+  "context_files": []
+}

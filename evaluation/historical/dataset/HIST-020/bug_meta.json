@@ -1,0 +1,13 @@
+{
+  "bug_id": "HIST-020",
+  "project": "guava",
+  "ecosystem": "java",
+  "cve_or_issue": "Issue #3011",
+  "category": "IO / Stream Boundary Arithmetic",
+  "title": "Integer overflow in stream byte limit calculation on boundary inputs",
+  "description": "Adding offset and count in stream boundary check wrapped around 64-bit limits without overflow guard.",
+  "error_message": "ValueError: Stream offset + count overflowed boundary",
+  "stack_trace": "Traceback (most recent call last):\n  File \"tests/test_reproduce.py\", line 5, in test_stream_limit_bounds\n    assert check_stream_bounds(9223372036854775800, 100, 1000) is False\nAssertionError: assert True is False\n",
+  "test_command": "pytest tests/test_reproduce.py",
+  "context_files": []
+}

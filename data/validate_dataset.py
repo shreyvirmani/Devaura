@@ -217,7 +217,7 @@ class DatasetValidator:
                     print(f"  - {r.bug_id}: {r.errors}")
             return results
 
-        print("SUCCESS: All 12 real-world defect definitions satisfy all integrity invariants.")
+        print(f"SUCCESS: All {total} real-world defect definitions satisfy all integrity invariants.")
         return results
 
 

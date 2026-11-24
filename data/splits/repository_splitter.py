@@ -33,6 +33,16 @@ class RepositorySplitter:
         "pydantic/pydantic": "test",
         "pytest-dev/pytest": "test",
         "urllib3/urllib3": "test",
+        "chalk/chalk": "test",
+        "axios/axios": "test",
+        "lodash/lodash": "test",
+        "gin-gonic/gin": "test",
+        "pallets/jinja": "test",
+        "Textualize/rich": "test",
+        "serde-rs/serde": "test",
+        "google/guava": "test",
+        "mitmproxy/mitmproxy": "test",
+        "boto/botocore": "test",
     }
 
     @classmethod

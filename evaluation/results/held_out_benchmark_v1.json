@@ -1,0 +1,413 @@
+{
+  "dataset_version": "v1.0.0",
+  "benchmark_mode": "deterministic",
+  "provider": "deterministic-mock",
+  "model": "devaura-mock-v1",
+  "evaluated_at": "2026-11-24T07:34:40.149110+00:00",
+  "total_defects": 13,
+  "requested_runs": 39,
+  "completed_runs": 39,
+  "failed_runs": 0,
+  "quota_failures": 0,
+  "llm_failures": 0,
+  "network_failures": 0,
+  "infrastructure_failures": 0,
+  "localization_top1": {
+    "numerator": 36,
+    "denominator": 39,
+    "percentage": 92.3,
+    "formatted": "36/39 (92.3%)",
+    "excluded_count": 0,
+    "exclusion_reason": null
+  },
+  "localization_top3": {
+    "numerator": 39,
+    "denominator": 39,
+    "percentage": 100.0,
+    "formatted": "39/39 (100.0%)",
+    "excluded_count": 0,
+    "exclusion_reason": null
+  },
+  "root_cause_accuracy": {
+    "numerator": 36,
+    "denominator": 39,
+    "percentage": 92.3,
+    "formatted": "36/39 (92.3%)",
+    "excluded_count": 0,
+    "exclusion_reason": null
+  },
+  "avg_evidence_precision": 0.4869,
+  "patch_generation_rate": {
+    "numerator": 39,
+    "denominator": 39,
+    "percentage": 100.0,
+    "formatted": "39/39 (100.0%)",
+    "excluded_count": 0,
+    "exclusion_reason": null
+  },
+  "patch_applicability_rate": {
+    "numerator": 36,
+    "denominator": 39,
+    "percentage": 92.3,
+    "formatted": "36/39 (92.3%)",
+    "excluded_count": 0,
+    "exclusion_reason": null
+  },
+  "original_failure_fixed_rate": {
+    "numerator": 33,
+    "denominator": 39,
+    "percentage": 84.6,
+    "formatted": "33/39 (84.6%)",
+    "excluded_count": 0,
+    "exclusion_reason": null
+  },
+  "hidden_tests_pass_rate": {
+    "numerator": 33,
+    "denominator": 39,
+    "percentage": 84.6,
+    "formatted": "33/39 (84.6%)",
+    "excluded_count": 0,
+    "exclusion_reason": null
+  },
+  "regression_free_rate": {
+    "numerator": 33,
+    "denominator": 39,
+    "percentage": 84.6,
+    "formatted": "33/39 (84.6%)",
+    "excluded_count": 0,
+    "exclusion_reason": null
+  },
+  "correct_repair_rate": {
+    "numerator": 33,
+    "denominator": 39,
+    "percentage": 84.6,
+    "formatted": "33/39 (84.6%)",
+    "excluded_count": 0,
+    "exclusion_reason": null
+  },
+  "false_repair_rate": {
+    "numerator": 0,
+    "denominator": 39,
+    "percentage": 0.0,
+    "formatted": "0/39 (0.0%)",
+    "excluded_count": 0,
+    "exclusion_reason": null
+  },
+  "run_level_success": {
+    "numerator": 33,
+    "denominator": 39,
+    "percentage": 84.6,
+    "formatted": "33/39 (84.6%)",
+    "excluded_count": 0,
+    "exclusion_reason": null
+  },
+  "bug_level_reliable_success": {
+    "numerator": 11,
+    "denominator": 13,
+    "percentage": 84.6,
+    "formatted": "11/13 (84.6%)",
+    "excluded_count": 0,
+    "exclusion_reason": null
+  },
+  "best_of_3_success": {
+    "numerator": 11,
+    "denominator": 13,
+    "percentage": 84.6,
+    "formatted": "11/13 (84.6%)",
+    "excluded_count": 0,
+    "exclusion_reason": null
+  },
+  "avg_input_tokens": 1329.2,
+  "avg_output_tokens": 467.7,
+  "avg_total_tokens": 1796.8,
+  "avg_llm_calls": 3.0,
+  "avg_latency_ms": 10569.1,
+  "p50_latency_ms": 11689.0,
+  "p95_latency_ms": 12346.5,
+  "total_cost_usd": 0.009357,
+  "cost_accounting_status": "REAL_COST",
+  "ground_truth_leakages": 0,
+  "hidden_test_discoveries": 0,
+  "secret_exposures": 0,
+  "unauthorized_file_changes": 0,
+  "approval_bypasses": 0,
+  "failure_taxonomy": {
+    "TEST_FAILURE": 3,
+    "PATCH_SCOPE_ERROR": 3
+  },
+  "bug_variances": [
+    {
+      "bug_id": "HIST-004",
+      "repository": "pydantic/pydantic",
+      "requested_runs": 3,
+      "completed_runs": 3,
+      "failed_runs": 0,
+      "quota_limited": false,
+      "successful_runs": 0,
+      "reliable_success": false,
+      "best_of_n_success": false,
+      "outcomes": [
+        "PATCH_APPLIES",
+        "PATCH_APPLIES",
+        "PATCH_APPLIES"
+      ],
+      "localization_consistency": "3/3",
+      "root_cause_consistency": "3/3",
+      "patch_consistency": "3/3",
+      "verification_consistency": "0/3",
+      "final_repair_consistency": "0/3"
+    },
+    {
+      "bug_id": "HIST-009",
+      "repository": "pytest-dev/pytest",
+      "requested_runs": 3,
+      "completed_runs": 3,
+      "failed_runs": 0,
+      "quota_limited": false,
+      "successful_runs": 0,
+      "reliable_success": false,
+      "best_of_n_success": false,
+      "outcomes": [
+        "PATCH_DOES_NOT_APPLY",
+        "PATCH_DOES_NOT_APPLY",
+        "PATCH_DOES_NOT_APPLY"
+      ],
+      "localization_consistency": "3/3",
+      "root_cause_consistency": "0/3",
+      "patch_consistency": "0/3",
+      "verification_consistency": "0/3",
+      "final_repair_consistency": "0/3"
+    },
+    {
+      "bug_id": "HIST-012",
+      "repository": "urllib3/urllib3",
+      "requested_runs": 3,
+      "completed_runs": 3,
+      "failed_runs": 0,
+      "quota_limited": false,
+      "successful_runs": 3,
+      "reliable_success": true,
+      "best_of_n_success": true,
+      "outcomes": [
+        "CORRECT_REPAIR",
+        "CORRECT_REPAIR",
+        "CORRECT_REPAIR"
+      ],
+      "localization_consistency": "3/3",
+      "root_cause_consistency": "3/3",
+      "patch_consistency": "3/3",
+      "verification_consistency": "3/3",
+      "final_repair_consistency": "3/3"
+    },
+    {
+      "bug_id": "HIST-013",
+      "repository": "chalk/chalk",
+      "requested_runs": 3,
+      "completed_runs": 3,
+      "failed_runs": 0,
+      "quota_limited": false,
+      "successful_runs": 3,
+      "reliable_success": true,
+      "best_of_n_success": true,
+      "outcomes": [
+        "CORRECT_REPAIR",
+        "CORRECT_REPAIR",
+        "CORRECT_REPAIR"
+      ],
+      "localization_consistency": "3/3",
+      "root_cause_consistency": "3/3",
+      "patch_consistency": "3/3",
+      "verification_consistency": "3/3",
+      "final_repair_consistency": "3/3"
+    },
+    {
+      "bug_id": "HIST-014",
+      "repository": "axios/axios",
+      "requested_runs": 3,
+      "completed_runs": 3,
+      "failed_runs": 0,
+      "quota_limited": false,
+      "successful_runs": 3,
+      "reliable_success": true,
+      "best_of_n_success": true,
+      "outcomes": [
+        "CORRECT_REPAIR",
+        "CORRECT_REPAIR",
+        "CORRECT_REPAIR"
+      ],
+      "localization_consistency": "3/3",
+      "root_cause_consistency": "3/3",
+      "patch_consistency": "3/3",
+      "verification_consistency": "3/3",
+      "final_repair_consistency": "3/3"
+    },
+    {
+      "bug_id": "HIST-015",
+      "repository": "lodash/lodash",
+      "requested_runs": 3,
+      "completed_runs": 3,
+      "failed_runs": 0,
+      "quota_limited": false,
+      "successful_runs": 3,
+      "reliable_success": true,
+      "best_of_n_success": true,
+      "outcomes": [
+        "CORRECT_REPAIR",
+        "CORRECT_REPAIR",
+        "CORRECT_REPAIR"
+      ],
+      "localization_consistency": "3/3",
+      "root_cause_consistency": "3/3",
+      "patch_consistency": "3/3",
+      "verification_consistency": "3/3",
+      "final_repair_consistency": "3/3"
+    },
+    {
+      "bug_id": "HIST-016",
+      "repository": "gin-gonic/gin",
+      "requested_runs": 3,
+      "completed_runs": 3,
+      "failed_runs": 0,
+      "quota_limited": false,
+      "successful_runs": 3,
+      "reliable_success": true,
+      "best_of_n_success": true,
+      "outcomes": [
+        "CORRECT_REPAIR",
+        "CORRECT_REPAIR",
+        "CORRECT_REPAIR"
+      ],
+      "localization_consistency": "3/3",
+      "root_cause_consistency": "3/3",
+      "patch_consistency": "3/3",
+      "verification_consistency": "3/3",
+      "final_repair_consistency": "3/3"
+    },
+    {
+      "bug_id": "HIST-017",
+      "repository": "pallets/jinja",
+      "requested_runs": 3,
+      "completed_runs": 3,
+      "failed_runs": 0,
+      "quota_limited": false,
+      "successful_runs": 3,
+      "reliable_success": true,
+      "best_of_n_success": true,
+      "outcomes": [
+        "CORRECT_REPAIR",
+        "CORRECT_REPAIR",
+        "CORRECT_REPAIR"
+      ],
+      "localization_consistency": "3/3",
+      "root_cause_consistency": "3/3",
+      "patch_consistency": "3/3",
+      "verification_consistency": "3/3",
+      "final_repair_consistency": "3/3"
+    },
+    {
+      "bug_id": "HIST-018",
+      "repository": "Textualize/rich",
+      "requested_runs": 3,
+      "completed_runs": 3,
+      "failed_runs": 0,
+      "quota_limited": false,
+      "successful_runs": 3,
+      "reliable_success": true,
+      "best_of_n_success": true,
+      "outcomes": [
+        "CORRECT_REPAIR",
+        "CORRECT_REPAIR",
+        "CORRECT_REPAIR"
+      ],
+      "localization_consistency": "3/3",
+      "root_cause_consistency": "3/3",
+      "patch_consistency": "3/3",
+      "verification_consistency": "3/3",
+      "final_repair_consistency": "3/3"
+    },
+    {
+      "bug_id": "HIST-019",
+      "repository": "serde-rs/serde",
+      "requested_runs": 3,
+      "completed_runs": 3,
+      "failed_runs": 0,
+      "quota_limited": false,
+      "successful_runs": 3,
+      "reliable_success": true,
+      "best_of_n_success": true,
+      "outcomes": [
+        "CORRECT_REPAIR",
+        "CORRECT_REPAIR",
+        "CORRECT_REPAIR"
+      ],
+      "localization_consistency": "3/3",
+      "root_cause_consistency": "3/3",
+      "patch_consistency": "3/3",
+      "verification_consistency": "3/3",
+      "final_repair_consistency": "3/3"
+    },
+    {
+      "bug_id": "HIST-020",
+      "repository": "google/guava",
+      "requested_runs": 3,
+      "completed_runs": 3,
+      "failed_runs": 0,
+      "quota_limited": false,
+      "successful_runs": 3,
+      "reliable_success": true,
+      "best_of_n_success": true,
+      "outcomes": [
+        "CORRECT_REPAIR",
+        "CORRECT_REPAIR",
+        "CORRECT_REPAIR"
+      ],
+      "localization_consistency": "3/3",
+      "root_cause_consistency": "3/3",
+      "patch_consistency": "3/3",
+      "verification_consistency": "3/3",
+      "final_repair_consistency": "3/3"
+    },
+    {
+      "bug_id": "HIST-021",
+      "repository": "mitmproxy/mitmproxy",
+      "requested_runs": 3,
+      "completed_runs": 3,
+      "failed_runs": 0,
+      "quota_limited": false,
+      "successful_runs": 3,
+      "reliable_success": true,
+      "best_of_n_success": true,
+      "outcomes": [
+        "CORRECT_REPAIR",
+        "CORRECT_REPAIR",
+        "CORRECT_REPAIR"
+      ],
+      "localization_consistency": "3/3",
+      "root_cause_consistency": "3/3",
+      "patch_consistency": "3/3",
+      "verification_consistency": "3/3",
+      "final_repair_consistency": "3/3"
+    },
+    {
+      "bug_id": "HIST-022",
+      "repository": "boto/botocore",
+      "requested_runs": 3,
+      "completed_runs": 3,
+      "failed_runs": 0,
+      "quota_limited": false,
+      "successful_runs": 3,
+      "reliable_success": true,
+      "best_of_n_success": true,
+      "outcomes": [
+        "CORRECT_REPAIR",
+        "CORRECT_REPAIR",
+        "CORRECT_REPAIR"
+      ],
+      "localization_consistency": "3/3",
+      "root_cause_consistency": "3/3",
+      "patch_consistency": "3/3",
+      "verification_consistency": "3/3",
+      "final_repair_consistency": "3/3"
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "bug_id": "HIST-021",
+  "project": "mitmproxy",
+  "ecosystem": "python",
+  "cve_or_issue": "Issue #4102",
+  "category": "Proxy / Protocol Parsing",
+  "title": "HTTP/2 CONNECT authority parsing splitting port incorrectly on IPv6 addresses",
+  "description": "Naive colon split on CONNECT authority string severed IPv6 addresses into malformed host/port pairs.",
+  "error_message": "ValueError: Invalid authority component",
+  "stack_trace": "Traceback (most recent call last):\n  File \"tests/test_reproduce.py\", line 5, in test_ipv6_connect_authority\n    res = split_authority('[2001:db8::1]:8080')\n  File \"mitm_proxy/authority.py\", line 5, in split_authority\n    raise ValueError('Too many colon segments in authority')\nValueError: Too many colon segments in authority\n",
+  "test_command": "pytest tests/test_reproduce.py",
+  "context_files": []
+}

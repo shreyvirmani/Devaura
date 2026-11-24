@@ -1,0 +1,13 @@
+{
+  "bug_id": "HIST-016",
+  "project": "gin",
+  "ecosystem": "go",
+  "cve_or_issue": "CVE-2020-28483 / Issue #1626",
+  "category": "Web Framework / Routing & Path Traversal",
+  "title": "Directory path traversal in static file router via unnormalized path components",
+  "description": "Static file handler failed to verify canonical root containment, allowing directory traversal escape.",
+  "error_message": "PermissionError: Path traversal outside static root detected",
+  "stack_trace": "Traceback (most recent call last):\n  File \"tests/test_reproduce.py\", line 7, in test_static_path_traversal_blocked\n    res = resolve_static_path('/public', '../../etc/passwd')\nAssertionError: Directory escape permitted\n",
+  "test_command": "pytest tests/test_reproduce.py",
+  "context_files": []
+}

@@ -1,12 +1,12 @@
 {
   "dataset_version": "v1.0.0",
-  "dataset_hash": "27cdc5659a2319fdf0058bb07c694d82b1f44669319139d48cbfe44446f1c202",
-  "creation_timestamp": "2026-11-24T06:32:44.431961+00:00",
-  "total_records": 12,
+  "dataset_hash": "8ab37fb2e2ca30e28ade05798599fe1f837117b1935279c313190ef98f269cb2",
+  "creation_timestamp": "2026-11-24T07:24:31.032993+00:00",
+  "total_records": 22,
   "split_counts": {
     "train": 6,
     "validation": 3,
-    "test": 3
+    "test": 13
   },
   "train_repositories": [
     "encode/httpx",
@@ -22,40 +22,74 @@
     "tiangolo/fastapi"
   ],
   "test_repositories": [
+    "Textualize/rich",
+    "axios/axios",
+    "boto/botocore",
+    "chalk/chalk",
+    "gin-gonic/gin",
+    "google/guava",
+    "lodash/lodash",
+    "mitmproxy/mitmproxy",
+    "pallets/jinja",
     "pydantic/pydantic",
     "pytest-dev/pytest",
+    "serde-rs/serde",
     "urllib3/urllib3"
   ],
   "all_repositories": [
+    "Textualize/rich",
+    "axios/axios",
+    "boto/botocore",
+    "chalk/chalk",
     "encode/httpx",
     "expressjs/express",
+    "gin-gonic/gin",
+    "google/guava",
+    "lodash/lodash",
     "marshmallow-code/marshmallow",
+    "mitmproxy/mitmproxy",
     "pallets/click",
     "pallets/flask",
+    "pallets/jinja",
     "psf/requests",
     "pydantic/pydantic",
     "pytest-dev/pytest",
+    "serde-rs/serde",
     "sqlalchemy/sqlalchemy",
     "tiangolo/fastapi",
     "tornadoweb/tornado",
     "urllib3/urllib3"
   ],
   "languages": [
-    "python"
+    "go",
+    "java",
+    "javascript",
+    "python",
+    "rust"
   ],
   "bug_categories": [
+    "CLI / Terminal ANSI Formatting",
     "CLI / Unicode Handling",
+    "Cloud SDK / Authentication Signing",
     "Database / SQL Compilation",
     "Dependency Injection / Routing",
+    "IO / Stream Boundary Arithmetic",
+    "Networking / HTTP Parameter Serialization",
     "Networking / HTTP Query Serialization",
+    "Proxy / Protocol Parsing",
     "Routing / URL Parsing",
     "Security / HTTP Redirect",
     "Security / HTTP Smuggling",
+    "Security / Object Mutation",
     "Security / Query Parsing",
     "Security / URL Parsing",
     "Serialization / Schema",
+    "Serialization / Type Deserialization",
+    "Template Engine / Sandbox Escape",
+    "Terminal UI / Text Wrapping",
     "Test Harness / Fixtures",
-    "Type Parsing / Validation"
+    "Type Parsing / Validation",
+    "Web Framework / Routing & Path Traversal"
   ],
   "excluded_records": [],
   "licenses": [

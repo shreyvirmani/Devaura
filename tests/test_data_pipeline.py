@@ -156,11 +156,11 @@ class TestDatasetBuilder:
         builder = DatasetBuilder(data_root=tmp_path)
         manifest = builder.build_dataset(version="v1.0.0-test")
 
-        assert manifest["total_records"] == 12
+        assert manifest["total_records"] == 22
         assert manifest["split_counts"]["train"] == 6
         assert manifest["split_counts"]["validation"] == 3
-        assert manifest["split_counts"]["test"] == 3
-        assert len(manifest["all_repositories"]) == 12
+        assert manifest["split_counts"]["test"] == 13
+        assert len(manifest["all_repositories"]) == 22
         assert len(manifest["dataset_hash"]) == 64
 
         # Check persisted files

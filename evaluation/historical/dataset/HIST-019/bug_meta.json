@@ -1,0 +1,13 @@
+{
+  "bug_id": "HIST-019",
+  "project": "serde",
+  "ecosystem": "rust",
+  "cve_or_issue": "Issue #1522",
+  "category": "Serialization / Type Deserialization",
+  "title": "Integer overflow during untagged unsigned 64-bit integer deserialization",
+  "description": "Unsigned 64-bit deserializer truncated large values against 32-bit limits, causing incorrect overflow exceptions.",
+  "error_message": "OverflowError: Integer exceeds 32-bit signed maximum",
+  "stack_trace": "Traceback (most recent call last):\n  File \"tests/test_reproduce.py\", line 5, in test_u64_deserialization\n    res = parse_uint64(18446744073709551615)\n  File \"serde_types/uint.py\", line 5, in parse_uint64\n    raise OverflowError('Integer exceeds 32-bit signed maximum')\nOverflowError: Integer exceeds 32-bit signed maximum\n",
+  "test_command": "pytest tests/test_reproduce.py",
+  "context_files": []
+}

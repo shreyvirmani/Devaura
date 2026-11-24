@@ -1,0 +1,13 @@
+{
+  "bug_id": "HIST-013",
+  "project": "chalk",
+  "ecosystem": "javascript",
+  "cve_or_issue": "Issue #382",
+  "category": "CLI / Terminal ANSI Formatting",
+  "title": "RGB ANSI 24-bit color sequence formatting truncates channels",
+  "description": "RGB to ANSI 256 conversion clamped values above 15 instead of emitting standard truecolor 24-bit SGR escapes.",
+  "error_message": "ValueError: RGB channel exceeds 4-bit ANSI space",
+  "stack_trace": "Traceback (most recent call last):\n  File \"tests/test_reproduce.py\", line 5, in test_rgb_ansi_formatting\n    res = rgb_to_ansi(255, 128, 0)\n  File \"chalk_ansi/color.py\", line 4, in rgb_to_ansi\n    raise ValueError('RGB channel exceeds 4-bit ANSI space')\nValueError: RGB channel exceeds 4-bit ANSI space\n",
+  "test_command": "pytest tests/test_reproduce.py",
+  "context_files": []
+}

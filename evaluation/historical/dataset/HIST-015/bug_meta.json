@@ -1,0 +1,13 @@
+{
+  "bug_id": "HIST-015",
+  "project": "lodash",
+  "ecosystem": "javascript",
+  "cve_or_issue": "CVE-2018-3721",
+  "category": "Security / Object Mutation",
+  "title": "Prototype pollution vulnerability in deep object merge function",
+  "description": "Recursive merge permitted modifying Object.prototype via __proto__ and constructor property injection.",
+  "error_message": "AssertionError: Security violation: __proto__ attribute present in merged target",
+  "stack_trace": "Traceback (most recent call last):\n  File \"tests/test_reproduce.py\", line 6, in test_prototype_pollution_blocked\n    assert '__proto__' not in res\nAssertionError: Security violation: __proto__ attribute present in merged target\n",
+  "test_command": "pytest tests/test_reproduce.py",
+  "context_files": []
+}

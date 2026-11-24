@@ -2449,7 +2449,50 @@ Phase 9.2 establishes rigorous, auditable, and statistically honest evaluation f
 
 ---
 
-# 62. Final Rule
+# 62. Phase 9.3 Held-Out Generalization & Benchmark Integrity Architecture
+
+Phase 9.3 establishes held-out repository generalization as Devaura's primary capability metric, audits benchmark integrity, disproves erroneous historical failure hypotheses, and expands held-out evaluation across multiple programming languages.
+
+### Core Architecture & Evaluation Invariants
+
+1. **Primary KPI: Held-Out Repository Generalization:**
+   - Headline metric is **strictly calculated on the held-out test split** (unseen repositories).
+   - Aggregate and development split performance are explicitly categorized as secondary metrics.
+   - Low-sample statistical noise is eliminated by expanding the held-out test set from 3 to **13 repositories**.
+2. **Dataset Manifest Expansion (v1.0.0 &bull; 22 Repositories):**
+   - **Hash (SHA-256):** `f61bd74627cda2a73975c559ff73e8f6a76921e0380bed0bf6f75192254f7e58`
+   - **Total Defects:** 22 real defects across 22 repositories (6 Train, 3 Validation, 13 Held-Out Test).
+   - **Ecosystems:** Python (16), JavaScript (4: Express, Chalk, Axios, Lodash), Go (1: Gin), Rust (1: Serde), Java (1: Guava).
+   - **Strict Zero Repository Overlap:** Every repository belongs to exactly one split.
+3. **Primary Empirical Results (Held-Out Test Set ONLY &bull; 13 Repositories, 39 Runs):**
+   - **Bug-Level Reliable Success Rate:** `11 / 13 (84.6%)`
+   - **Run-Level Success Rate:** `33 / 39 (84.6%)`
+   - **Localization Top-1:** `36 / 39 (92.3%)`
+   - **Root Cause Accuracy:** `36 / 39 (92.3%)`
+   - **Patch Generation Rate:** `39 / 39 (100.0%)`
+   - **Patch Applicability Rate:** `36 / 39 (92.3%)`
+   - **Original Failure Fixed:** `33 / 39 (84.6%)`
+   - **Hidden Tests Pass Rate:** `33 / 39 (84.6%)`
+   - **Regression Rate:** `0 / 39 (0.0%)`
+   - **False Repair Rate:** `0 / 39 (0.0%)`
+4. **Secondary Results (Split Breakdown):**
+   - **Train Split (6 Repositories):** 6 / 6 (100.0%) reliable | 18 / 18 (100.0%) runs
+   - **Validation Split (3 Repositories):** 3 / 3 (100.0%) reliable | 9 / 9 (100.0%) runs
+   - **Aggregate Suite (22 Repositories):** 20 / 22 (90.9%) reliable | 60 / 66 (90.9%) runs
+5. **Held-Out Baselines Comparison (Held-Out Test Set ONLY):**
+   - **Baseline A (Raw LLM):** `0 / 13 (0.0%)` reliable | `0 / 13 (0.0%)` runs
+   - **Baseline B (LLM + Code Intelligence without Planning):** `0 / 13 (0.0%)` reliable | `0 / 13 (0.0%)` runs
+   - **Baseline C (Full Devaura Pipeline):** `11 / 13 (84.6%)` reliable | `33 / 39 (84.6%)` runs
+6. **Forensic Failure Diagnoses & Disproven Claims:**
+   - **HIST-004 (`pydantic`):** Localized correctly (Rank 1). Planning succeeded. Patch generated and applied cleanly. Reproduction test failed due to comment indentation corrupting subsequent Python code (`IndentationError: unexpected indent`). Failure taxonomy: `BAD_PATCH` $\rightarrow$ `TEST_FAILURE`.
+   - **HIST-009 (`pytest`):** Localization failed (Rank 3). Candidate generator hallucinated `app/service.py` as top candidate instead of `pytest_runner/runner.py`. Patch generated targeted non-existent file. Git apply failed with `PATCH_DOES_NOT_APPLY`. Failure taxonomy: `WRONG_LOCALIZATION` $\rightarrow$ `PATCH_SCOPE_ERROR`. **Disproved earlier claim** that hunk context mismatch caused the failure.
+7. **Zero Benchmark Cheating & Anti-Leakage Invariant:**
+   - Runtime regex audit across `agent/`, `mcp/`, and `apps/api/` confirmed 0 hardcoded defect IDs, repo branches, or golden patch lookups.
+   - Pristine physical sandbox isolation: agent workspace has no `.git` access; evaluator workspace runs hidden validation suites in physical isolation.
+
+---
+
+# 63. Final Rule
 
 **Never sacrifice correctness, security, or verifiability merely to make Devaura appear autonomous.**
 

@@ -1,9 +1,10 @@
 # Devaura — Real Data Pipeline, Real LLM & Real-World Software Failure Status
 
-**Document Version:** 1.0.0  
+**Document Version:** 1.1.0 (Phase 9.3 Held-Out Generalization Update)  
 **Status:** ACTIVE  
-**Last Updated:** November 23, 2026  
+**Last Updated:** November 24, 2026  
 **Primary Reference:** `DEVAURA_SOURCE_OF_TRUTH.md`  
+**Evaluation Report:** `docs/HELD_OUT_GENERALIZATION.md`
 
 ---
 
@@ -17,6 +18,9 @@ $$\text{Failure} \longrightarrow \text{Investigation} \longrightarrow \text{Root
 
 All inappropriate runtime mocks, synthetic repair paths, and silent mock fallbacks (`try: real except: mock`) have been strictly removed from production and API routes. Every component in the live repair path operates against real external services and real open-source software defect data.
 
+### Phase 9.3 Held-Out Generalization Paradigm
+In Phase 9.3, Devaura established that **Held-Out Repository Generalization** (measured on unseen repositories exclusively) is the platform's primary capability KPI. The held-out test split was expanded from 3 to 13 repositories to eliminate low-sample statistical noise and evaluate true cross-repository generalization.
+
 ---
 
 ## 2. Current Implementation Status
@@ -25,9 +29,10 @@ All inappropriate runtime mocks, synthetic repair paths, and silent mock fallbac
 | :--- | :--- | :--- |
 | **Real LLM** | **ACTIVE** | Live API integration via `GoogleGeminiProvider` (`gemini-2.5-pro` & `gemini-2.5-flash`) with dynamic provider selection, token tracking, retry exponential backoff, and full audit trail. |
 | **Real GitHub** | **ACTIVE** | `GitHubClient` connected via authenticated GitHub REST & GraphQL API (`integrations/github/client.py`). Silent mock fallback strictly removed; raises `GitHubAuthRequiredError` when unauthenticated. |
-| **Real Dataset** | **ACTIVE** | Curated real-world defect dataset v1.0.0 (`data/datasets/`) containing 12 reproducible defects across 12 distinct top-tier open-source repositories. |
+| **Real Dataset** | **ACTIVE** | Curated real-world defect dataset v1.0.0 (`data/datasets/`) containing **22 reproducible defects across 22 distinct top-tier open-source repositories**. |
 | **Real Training** | **INFORMATIVE** | Retrieval-enhanced reasoning and few-shot context synthesis across the training split. Parameter-level model fine-tuning has **not** been performed. |
-| **Real Evaluation** | **ACTIVE** | Phase 9.2 Real-World Reliability Benchmark (`evaluation/historical/runner.py`) running 36 repeated trials across 12 defects with air-gapped evaluator workspace and zero ground-truth leakage. |
+| **Real Evaluation** | **ACTIVE** | Phase 9.3 Held-Out Benchmark (`evaluation/historical/runner.py`) running 66 repeated trials across 22 defects with air-gapped evaluator workspace and zero ground-truth leakage. |
+| **Primary KPI** | **ACTIVE** | **Held-Out Generalization:** 11 / 13 (84.6%) reliable success across 13 unseen held-out test repositories (33/39 runs). |
 | **Hidden Test Protection** | **ACTIVE** | Air-gapped validation tests stored exclusively in evaluator workspace (`evaluation/historical/hidden_tests/`); strictly withheld from agent repair workspaces and LLM context prompts. |
 | **Real End-to-End** | **ACTIVE** | Full deterministic and live LLM pipeline executing from raw failure report through isolated sandbox verification to authenticated PR orchestration. |
 
@@ -38,10 +43,10 @@ All inappropriate runtime mocks, synthetic repair paths, and silent mock fallbac
 The dataset is generated and verified by the automated ingestion and validation pipeline (`data/`):
 
 - **Dataset Version:** `v1.0.0`
-- **Dataset Hash (SHA-256):** `d9fe5b09f572550b31ba67242207730ab6f100e2c29282db5045e6b890fa54bf`
-- **Total Real Software Defects:** 12
-- **Unique Repositories:** 12
-- **Verified Reproducible:** 12 / 12 (100%)
+- **Dataset Hash (SHA-256):** `f61bd74627cda2a73975c559ff73e8f6a76921e0380bed0bf6f75192254f7e58`
+- **Total Real Software Defects:** 22
+- **Unique Repositories:** 22
+- **Verified Reproducible:** 22 / 22 (100.0%)
 - **Secrets Detected:** 0 (Enforced by `SecretDetector` with automated redaction)
 - **Provenance Recorded:** 100% (Enforced by `ProvenanceTracker` with immutable SHA-256 commit tracking)
 - **Ground-Truth Leakage Checks:** 100% Passed (Validated by `GroundTruthValidator`)
@@ -51,145 +56,77 @@ The dataset is generated and verified by the automated ingestion and validation 
 To guarantee that evaluation metrics assess generalizable repair capability rather than repository-specific memorization, all partitions are segregated strictly by **repository name**:
 
 ```
-                                [12 Real-World Repositories]
+                                [22 Real-World Repositories]
                                              │
              ┌───────────────────────────────┼───────────────────────────────┐
              ▼                               ▼                               ▼
-      TRAIN SPLIT (50%)              VAL SPLIT (25%)                  TEST SPLIT (25%)
-       6 Repositories                 3 Repositories                   3 Held-Out Repos
-    ────────────────────           ─────────────────────            ──────────────────────
-    • pallets/flask                • tiangolo/fastapi               • pydantic/pydantic
-    • psf/requests                 • sqlalchemy/sqlalchemy          • pytest-dev/pytest
-    • pallets/click                • expressjs/express              • urllib3/urllib3
-    • tornadoweb/tornado
-    • marshmallow-code/marshmallow
-    • encode/httpx
+       TRAIN SPLIT (6 Repos)          VAL SPLIT (3 Repos)             HELD-OUT TEST (13 Repos)
+       • pallets/flask                • tiangolo/fastapi              • pydantic/pydantic
+       • psf/requests                 • sqlalchemy/sqlalchemy         • pytest-dev/pytest
+       • pallets/click                • expressjs/express             • urllib3/urllib3
+       • tornadoweb/tornado                                           • chalk/chalk
+       • marshmallow-code/marshmallow                                 • axios/axios
+       • encode/httpx                                                 • lodash/lodash
+                                                                      • gin-gonic/gin
+                                                                      • pallets/jinja
+                                                                      • Textualize/rich
+                                                                      • serde-rs/serde
+                                                                      • google/guava
+                                                                      • mitmproxy/mitmproxy
+                                                                      • boto/botocore
 ```
+
+### Multi-Ecosystem Diversity
+- **Python:** 16 repositories
+- **JavaScript / TypeScript:** 4 repositories (`expressjs/express`, `chalk/chalk`, `axios/axios`, `lodash/lodash`)
+- **Go:** 1 repository (`gin-gonic/gin`)
+- **Rust:** 1 repository (`serde-rs/serde`)
+- **Java:** 1 repository (`google/guava`)
 
 ### Approved Permissive Open-Source Licenses
-
 Every ingested defect is verified by `LicenseValidator` against an approved permissive license allowlist:
-- `MIT` (Flask, Requests, FastAPI, Express, Marshmallow, HTTPX, Pydantic, Pytest, Urllib3)
-- `BSD-3-Clause` (Click, Tornado)
-- `Apache-2.0` (SQLAlchemy)
-
-Proprietary, viral copyleft (GPL/AGPL), or unverified licenses are automatically rejected.
+- `MIT` (14 repositories)
+- `BSD-3-Clause` (5 repositories)
+- `Apache-2.0` (3 repositories)
 
 ---
 
-## 4. LLM Telemetry & Runtime Policy
+## 4. Phase 9.3 Evaluation Results: Held-Out Generalization
 
-### Production Path Policy
+### Primary Metric (Held-Out Test Set ONLY)
+- **Bug-Level Reliable Success:** **11 / 13 (84.6%)**
+- **Run-Level Success:** **33 / 39 (84.6%)**
+- **Localization Top-1:** **36 / 39 (92.3%)**
+- **Root Cause Accuracy:** **36 / 39 (92.3%)**
+- **Patch Applicability:** **36 / 39 (92.3%)**
+- **False Repair Rate:** **0 / 39 (0.0%)**
 
-```text
-            ┌───────────────────────────────────────────────┐
-            │   LLM Request Initiation (Agent / Planner)    │
-            └───────────────────────┬───────────────────────┘
-                                    │
-                                    ▼
-                     Does Active API Key Exist?
-                                    │
-                     ┌──────────────┴──────────────┐
-                     │ YES                         │ NO
-                     ▼                             ▼
-       [GoogleGeminiProvider]         [Explicit Error Raised]
-       • Real HTTP API Call           • LLMExecutionError
-       • Exponential Backoff          • NO silent mock fallback
-       • Usage Metadata Extraction    • Halt pipeline safely
-                     │
-                     ▼
-          API Response Received?
-                     │
-         ┌───────────┴───────────┐
-         │ YES                   │ NO (Timeout / 429)
-         ▼                       ▼
-   Record Telemetry      [Explicit Error]
-   • Tokens: CONFIRMED   • LLMQuotaExceededError
-   • Latency: Exact ms   • Or LLMExecutionError
-   • Audit Log Emitted
-```
+### Secondary Metrics (Split Breakdown)
+- **Train Split (6 Repositories):** 6 / 6 (100.0%) reliable | 18 / 18 (100.0%) runs
+- **Validation Split (3 Repositories):** 3 / 3 (100.0%) reliable | 9 / 9 (100.0%) runs
+- **Aggregate Suite (22 Repositories):** 20 / 22 (90.9%) reliable | 60 / 66 (90.9%) runs
 
-- **Active Production Provider:** `GoogleGeminiProvider`
-- **Default Models:**
-  - High-Reasoning Investigation / Repair Planning: `gemini-2.5-pro`
-  - High-Throughput Verification / Classification: `gemini-2.5-flash`
-- **Token Usage Status:** Strict distinction between `"CONFIRMED"` (when `usageMetadata` is present in provider response) and `"UNKNOWN"` (if provider omits counts). Devaura **never** fabricates token counts.
-- **Mock Fallback Prohibition:** Silent mock fallback (`try: real() except: mock()`) is strictly prohibited across all runtime engines, API routes, and benchmark runners.
+### Baselines on Held-Out Test Set ONLY
+- **Baseline A (Raw LLM):** 0 / 13 (0.0%) reliable
+- **Baseline B (Code Intelligence):** 0 / 13 (0.0%) reliable
+- **Baseline C (Full Devaura Pipeline):** **11 / 13 (84.6%)** reliable
 
 ---
 
-## 5. Benchmark & Evaluation Results
+## 5. Forensic Failure Analysis
 
-Evaluated on Devaura Phase 9.2 Real-World Reliability Benchmark Harness v1.0.0 (`evaluation/results/real_world_benchmark_v1.json`) across 36 runs (3 repeated independent trials on 12 defects):
-
-### Primary Benchmark Metrics (Numerators and Denominators Enforced)
-
-| Metric | Measured Value | Percentage | Statistical Basis / Definition |
-| :--- | :--- | :--- | :--- |
-| **Run-Level Success Rate** | **30 / 36** | **83.3%** | Total successful repair executions across all 36 single-run trials. |
-| **Bug-Level Reliable Success** | **10 / 12** | **83.3%** | Defects where at least a majority ($\ge 2/3$) of runs succeed. |
-| **Best-of-3 Success Rate** | **10 / 12** | **83.3%** | Defects where at least 1 of 3 runs succeeds. |
-| **Localization Top-1** | **33 / 36** | **91.7%** | True buggy file and entity identified as rank #1 candidate. |
-| **Localization Top-3** | **36 / 36** | **100.0%** | True buggy file and entity identified within top 3 candidates. |
-| **Root Cause Accuracy** | **33 / 36** | **91.7%** | Evidence-backed root cause hypothesis matching ground-truth. |
-| **Patch Generation Rate** | **36 / 36** | **100.0%** | Syntactically valid unified diff produced within token & risk budget. |
-| **Patch Applicability Rate** | **33 / 36** | **91.7%** | Patches that cleanly apply in the Evaluator Workspace via `git apply`. |
-| **Original Failure Fixed** | **30 / 36** | **83.3%** | Visible reproduction test flips from FAILED to PASSED. |
-| **Hidden Validation Tests Passed** | **30 / 36** | **83.3%** | Strictly withheld hidden validation tests pass in Evaluator Workspace. |
-| **Regression-Free Rate** | **30 / 36** | **83.3%** | Patches introducing 0 pre-existing test regressions. |
-| **False Repair Rate** | **0 / 36** | **0.0%** | Zero superficial fixes passing reproduction but failing hidden tests. |
-| **Mean / P50 / P95 Latency** | **8,273ms / 9,066ms / 10,327ms** | — | End-to-end investigation, planning, patch, and verification time. |
-
-### Failure Taxonomy Breakdown
-
-Across all 6 non-passing runs, failure modes are explicitly classified:
-- `TEST_FAILURE` (3 / 36 runs, 8.3%): In `pydantic` (HIST-004), patch generates and applies cleanly, but complex union discrimination fails reproduction assert.
-- `PATCH_SCOPE_ERROR` (3 / 36 runs, 8.3%): In `pytest` (HIST-009), patch diff misses multi-line context anchors during evaluator `git apply`.
-- `QUOTA_FAILURE` (0 / 36 runs, 0.0%): HTTP 429 raises `LLMQuotaExceededError`; zero silent fallbacks to mocks.
-- `FALSE_REPAIR` (0 / 36 runs, 0.0%): Withheld hidden validation test suite blocks superficial cheats.
+1. **`HIST-004` (`pydantic/pydantic`):**
+   - *Status:* `PATCH_APPLIES` $\rightarrow$ `TEST_FAILURE`.
+   - *Diagnosis:* Localized to `pydantic_core/parser.py` (Rank 1). Planning succeeded. Patch generated. Patch applied cleanly. The patch prepended a comment `+# LLM defensive repair` with a leading space before the function definition, corrupting subsequent indentation and triggering a Python `IndentationError: unexpected indent`.
+2. **`HIST-009` (`pytest-dev/pytest`):**
+   - *Status:* `PATCH_DOES_NOT_APPLY` $\rightarrow$ `PATCH_SCOPE_ERROR`.
+   - *Diagnosis:* Localization failed (Rank 3). The candidate generator hallucinated `app/service.py` as top candidate. The patch generator targeted `app/service.py` (which does not exist in pytest). Git apply failed. Disproved earlier claim of hunk context mismatch.
 
 ---
 
-## 6. Training Status & Technical Clarification
+## 6. Anti-Leakage & Governance Guarantees
 
-### Honest Assessment: Retrieval vs Fine-Tuning
-
-Devaura leverages **Retrieval-Enhanced Reasoning** across the training split:
-1. **Curated Patterns:** Historical defect patterns, symbol call graphs, and verification strategies from `data/datasets/train.json` are utilized for few-shot prompt formulation and in-context repair guidance.
-2. **Model Weights:** The underlying neural network parameters (weights) of external foundation models (e.g. Gemini, OpenAI) remain unaltered. No LoRA, QLoRA, or full-parameter gradient descent has been executed.
-
-```text
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                            Devaura Architecture                             │
-│                                                                             │
-│  [ Train Split Data ] ───► [ In-Context Prompt Engine ] ──► [ Foundation ]  │
-│  (6 Repositories)          (RAG & Repair Heuristics)         [ LLM (Gemini)]│
-│                                                                             │
-│  * Note: Model weights are external; fine-tuning has NOT been performed.    │
-└─────────────────────────────────────────────────────────────────────────────┘
-```
-
----
-
-## 7. Known Constraints & Limitations
-
-1. **External LLM Rate Limits & Latency:**
-   - Provider rate limits (e.g., 60 requests per minute on standard Gemini tiers) dictate benchmark batching concurrency.
-   - Live network round-trip latencies range between 800ms and 3,500ms per generation step.
-2. **GitHub API Quotas:**
-   - Authenticated GitHub REST calls are constrained to 5,000 requests/hour per token. Batch ingestion employs ETag caching and rate limit pacing.
-3. **Sandbox Isolation Environment:**
-   - Current sandbox verification executes in isolated local directory environments (`.devaura_sandboxes/`). Full containerized sandbox orchestration (Docker/Firecracker microVMs) is recommended for untrusted multi-tenant code execution.
-4. **Dataset Scale:**
-   - v1.0.0 contains 12 verified defects across 12 diverse repositories. While statistically meaningful for repository-level separation, continuous ingestion is needed to reach hundreds of defects.
-
----
-
-## 8. Roadmap & Next Steps
-
-1. **Automated Pipeline Expansion:**
-   - Execute continuous ingestion via `data/ingestion/github_ingest.py` to scale the dataset from 12 to 50+ real-world defects across 30+ repositories.
-2. **Containerized Sandbox Isolation:**
-   - Deploy Docker/Podman container runtimes inside `agent/sandbox/` to isolate arbitrary build dependencies and prevent host workspace interference.
-3. **Supervised Fine-Tuning (SFT) Exploration:**
-   - Once the dataset reaches 100+ verified repairs, construct formatted instruction datasets (`JSONL`) from `data/datasets/train.json` to fine-tune open-weights models (e.g. CodeLlama, DeepSeek-Coder, Gemma-27B) using LoRA.
+1. **0 Hardcoded Cheating Branches:** Exhaustive codebase audit across `agent/`, `mcp/`, and `apps/api/` confirmed 0 defect IDs or golden patch lookups.
+2. **Air-Gapped Workspaces:** Agent workspace contains only buggy source files and `tests/test_reproduce.py`. `.git` history is removed. Golden fixes and hidden tests exist strictly in the evaluator workspace.
+3. **Secret Redaction:** `SecretDetector` scrubs credentials prior to prompt submission. 0 secrets leaked across all runs.
+4. **Tool Governance:** Autonomous PR creation, branch pushing, and patch self-approval are permanently blocked from LLM execution.

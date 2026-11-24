@@ -1,0 +1,13 @@
+{
+  "bug_id": "HIST-017",
+  "project": "jinja2",
+  "ecosystem": "python",
+  "cve_or_issue": "CVE-2019-10906",
+  "category": "Template Engine / Sandbox Escape",
+  "title": "Sandbox bypass via format string introspection on template objects",
+  "description": "Sandboxed environment allowed access to sensitive private attributes if requested via str.format wrappers.",
+  "error_message": "SecurityError: Access to private attribute '__globals__' is restricted",
+  "stack_trace": "Traceback (most recent call last):\n  File \"tests/test_reproduce.py\", line 7, in test_sandbox_attribute_guard\n    val = safe_lookup(obj, '__globals__')\nAssertionError: Private attribute leakage permitted\n",
+  "test_command": "pytest tests/test_reproduce.py",
+  "context_files": []
+}

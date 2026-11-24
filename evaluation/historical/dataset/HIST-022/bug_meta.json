@@ -1,0 +1,13 @@
+{
+  "bug_id": "HIST-022",
+  "project": "botocore",
+  "ecosystem": "python",
+  "cve_or_issue": "Issue #1820",
+  "category": "Cloud SDK / Authentication Signing",
+  "title": "SigV4 canonical query string parameter percent-encoding converts unreserved tildes",
+  "description": "Canonical request signer encoded ~ as %7E contrary to AWS SigV4 RFC 3986 unreserved character requirements.",
+  "error_message": "AssertionError: assert 'user%7Ename' == 'user~name'",
+  "stack_trace": "Traceback (most recent call last):\n  File \"tests/test_reproduce.py\", line 5, in test_sigv4_tilde_preserved\n    assert quote_v4_param('user~name') == 'user~name'\nAssertionError: assert 'user%7Ename' == 'user~name'\n",
+  "test_command": "pytest tests/test_reproduce.py",
+  "context_files": []
+}

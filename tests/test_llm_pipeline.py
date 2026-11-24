@@ -282,9 +282,9 @@ class TestHistoricalBenchmarkExecution:
     """Tests execution of the Track C historical benchmark runner."""
 
     def test_historical_dataset_manifest_integrity(self):
-        assert len(HISTORICAL_BUGS) == 12
+        assert len(HISTORICAL_BUGS) == 22
         bug_ids = [b.bug_id for b in HISTORICAL_BUGS]
-        assert len(set(bug_ids)) == 12
+        assert len(set(bug_ids)) == 22
         for b in HISTORICAL_BUGS:
             assert b.bug_id.startswith("HIST-")
             assert b.project

@@ -1,0 +1,13 @@
+{
+  "bug_id": "HIST-018",
+  "project": "rich",
+  "ecosystem": "python",
+  "cve_or_issue": "Issue #1842",
+  "category": "Terminal UI / Text Wrapping",
+  "title": "Cell width calculation error on wide multi-byte emoji characters",
+  "description": "String cell width counter counted character length instead of 2-column East Asian and emoji terminal cell dimensions.",
+  "error_message": "AssertionError: assert 1 == 2",
+  "stack_trace": "Traceback (most recent call last):\n  File \"tests/test_reproduce.py\", line 5, in test_emoji_cell_width\n    assert get_cell_width('\ud83d\ude80') == 2\nAssertionError: assert 1 == 2\n",
+  "test_command": "pytest tests/test_reproduce.py",
+  "context_files": []
+}

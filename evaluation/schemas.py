@@ -138,6 +138,7 @@ class EvaluationRecord(BaseModel):
     bug_category: str
     buggy_commit: str
     fix_commit: str
+    split: str = "train"
 
     provider: str
     model: str

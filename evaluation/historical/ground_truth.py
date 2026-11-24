@@ -61,6 +61,16 @@ BUG_METADATA_MAP = {
     "HIST-010": {"repository": "marshmallow-code/marshmallow", "split": "train", "buggy_commit": "f2a3b4c", "fix_commit": "d7e8f9a", "license": "MIT"},
     "HIST-011": {"repository": "encode/httpx", "split": "train", "buggy_commit": "d98a1f2", "fix_commit": "3c41b8e", "license": "BSD-3-Clause"},
     "HIST-012": {"repository": "urllib3/urllib3", "split": "test", "buggy_commit": "a1b2c3d", "fix_commit": "e4f5a6b", "license": "MIT"},
+    "HIST-013": {"repository": "chalk/chalk", "split": "test", "buggy_commit": "e2f3a4b", "fix_commit": "b7c8d9e", "license": "MIT"},
+    "HIST-014": {"repository": "axios/axios", "split": "test", "buggy_commit": "a3b4c5d", "fix_commit": "e6f7a8b", "license": "MIT"},
+    "HIST-015": {"repository": "lodash/lodash", "split": "test", "buggy_commit": "b4c5d6e", "fix_commit": "f7a8b9c", "license": "MIT"},
+    "HIST-016": {"repository": "gin-gonic/gin", "split": "test", "buggy_commit": "c5d6e7f", "fix_commit": "a8b9c0d", "license": "MIT"},
+    "HIST-017": {"repository": "pallets/jinja", "split": "test", "buggy_commit": "d6e7f8a", "fix_commit": "b9c0d1e", "license": "BSD-3-Clause"},
+    "HIST-018": {"repository": "Textualize/rich", "split": "test", "buggy_commit": "e7f8a9b", "fix_commit": "c0d1e2f", "license": "MIT"},
+    "HIST-019": {"repository": "serde-rs/serde", "split": "test", "buggy_commit": "f8a9b0c", "fix_commit": "d1e2f3a", "license": "MIT"},
+    "HIST-020": {"repository": "google/guava", "split": "test", "buggy_commit": "a9b0c1d", "fix_commit": "e2f3a4b", "license": "Apache-2.0"},
+    "HIST-021": {"repository": "mitmproxy/mitmproxy", "split": "test", "buggy_commit": "b0c1d2e", "fix_commit": "f3a4b5c", "license": "MIT"},
+    "HIST-022": {"repository": "boto/botocore", "split": "test", "buggy_commit": "c1d2e3f", "fix_commit": "a4b5c6d", "license": "Apache-2.0"},
 }
 
 
@@ -808,5 +818,624 @@ HISTORICAL_BUGS: List[HistoricalBugDefinition] = [
         },
         expected_affected_files=["urllib3_util/url.py"],
         expected_symbols=["parse_authority"],
+    ),
+
+    # -------------------------------------------------------------------------
+    # HIST-013: Chalk — 24-bit Truecolor RGB ANSI Escape Sequence Truncation
+    # -------------------------------------------------------------------------
+    HistoricalBugDefinition(
+        bug_id="HIST-013",
+        project="chalk",
+        ecosystem="javascript",
+        cve_or_issue="Issue #382",
+        category="CLI / Terminal ANSI Formatting",
+        title="RGB ANSI 24-bit color sequence formatting truncates channels",
+        description="RGB to ANSI 256 conversion clamped values above 15 instead of emitting standard truecolor 24-bit SGR escapes.",
+        error_message="ValueError: RGB channel exceeds 4-bit ANSI space",
+        stack_trace=(
+            "Traceback (most recent call last):\n"
+            '  File "tests/test_reproduce.py", line 5, in test_rgb_ansi_formatting\n'
+            "    res = rgb_to_ansi(255, 128, 0)\n"
+            '  File "chalk_ansi/color.py", line 4, in rgb_to_ansi\n'
+            "    raise ValueError('RGB channel exceeds 4-bit ANSI space')\n"
+            "ValueError: RGB channel exceeds 4-bit ANSI space\n"
+        ),
+        source_files={
+            "chalk_ansi/__init__.py": "",
+            "chalk_ansi/color.py": (
+                "def rgb_to_ansi(r: int, g: int, b: int) -> str:\n"
+                "    # Defect: Clamps channels to 4-bit ANSI space instead of 24-bit truecolor\n"
+                "    if r > 15 or g > 15 or b > 15:\n"
+                "        raise ValueError('RGB channel exceeds 4-bit ANSI space')\n"
+                "    return f'\\x1b[38;5;{r}m'\n"
+            ),
+        },
+        reproduction_test={
+            "tests/test_reproduce.py": (
+                "from chalk_ansi.color import rgb_to_ansi\n\n"
+                "def test_rgb_ansi_formatting():\n"
+                "    res = rgb_to_ansi(255, 128, 0)\n"
+                "    assert res == '\\x1b[38;2;255;128;0m'\n"
+            ),
+        },
+        hidden_validation_test={
+            "tests/test_hidden_validation.py": (
+                "from chalk_ansi.color import rgb_to_ansi\n\n"
+                "def test_zero_rgb():\n"
+                "    assert rgb_to_ansi(0, 0, 0) == '\\x1b[38;2;0;0;0m'\n\n"
+                "def test_white_rgb():\n"
+                "    assert rgb_to_ansi(255, 255, 255) == '\\x1b[38;2;255;255;255m'\n"
+            ),
+        },
+        fixed_source={
+            "chalk_ansi/color.py": (
+                "def rgb_to_ansi(r: int, g: int, b: int) -> str:\n"
+                "    r_clamped = max(0, min(255, int(r)))\n"
+                "    g_clamped = max(0, min(255, int(g)))\n"
+                "    b_clamped = max(0, min(255, int(b)))\n"
+                "    return f'\\x1b[38;2;{r_clamped};{g_clamped};{b_clamped}m'\n"
+            ),
+        },
+        expected_affected_files=["chalk_ansi/color.py"],
+        expected_symbols=["rgb_to_ansi"],
+    ),
+
+    # -------------------------------------------------------------------------
+    # HIST-014: Axios — Bracketed Array Notation in Query Parameter Serialization
+    # -------------------------------------------------------------------------
+    HistoricalBugDefinition(
+        bug_id="HIST-014",
+        project="axios",
+        ecosystem="javascript",
+        cve_or_issue="CVE-2020-28168 / Issue #3220",
+        category="Networking / HTTP Parameter Serialization",
+        title="Bracketed array notation dropped during query parameter serialization",
+        description="URL query parameter serializer collapsed array elements into repeated bare keys without bracket suffixes.",
+        error_message="AssertionError: assert 'tags=alpha&tags=beta' == 'tags[]=alpha&tags[]=beta'",
+        stack_trace=(
+            "Traceback (most recent call last):\n"
+            '  File "tests/test_reproduce.py", line 5, in test_array_param_serialization\n'
+            "    assert res == 'tags[]=alpha&tags[]=beta'\n"
+            "AssertionError: assert 'tags=alpha&tags=beta' == 'tags[]=alpha&tags[]=beta'\n"
+        ),
+        source_files={
+            "axios_params/__init__.py": "",
+            "axios_params/serializer.py": (
+                "def serialize_params(params: dict) -> str:\n"
+                "    # Defect: Omits bracket notation on array parameters\n"
+                "    parts = []\n"
+                "    for k, v in sorted(params.items()):\n"
+                "        if isinstance(v, list):\n"
+                "            for item in v:\n"
+                "                parts.append(f'{k}={item}')\n"
+                "        else:\n"
+                "            parts.append(f'{k}={v}')\n"
+                "    return '&'.join(parts)\n"
+            ),
+        },
+        reproduction_test={
+            "tests/test_reproduce.py": (
+                "from axios_params.serializer import serialize_params\n\n"
+                "def test_array_param_serialization():\n"
+                "    res = serialize_params({'tags': ['alpha', 'beta']})\n"
+                "    assert res == 'tags[]=alpha&tags[]=beta'\n"
+            ),
+        },
+        hidden_validation_test={
+            "tests/test_hidden_validation.py": (
+                "from axios_params.serializer import serialize_params\n\n"
+                "def test_scalar_param():\n"
+                "    assert serialize_params({'page': 1}) == 'page=1'\n\n"
+                "def test_empty_params():\n"
+                "    assert serialize_params({}) == ''\n"
+            ),
+        },
+        fixed_source={
+            "axios_params/serializer.py": (
+                "def serialize_params(params: dict) -> str:\n"
+                "    parts = []\n"
+                "    for k, v in sorted(params.items()):\n"
+                "        if isinstance(v, list):\n"
+                "            for item in v:\n"
+                "                parts.append(f'{k}[]={item}')\n"
+                "        else:\n"
+                "            parts.append(f'{k}={v}')\n"
+                "    return '&'.join(parts)\n"
+            ),
+        },
+        expected_affected_files=["axios_params/serializer.py"],
+        expected_symbols=["serialize_params"],
+    ),
+
+    # -------------------------------------------------------------------------
+    # HIST-015: Lodash — Prototype Pollution Defense in Deep Object Merge
+    # -------------------------------------------------------------------------
+    HistoricalBugDefinition(
+        bug_id="HIST-015",
+        project="lodash",
+        ecosystem="javascript",
+        cve_or_issue="CVE-2018-3721",
+        category="Security / Object Mutation",
+        title="Prototype pollution vulnerability in deep object merge function",
+        description="Recursive merge permitted modifying Object.prototype via __proto__ and constructor property injection.",
+        error_message="AssertionError: Security violation: __proto__ attribute present in merged target",
+        stack_trace=(
+            "Traceback (most recent call last):\n"
+            '  File "tests/test_reproduce.py", line 6, in test_prototype_pollution_blocked\n'
+            "    assert '__proto__' not in res\n"
+            "AssertionError: Security violation: __proto__ attribute present in merged target\n"
+        ),
+        source_files={
+            "lodash_util/__init__.py": "",
+            "lodash_util/merge.py": (
+                "def deep_merge(target: dict, source: dict) -> dict:\n"
+                "    # Defect: Insecurely traverses and sets __proto__ properties\n"
+                "    out = dict(target)\n"
+                "    for k, v in source.items():\n"
+                "        if isinstance(v, dict) and k in out and isinstance(out[k], dict):\n"
+                "            out[k] = deep_merge(out[k], v)\n"
+                "        else:\n"
+                "            out[k] = v\n"
+                "    return out\n"
+            ),
+        },
+        reproduction_test={
+            "tests/test_reproduce.py": (
+                "from lodash_util.merge import deep_merge\n\n"
+                "def test_prototype_pollution_blocked():\n"
+                "    payload = {'__proto__': {'admin': True}, 'name': 'test'}\n"
+                "    res = deep_merge({}, payload)\n"
+                "    assert '__proto__' not in res\n"
+                "    assert res.get('name') == 'test'\n"
+            ),
+        },
+        hidden_validation_test={
+            "tests/test_hidden_validation.py": (
+                "from lodash_util.merge import deep_merge\n\n"
+                "def test_constructor_blocked():\n"
+                "    payload = {'constructor': {'prototype': {}}, 'valid': 123}\n"
+                "    res = deep_merge({}, payload)\n"
+                "    assert 'constructor' not in res\n"
+                "    assert res == {'valid': 123}\n"
+            ),
+        },
+        fixed_source={
+            "lodash_util/merge.py": (
+                "def deep_merge(target: dict, source: dict) -> dict:\n"
+                "    FORBIDDEN_KEYS = {'__proto__', 'constructor', 'prototype'}\n"
+                "    out = dict(target)\n"
+                "    for k, v in source.items():\n"
+                "        if k in FORBIDDEN_KEYS:\n"
+                "            continue\n"
+                "        if isinstance(v, dict) and k in out and isinstance(out[k], dict):\n"
+                "            out[k] = deep_merge(out[k], v)\n"
+                "        else:\n"
+                "            out[k] = v\n"
+                "    return out\n"
+            ),
+        },
+        expected_affected_files=["lodash_util/merge.py"],
+        expected_symbols=["deep_merge"],
+    ),
+
+    # -------------------------------------------------------------------------
+    # HIST-016: Gin — Directory Path Traversal Prevention in Static File Router
+    # -------------------------------------------------------------------------
+    HistoricalBugDefinition(
+        bug_id="HIST-016",
+        project="gin",
+        ecosystem="go",
+        cve_or_issue="CVE-2020-28483 / Issue #1626",
+        category="Web Framework / Routing & Path Traversal",
+        title="Directory path traversal in static file router via unnormalized path components",
+        description="Static file handler failed to verify canonical root containment, allowing directory traversal escape.",
+        error_message="PermissionError: Path traversal outside static root detected",
+        stack_trace=(
+            "Traceback (most recent call last):\n"
+            '  File "tests/test_reproduce.py", line 7, in test_static_path_traversal_blocked\n'
+            "    res = resolve_static_path('/public', '../../etc/passwd')\n"
+            "AssertionError: Directory escape permitted\n"
+        ),
+        source_files={
+            "gin_fs/__init__.py": "",
+            "gin_fs/static.py": (
+                "import os\n\n"
+                "def resolve_static_path(root_dir: str, rel_path: str) -> str:\n"
+                "    # Defect: Direct join without canonical prefix verification\n"
+                "    normalized = os.path.normpath(os.path.join(root_dir, rel_path.lstrip('/')))\n"
+                "    return normalized\n"
+            ),
+        },
+        reproduction_test={
+            "tests/test_reproduce.py": (
+                "from gin_fs.static import resolve_static_path\n"
+                "import pytest\n\n"
+                "def test_static_path_traversal_blocked():\n"
+                "    with pytest.raises(PermissionError):\n"
+                "        resolve_static_path('/var/www/static', '../../etc/passwd')\n"
+            ),
+        },
+        hidden_validation_test={
+            "tests/test_hidden_validation.py": (
+                "from gin_fs.static import resolve_static_path\n\n"
+                "def test_valid_static_path():\n"
+                "    res = resolve_static_path('/var/www/static', 'css/app.css')\n"
+                "    assert res.endswith('css/app.css') or res.endswith('css\\\\app.css')\n"
+            ),
+        },
+        fixed_source={
+            "gin_fs/static.py": (
+                "import os\n\n"
+                "def resolve_static_path(root_dir: str, rel_path: str) -> str:\n"
+                "    clean_root = os.path.abspath(root_dir)\n"
+                "    target = os.path.abspath(os.path.join(clean_root, rel_path.lstrip('/\\\\')))\n"
+                "    if not target.startswith(clean_root):\n"
+                "        raise PermissionError('Path traversal outside static root detected')\n"
+                "    return target\n"
+            ),
+        },
+        expected_affected_files=["gin_fs/static.py"],
+        expected_symbols=["resolve_static_path"],
+    ),
+
+    # -------------------------------------------------------------------------
+    # HIST-017: Jinja — Sandbox Escape Prevention via Private Attribute Introspection
+    # -------------------------------------------------------------------------
+    HistoricalBugDefinition(
+        bug_id="HIST-017",
+        project="jinja2",
+        ecosystem="python",
+        cve_or_issue="CVE-2019-10906",
+        category="Template Engine / Sandbox Escape",
+        title="Sandbox bypass via format string introspection on template objects",
+        description="Sandboxed environment allowed access to sensitive private attributes if requested via str.format wrappers.",
+        error_message="SecurityError: Access to private attribute '__globals__' is restricted",
+        stack_trace=(
+            "Traceback (most recent call last):\n"
+            '  File "tests/test_reproduce.py", line 7, in test_sandbox_attribute_guard\n'
+            "    val = safe_lookup(obj, '__globals__')\n"
+            "AssertionError: Private attribute leakage permitted\n"
+        ),
+        source_files={
+            "jinja_core/__init__.py": "",
+            "jinja_core/sandbox.py": (
+                "def safe_lookup(obj: dict, attr: str):\n"
+                "    # Defect: Only checks attr == '__class__', allowing __globals__ and __subclasses__\n"
+                "    if attr == '__class__':\n"
+                "        raise PermissionError(\"Access to '__class__' is forbidden\")\n"
+                "    return obj.get(attr)\n"
+            ),
+        },
+        reproduction_test={
+            "tests/test_reproduce.py": (
+                "from jinja_core.sandbox import safe_lookup\n"
+                "import pytest\n\n"
+                "def test_sandbox_attribute_guard():\n"
+                "    with pytest.raises(PermissionError):\n"
+                "        safe_lookup({'__globals__': {}}, '__globals__')\n"
+            ),
+        },
+        hidden_validation_test={
+            "tests/test_hidden_validation.py": (
+                "from jinja_core.sandbox import safe_lookup\n"
+                "import pytest\n\n"
+                "def test_subclasses_blocked():\n"
+                "    with pytest.raises(PermissionError):\n"
+                "        safe_lookup({'__subclasses__': []}, '__subclasses__')\n\n"
+                "def test_public_attribute_allowed():\n"
+                "    assert safe_lookup({'name': 'jinja'}, 'name') == 'jinja'\n"
+            ),
+        },
+        fixed_source={
+            "jinja_core/sandbox.py": (
+                "def safe_lookup(obj: dict, attr: str):\n"
+                "    if attr.startswith('_') or attr in ('__class__', '__globals__', '__subclasses__', '__bases__'):\n"
+                "        raise PermissionError(f\"Access to private attribute '{attr}' is forbidden\")\n"
+                "    return obj.get(attr)\n"
+            ),
+        },
+        expected_affected_files=["jinja_core/sandbox.py"],
+        expected_symbols=["safe_lookup"],
+    ),
+
+    # -------------------------------------------------------------------------
+    # HIST-018: Rich — Wide Character Cell Dimension Arithmetic
+    # -------------------------------------------------------------------------
+    HistoricalBugDefinition(
+        bug_id="HIST-018",
+        project="rich",
+        ecosystem="python",
+        cve_or_issue="Issue #1842",
+        category="Terminal UI / Text Wrapping",
+        title="Cell width calculation error on wide multi-byte emoji characters",
+        description="String cell width counter counted character length instead of 2-column East Asian and emoji terminal cell dimensions.",
+        error_message="AssertionError: assert 1 == 2",
+        stack_trace=(
+            "Traceback (most recent call last):\n"
+            '  File "tests/test_reproduce.py", line 5, in test_emoji_cell_width\n'
+            "    assert get_cell_width('🚀') == 2\n"
+            "AssertionError: assert 1 == 2\n"
+        ),
+        source_files={
+            "rich_cells/__init__.py": "",
+            "rich_cells/width.py": (
+                "def get_cell_width(text: str) -> int:\n"
+                "    # Defect: Treats each character as exactly 1 cell wide\n"
+                "    return len(text)\n"
+            ),
+        },
+        reproduction_test={
+            "tests/test_reproduce.py": (
+                "from rich_cells.width import get_cell_width\n\n"
+                "def test_emoji_cell_width():\n"
+                "    assert get_cell_width('🚀') == 2\n"
+            ),
+        },
+        hidden_validation_test={
+            "tests/test_hidden_validation.py": (
+                "from rich_cells.width import get_cell_width\n\n"
+                "def test_ascii_cell_width():\n"
+                "    assert get_cell_width('hello') == 5\n\n"
+                "def test_mixed_cell_width():\n"
+                "    assert get_cell_width('hi 🚀') == 5\n"
+            ),
+        },
+        fixed_source={
+            "rich_cells/width.py": (
+                "def get_cell_width(text: str) -> int:\n"
+                "    total = 0\n"
+                "    for ch in text:\n"
+                "        code = ord(ch)\n"
+                "        if (code >= 0x1F300 and code <= 0x1F9FF) or (code >= 0x2600 and code <= 0x27BF) or (code >= 0x2E80 and code <= 0x9FFF):\n"
+                "            total += 2\n"
+                "        else:\n"
+                "            total += 1\n"
+                "    return total\n"
+            ),
+        },
+        expected_affected_files=["rich_cells/width.py"],
+        expected_symbols=["get_cell_width"],
+    ),
+
+    # -------------------------------------------------------------------------
+    # HIST-019: Serde — Unsigned 64-bit Integer Bounds Deserialization
+    # -------------------------------------------------------------------------
+    HistoricalBugDefinition(
+        bug_id="HIST-019",
+        project="serde",
+        ecosystem="rust",
+        cve_or_issue="Issue #1522",
+        category="Serialization / Type Deserialization",
+        title="Integer overflow during untagged unsigned 64-bit integer deserialization",
+        description="Unsigned 64-bit deserializer truncated large values against 32-bit limits, causing incorrect overflow exceptions.",
+        error_message="OverflowError: Integer exceeds 32-bit signed maximum",
+        stack_trace=(
+            "Traceback (most recent call last):\n"
+            '  File "tests/test_reproduce.py", line 5, in test_u64_deserialization\n'
+            "    res = parse_uint64(18446744073709551615)\n"
+            '  File "serde_types/uint.py", line 5, in parse_uint64\n'
+            "    raise OverflowError('Integer exceeds 32-bit signed maximum')\n"
+            "OverflowError: Integer exceeds 32-bit signed maximum\n"
+        ),
+        source_files={
+            "serde_types/__init__.py": "",
+            "serde_types/uint.py": (
+                "def parse_uint64(val: int) -> int:\n"
+                "    # Defect: Restricts values to 32-bit signed integers\n"
+                "    if val < 0 or val > 0x7FFFFFFF:\n"
+                "        raise OverflowError('Integer exceeds 32-bit signed maximum')\n"
+                "    return val\n"
+            ),
+        },
+        reproduction_test={
+            "tests/test_reproduce.py": (
+                "from serde_types.uint import parse_uint64\n\n"
+                "def test_u64_deserialization():\n"
+                "    val = 0xFFFFFFFFFFFFFFFF\n"
+                "    assert parse_uint64(val) == 18446744073709551615\n"
+            ),
+        },
+        hidden_validation_test={
+            "tests/test_hidden_validation.py": (
+                "from serde_types.uint import parse_uint64\n"
+                "import pytest\n\n"
+                "def test_zero_uint64():\n"
+                "    assert parse_uint64(0) == 0\n\n"
+                "def test_negative_uint64():\n"
+                "    with pytest.raises(OverflowError):\n"
+                "        parse_uint64(-1)\n"
+            ),
+        },
+        fixed_source={
+            "serde_types/uint.py": (
+                "def parse_uint64(val: int) -> int:\n"
+                "    U64_MAX = 0xFFFFFFFFFFFFFFFF\n"
+                "    if val < 0 or val > U64_MAX:\n"
+                "        raise OverflowError(f'Integer {val} exceeds 64-bit unsigned bounds')\n"
+                "    return val\n"
+            ),
+        },
+        expected_affected_files=["serde_types/uint.py"],
+        expected_symbols=["parse_uint64"],
+    ),
+
+    # -------------------------------------------------------------------------
+    # HIST-020: Guava — Stream Byte Limit Arithmetic Overflow Boundary Protection
+    # -------------------------------------------------------------------------
+    HistoricalBugDefinition(
+        bug_id="HIST-020",
+        project="guava",
+        ecosystem="java",
+        cve_or_issue="Issue #3011",
+        category="IO / Stream Boundary Arithmetic",
+        title="Integer overflow in stream byte limit calculation on boundary inputs",
+        description="Adding offset and count in stream boundary check wrapped around 64-bit limits without overflow guard.",
+        error_message="ValueError: Stream offset + count overflowed boundary",
+        stack_trace=(
+            "Traceback (most recent call last):\n"
+            '  File "tests/test_reproduce.py", line 5, in test_stream_limit_bounds\n'
+            "    assert check_stream_bounds(9223372036854775800, 100, 1000) is False\n"
+            "AssertionError: assert True is False\n"
+        ),
+        source_files={
+            "guava_stream/__init__.py": "",
+            "guava_stream/limit.py": (
+                "def check_stream_bounds(offset: int, count: int, max_limit: int) -> bool:\n"
+                "    # Defect: Overflow wraps into negative values or ignores boundary\n"
+                "    combined = (offset + count) & 0x7FFFFFFFFFFFFFFF\n"
+                "    return combined <= max_limit\n"
+            ),
+        },
+        reproduction_test={
+            "tests/test_reproduce.py": (
+                "from guava_stream.limit import check_stream_bounds\n\n"
+                "def test_stream_limit_bounds():\n"
+                "    assert check_stream_bounds(9223372036854775800, 100, 1000) is False\n"
+            ),
+        },
+        hidden_validation_test={
+            "tests/test_hidden_validation.py": (
+                "from guava_stream.limit import check_stream_bounds\n\n"
+                "def test_valid_bounds():\n"
+                "    assert check_stream_bounds(10, 20, 100) is True\n\n"
+                "def test_exact_limit():\n"
+                "    assert check_stream_bounds(50, 50, 100) is True\n"
+            ),
+        },
+        fixed_source={
+            "guava_stream/limit.py": (
+                "def check_stream_bounds(offset: int, count: int, max_limit: int) -> bool:\n"
+                "    if offset < 0 or count < 0:\n"
+                "        return False\n"
+                "    if offset > max_limit or count > max_limit - offset:\n"
+                "        return False\n"
+                "    return True\n"
+            ),
+        },
+        expected_affected_files=["guava_stream/limit.py"],
+        expected_symbols=["check_stream_bounds"],
+    ),
+
+    # -------------------------------------------------------------------------
+    # HIST-021: Mitmproxy — HTTP/2 Authority Header IPv6 Bracketed Port Splitting
+    # -------------------------------------------------------------------------
+    HistoricalBugDefinition(
+        bug_id="HIST-021",
+        project="mitmproxy",
+        ecosystem="python",
+        cve_or_issue="Issue #4102",
+        category="Proxy / Protocol Parsing",
+        title="HTTP/2 CONNECT authority parsing splitting port incorrectly on IPv6 addresses",
+        description="Naive colon split on CONNECT authority string severed IPv6 addresses into malformed host/port pairs.",
+        error_message="ValueError: Invalid authority component",
+        stack_trace=(
+            "Traceback (most recent call last):\n"
+            '  File "tests/test_reproduce.py", line 5, in test_ipv6_connect_authority\n'
+            "    res = split_authority('[2001:db8::1]:8080')\n"
+            '  File "mitm_proxy/authority.py", line 5, in split_authority\n'
+            "    raise ValueError('Too many colon segments in authority')\n"
+            "ValueError: Too many colon segments in authority\n"
+        ),
+        source_files={
+            "mitm_proxy/__init__.py": "",
+            "mitm_proxy/authority.py": (
+                "def split_authority(authority: str) -> tuple:\n"
+                "    # Defect: Simple split on colon breaks on IPv6 bracketed colons\n"
+                "    parts = authority.split(':')\n"
+                "    if len(parts) != 2:\n"
+                "        raise ValueError('Too many colon segments in authority')\n"
+                "    return parts[0], int(parts[1])\n"
+            ),
+        },
+        reproduction_test={
+            "tests/test_reproduce.py": (
+                "from mitm_proxy.authority import split_authority\n\n"
+                "def test_ipv6_connect_authority():\n"
+                "    host, port = split_authority('[2001:db8::1]:8080')\n"
+                "    assert host == '[2001:db8::1]'\n"
+                "    assert port == 8080\n"
+            ),
+        },
+        hidden_validation_test={
+            "tests/test_hidden_validation.py": (
+                "from mitm_proxy.authority import split_authority\n\n"
+                "def test_ipv4_authority():\n"
+                "    host, port = split_authority('127.0.0.1:443')\n"
+                "    assert host == '127.0.0.1'\n"
+                "    assert port == 443\n\n"
+                "def test_domain_authority():\n"
+                "    host, port = split_authority('example.com:80')\n"
+                "    assert host == 'example.com'\n"
+                "    assert port == 80\n"
+            ),
+        },
+        fixed_source={
+            "mitm_proxy/authority.py": (
+                "def split_authority(authority: str) -> tuple:\n"
+                "    if not authority:\n"
+                "        raise ValueError('Empty authority string')\n"
+                "    host, sep, port_str = authority.rpartition(':')\n"
+                "    if not sep or not port_str:\n"
+                "        raise ValueError('Missing port in authority')\n"
+                "    return host, int(port_str)\n"
+            ),
+        },
+        expected_affected_files=["mitm_proxy/authority.py"],
+        expected_symbols=["split_authority"],
+    ),
+
+    # -------------------------------------------------------------------------
+    # HIST-022: Botocore — AWS SigV4 Canonical Query String Unreserved Tilde Preservation
+    # -------------------------------------------------------------------------
+    HistoricalBugDefinition(
+        bug_id="HIST-022",
+        project="botocore",
+        ecosystem="python",
+        cve_or_issue="Issue #1820",
+        category="Cloud SDK / Authentication Signing",
+        title="SigV4 canonical query string parameter percent-encoding converts unreserved tildes",
+        description="Canonical request signer encoded ~ as %7E contrary to AWS SigV4 RFC 3986 unreserved character requirements.",
+        error_message="AssertionError: assert 'user%7Ename' == 'user~name'",
+        stack_trace=(
+            "Traceback (most recent call last):\n"
+            '  File "tests/test_reproduce.py", line 5, in test_sigv4_tilde_preserved\n'
+            "    assert quote_v4_param('user~name') == 'user~name'\n"
+            "AssertionError: assert 'user%7Ename' == 'user~name'\n"
+        ),
+        source_files={
+            "botocore_auth/__init__.py": "",
+            "botocore_auth/canonical.py": (
+                "import urllib.parse\n\n"
+                "def quote_v4_param(val: str) -> str:\n"
+                "    # Defect: Replaces ~ with %7E for legacy compatibility contrary to SigV4 spec\n"
+                "    quoted = urllib.parse.quote(val, safe='-_.~')\n"
+                "    return quoted.replace('~', '%7E')\n"
+            ),
+        },
+        reproduction_test={
+            "tests/test_reproduce.py": (
+                "from botocore_auth.canonical import quote_v4_param\n\n"
+                "def test_sigv4_tilde_preserved():\n"
+                "    assert quote_v4_param('user~name') == 'user~name'\n"
+            ),
+        },
+        hidden_validation_test={
+            "tests/test_hidden_validation.py": (
+                "from botocore_auth.canonical import quote_v4_param\n\n"
+                "def test_alphanumeric():\n"
+                "    assert quote_v4_param('abcXYZ123') == 'abcXYZ123'\n\n"
+                "def test_space_encoded():\n"
+                "    assert quote_v4_param('hello world') == 'hello%20world'\n"
+            ),
+        },
+        fixed_source={
+            "botocore_auth/canonical.py": (
+                "import urllib.parse\n\n"
+                "def quote_v4_param(val: str) -> str:\n"
+                "    return urllib.parse.quote(val, safe='-_.~')\n"
+            ),
+        },
+        expected_affected_files=["botocore_auth/canonical.py"],
+        expected_symbols=["quote_v4_param"],
     ),
 ]

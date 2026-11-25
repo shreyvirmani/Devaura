@@ -235,3 +235,45 @@ async def test_free_staging_worker_health_adapter(monkeypatch):
         server.close()
         await server.wait_closed()
 
+
+def test_free_staging_api_startup_migration_success_and_failure(monkeypatch):
+    import scripts.start_free_staging_api as startup
+
+    calls = []
+    startup.run_migrations_and_start_api(
+        migration_fn=lambda: calls.append("migrate"),
+        server_fn=lambda: calls.append("uvicorn"),
+    )
+    assert calls == ["migrate", "uvicorn"]
+
+    # Migration failure must abort startup and never start Uvicorn
+    uvicorn_called = False
+
+    def _fail_migration():
+        raise RuntimeError("alembic upgrade failed")
+
+    def _never_uvicorn():
+        nonlocal uvicorn_called
+        uvicorn_called = True
+
+    monkeypatch.setattr(startup, "run_alembic_upgrade", _fail_migration)
+    monkeypatch.setattr(startup, "start_uvicorn_server", _never_uvicorn)
+    assert startup.main() == 1
+    assert uvicorn_called is False
+
+
+def test_free_staging_startup_no_create_all_and_blueprint_valid():
+    startup_src = Path("scripts/start_free_staging_api.py").read_text(encoding="utf-8")
+    assert "create_all" not in startup_src
+    assert "alembic" in startup_src
+
+    render_yaml = Path("render.yaml").read_text(encoding="utf-8")
+    assert "preDeployCommand" not in render_yaml
+    assert "databases:" not in render_yaml
+    assert "type: worker" not in render_yaml
+    assert "plan: free" in render_yaml
+    assert "python scripts/start_free_staging_api.py" in render_yaml
+    assert "python -m apps.worker.main" in render_yaml
+    assert "FREE_STAGING_HTTP_HEALTH" in render_yaml
+
+

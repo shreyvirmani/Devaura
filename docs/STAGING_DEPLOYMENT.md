@@ -81,16 +81,24 @@ Chosen hosting stack: **Render** ([render.yaml](../render.yaml)) — Managed Pos
 
 ### Architecture Comparison
 
-- **PRODUCTION ARCHITECTURE (`render.yaml`):** Managed PostgreSQL + FastAPI Web Service + Dedicated Background Worker + Next.js Web Service.
-- **ZERO-COST STAGING ARCHITECTURE (`render.free-staging.yaml` + Supabase + Vercel Hobby):**
+- **PRODUCTION ARCHITECTURE:** Managed PostgreSQL + FastAPI Web Service + Dedicated Background Worker + Next.js Web Service.
+- **ZERO-COST STAGING ARCHITECTURE (`render.yaml` + Supabase + Vercel Hobby):**
+  - `render.yaml` is the current **zero-cost staging deployment configuration**.
   - **Frontend:** Vercel Hobby (`NEXT_PUBLIC_API_URL=<Render API URL>`, `NEXT_PUBLIC_APP_ENV=staging`)
-  - **API:** Render Free Web Service (`devaura-staging-api`, `WORKER_ENABLED=false`)
+  - **API:** Render Free Web Service (`devaura-staging-api`, `WORKER_ENABLED=false`, `startCommand: python scripts/start_free_staging_api.py`)
   - **Worker:** Render Free Web Service (`devaura-staging-worker`, `python -m apps.worker.main`, `FREE_STAGING_HTTP_HEALTH=true` exposing `/healthz`)
   - **Database:** External Supabase Free PostgreSQL (`DATABASE_URL=postgresql+asyncpg://...`)
 
+### Render Free-Tier Startup Migration Workaround
+- Render Free Web Services do not support `preDeployCommand`.
+- Therefore, zero-cost staging performs `alembic upgrade head` during API process startup via [scripts/start_free_staging_api.py](../scripts/start_free_staging_api.py).
+- **Startup migration must succeed before the API starts serving traffic**; if `alembic upgrade head` fails, the API process aborts immediately without starting Uvicorn.
+- The Worker does **not** run Alembic migrations on startup, preventing concurrent migration race conditions.
+- This is a staging-only deployment adaptation; Devaura's production architecture (independent durable Worker + PostgreSQL-backed job system + Alembic) is unchanged.
+
 ### Manual Zero-Cost Provisioning Steps
 1. Create a free PostgreSQL database in **Supabase** and copy its PostgreSQL connection string (`postgresql+asyncpg://...`).
-2. Deploy [render.free-staging.yaml](../render.free-staging.yaml) in **Render** (two Free Web Services only — no Render Postgres, no paid Background Worker).
+2. Deploy [render.yaml](../render.yaml) in **Render** (two Free Web Services only — no Render Postgres, no paid Background Worker, no `preDeployCommand`).
 3. Set `DATABASE_URL`, `SECRET_KEY`, `ALLOWED_ORIGINS` (your Vercel URL), `GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY`, `GITHUB_WEBHOOK_SECRET`, and `GEMINI_API_KEY` on both Render services.
 4. Deploy `apps/web` to **Vercel Hobby** with `NEXT_PUBLIC_API_URL` and `NEXT_PUBLIC_APP_ENV=staging`.
 5. Run `python scripts/verify_staging_readiness.py --api-url https://<devaura-staging-api>.onrender.com`.

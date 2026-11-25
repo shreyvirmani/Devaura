@@ -2849,9 +2849,10 @@ Phase 4 connects the existing Devaura repair, verification, approval, and PR sub
 
 **Status:** `IMPLEMENTED` (Blueprint & Isolated Worker Health Adapter); `FREE STAGING BLOCKED` (External Supabase/Render/Vercel/GitHub App Accounts Not Provisioned in Local Environment)
 
-- **PRODUCTION ARCHITECTURE (`render.yaml`):** Managed PostgreSQL + FastAPI Web Service + Dedicated Background Worker + Next.js Web Service.
-- **ZERO-COST STAGING ARCHITECTURE (`render.free-staging.yaml`):**
-  - `Vercel Hobby` -> `Render Free Web Service (devaura-staging-api)` -> `Supabase Free PostgreSQL` <- `Render Free Web Service (devaura-staging-worker)`
+- **PRODUCTION ARCHITECTURE:** Managed PostgreSQL + FastAPI Web Service + Dedicated Background Worker + Next.js Web Service.
+- **ZERO-COST STAGING ARCHITECTURE (`render.yaml`):**
+  - `render.yaml` is the current zero-cost staging deployment configuration (`Vercel Hobby -> Render Free Web Service (devaura-staging-api) -> Supabase Free PostgreSQL <- Render Free Web Service (devaura-staging-worker)`).
+  - Because Render Free Web Services do not support `preDeployCommand`, `devaura-staging-api` runs `python scripts/start_free_staging_api.py` to execute `alembic upgrade head` before starting Uvicorn (aborting startup if migration fails; Worker does not run migrations).
   - `apps/worker/main.py` isolates a minimal stdlib HTTP `/healthz` listener behind `FREE_STAGING_HTTP_HEALTH=true` (disabled by default in production) so `DurableJobWorker` can run as a separate Render Free Web Service without merging into the API process or using `WORKER_ENABLED=true`.
 - **Limitations:** Render free services can sleep; Supabase free tier has resource limits; no paid Background Worker; no production SLA or production-readiness claim.
 

@@ -1,0 +1,365 @@
+{
+  "evaluation_phase": "Phase 11 \u2014 Real-World Multi-Defect Reliability & Operational Hardening",
+  "timestamp": "2026-11-25T05:58:49.249947+00:00",
+  "target_repository": "shreyvirmani/devaura-disposable-e2e",
+  "defects_evaluated": 5,
+  "runs": {
+    "E2E-001": {
+      "defect_id": "E2E-001",
+      "category": "Single-file deterministic logic bug",
+      "target_branch": "base/e2e-001",
+      "expected_base_sha": "76c8886e",
+      "run_id": "ca9134c4",
+      "repair_id": "rep-e2e-001-ca9134c4",
+      "timestamp": "2026-11-25T05:58:49.249947+00:00",
+      "target_repository": "shreyvirmani/devaura-disposable-e2e",
+      "llm_provider": "gemini",
+      "llm_model": "gemini-2.5-flash",
+      "stages": {
+        "stage_1_clone": {
+          "base_sha": "76c8886ef6817897a8f4f6660ecd885243e6a82f",
+          "expected_base_sha": "76c8886e",
+          "boundary_verified": true,
+          "duration_ms": 2425.27
+        },
+        "stage_2_reproduction": {
+          "reproduction_confirmed": true,
+          "exit_code": 1,
+          "error_snippet": "ucible defect: 50-99 units should receive 20% discount.\"\"\"\n        # 60 units * 10.0 = 600.0 * 0.80 = 480.0\n        # Defect: yields 588.0 (only 2% discount applied)\n>       assert calculate_bulk_discount(60, 10.0) == 480.0\nE       assert 588.0 == 480.0\nE        +  where 588.0 = calculate_bulk_discount(60, 10.0)\n\ntests\\test_calculator.py:15: AssertionError\n=========================== short test summary info ===========================\nFAILED tests/test_calculator.py::test_tier_50_to_99_discount - assert 588.0 =...\n========================= 1 failed, 2 passed in 0.12s =========================\n",
+          "duration_ms": 1531.47
+        }
+      },
+      "tokens": {
+        "total": 0,
+        "input": 0,
+        "output": 0
+      },
+      "costs_usd": {
+        "llm": 0.0,
+        "github_api": 0.0
+      },
+      "repair_intelligence": {
+        "localization_top_1": false,
+        "localization_top_3": false,
+        "localization_top_5": false,
+        "localized_files": [],
+        "patch_applicable": false,
+        "structural_validation": false,
+        "reproduction_test_passed": false,
+        "hidden_test_passed": false,
+        "regression_test_passed": false,
+        "false_repair": false
+      },
+      "operational_e2e": {
+        "workspace_isolated": true,
+        "investigation_completed": false,
+        "planning_completed": false,
+        "structural_validation_completed": false,
+        "sandbox_verification_completed": false,
+        "approval_enforced": false,
+        "branch_created": false,
+        "commit_created": false,
+        "pr_created": false,
+        "remote_ci_completed": false,
+        "safety_barrier_enforced": false
+      },
+      "outcome": "LLM_QUOTA_EXHAUSTED",
+      "failure_stage": "STAGE_3_INVESTIGATION",
+      "failure_reason": "Gemini API returned HTTP 429 (quota exceeded): {\n  \"error\": {\n    \"code\": 429,\n    \"message\": \"You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://aistudio.google.com/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 20, model: gemini-2.5-flash, description: Generate content requests per day limit exceeded on Free Tier. See https://aistudio.google.com/docs/rate-limits.\\nPlease retry in 2h58.9398183s.\",\n    \"status\": \"RESOURCE_EXHAUSTED\",\n    \"details\": [\n      {\n        \"@type\": \"type.googleapis.com/google.rpc.Help\",\n        \"links\": [\n          {\n            \"description\": \"Learn more about Gemini API quotas\",\n            \"url\": \"https://aistudio.google.com/docs/rate-limits\"\n          }\n        ]\n      },\n      {\n        \"@type\": \"type.googleapis.com/google.rpc.QuotaFailure\",\n        \"violations\": [\n          {\n            \"description\": \"Generate content requests per day limit exceeded on Free Tier. See https://aistudio.google.com/docs/rate-limits.\",\n            \"quotaMetric\": \"generativelanguage.googleapis.com/generate_content_free_tier_requests\",\n            \"quotaId\": \"GenerateRequestsPerDayPerProjectPerModel-FreeTier\",\n            \"quotaDimensions\": {\n              \"model\": \"gemini-2.5-flash\",\n              \"location\": \"global\"\n            },\n            \"quotaValue\": \"20\"\n          }\n        ]\n      },\n      {\n        \"@type\": \"type.googleapis.com/google.rpc.RetryInfo\",\n        \"retryDelay\": \"7258s\"\n      }\n    ]\n  }\n}\n"
+    },
+    "E2E-002": {
+      "defect_id": "E2E-002",
+      "category": "Edge-case / input validation bug",
+      "target_branch": "base/e2e-002",
+      "expected_base_sha": "1a53a50c",
+      "run_id": "e8bf2f75",
+      "repair_id": "rep-e2e-002-e8bf2f75",
+      "timestamp": "2026-11-25T05:59:01.251681+00:00",
+      "target_repository": "shreyvirmani/devaura-disposable-e2e",
+      "llm_provider": "gemini",
+      "llm_model": "gemini-2.5-flash",
+      "stages": {
+        "stage_1_clone": {
+          "base_sha": "1a53a50c665ba11c96b87366095b62746aa7b657",
+          "expected_base_sha": "1a53a50c",
+          "boundary_verified": true,
+          "duration_ms": 2309.75
+        },
+        "stage_2_reproduction": {
+          "reproduction_confirmed": true,
+          "exit_code": 1,
+          "error_snippet": "laimsError(\"Missing or non-numeric expiration claim 'exp'\")\n        if exp < 1000000000:\n            raise TokenExpiredError(\"Token has expired\")\n    \n        # DEFECT: Unhandled None or omitted 'metadata'\n>       metadata = payload[\"metadata\"]\n                   ^^^^^^^^^^^^^^^^^^^\nE       KeyError: 'metadata'\n\nauth_service\\token_validator.py:33: KeyError\n=========================== short test summary info ===========================\nFAILED tests/test_token_validator.py::test_missing_optional_metadata - KeyErr...\n========================= 1 failed, 1 passed in 0.11s =========================\n",
+          "duration_ms": 1170.13
+        }
+      },
+      "tokens": {
+        "total": 0,
+        "input": 0,
+        "output": 0
+      },
+      "costs_usd": {
+        "llm": 0.0,
+        "github_api": 0.0
+      },
+      "repair_intelligence": {
+        "localization_top_1": false,
+        "localization_top_3": false,
+        "localization_top_5": false,
+        "localized_files": [],
+        "patch_applicable": false,
+        "structural_validation": false,
+        "reproduction_test_passed": false,
+        "hidden_test_passed": false,
+        "regression_test_passed": false,
+        "false_repair": false
+      },
+      "operational_e2e": {
+        "workspace_isolated": true,
+        "investigation_completed": false,
+        "planning_completed": false,
+        "structural_validation_completed": false,
+        "sandbox_verification_completed": false,
+        "approval_enforced": false,
+        "branch_created": false,
+        "commit_created": false,
+        "pr_created": false,
+        "remote_ci_completed": false,
+        "safety_barrier_enforced": false
+      },
+      "outcome": "LLM_QUOTA_EXHAUSTED",
+      "failure_stage": "STAGE_3_INVESTIGATION",
+      "failure_reason": "Gemini API returned HTTP 429 (quota exceeded): {\n  \"error\": {\n    \"code\": 429,\n    \"message\": \"You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://aistudio.google.com/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 20, model: gemini-2.5-flash, description: Generate content requests per day limit exceeded on Free Tier. See https://aistudio.google.com/docs/rate-limits.\\nPlease retry in 2h47.577819228s.\",\n    \"status\": \"RESOURCE_EXHAUSTED\",\n    \"details\": [\n      {\n        \"@type\": \"type.googleapis.com/google.rpc.Help\",\n        \"links\": [\n          {\n            \"description\": \"Learn more about Gemini API quotas\",\n            \"url\": \"https://aistudio.google.com/docs/rate-limits\"\n          }\n        ]\n      },\n      {\n        \"@type\": \"type.googleapis.com/google.rpc.QuotaFailure\",\n        \"violations\": [\n          {\n            \"description\": \"Generate content requests per day limit exceeded on Free Tier. See https://aistudio.google.com/docs/rate-limits.\",\n            \"quotaMetric\": \"generativelanguage.googleapis.com/generate_content_free_tier_requests\",\n            \"quotaId\": \"GenerateRequestsPerDayPerProjectPerModel-FreeTier\",\n            \"quotaDimensions\": {\n              \"model\": \"gemini-2.5-flash\",\n              \"location\": \"global\"\n            },\n            \"quotaValue\": \"20\"\n          }\n        ]\n      },\n      {\n        \"@type\": \"type.googleapis.com/google.rpc.RetryInfo\",\n        \"retryDelay\": \"7247s\"\n      }\n    ]\n  }\n}\n"
+    },
+    "E2E-003": {
+      "defect_id": "E2E-003",
+      "category": "Multi-function or cross-module bug",
+      "target_branch": "base/e2e-003",
+      "expected_base_sha": "b67caa4a",
+      "run_id": "6dcc7b4d",
+      "repair_id": "rep-e2e-003-6dcc7b4d",
+      "timestamp": "2026-11-25T05:59:12.633011+00:00",
+      "target_repository": "shreyvirmani/devaura-disposable-e2e",
+      "llm_provider": "gemini",
+      "llm_model": "gemini-2.5-flash",
+      "stages": {
+        "stage_1_clone": {
+          "base_sha": "b67caa4af5fe727c406957754f1d5f84d03993e3",
+          "expected_base_sha": "b67caa4a",
+          "boundary_verified": true,
+          "duration_ms": 2320.61
+        },
+        "stage_2_reproduction": {
+          "reproduction_confirmed": true,
+          "exit_code": 1,
+          "error_snippet": "turns:\n            dict: {\"status\": \"CONFIRMED\", \"reserved\": quantity, \"sku\": sku} on success,\n                  {\"status\": \"OUT_OF_STOCK\", \"reserved\": 0, \"sku\": sku} on failure.\n        \"\"\"\n>       if quantity <= 0:\n           ^^^^^^^^^^^^^\nE       TypeError: '<=' not supported between instances of 'str' and 'int'\n\ninventory_service\\stock.py:15: TypeError\n=========================== short test summary info ===========================\nFAILED tests/test_checkout.py::test_checkout_reservation_flow - TypeError: '<...\n============================== 1 failed in 0.09s ==============================\n",
+          "duration_ms": 1270.92
+        }
+      },
+      "tokens": {
+        "total": 0,
+        "input": 0,
+        "output": 0
+      },
+      "costs_usd": {
+        "llm": 0.0,
+        "github_api": 0.0
+      },
+      "repair_intelligence": {
+        "localization_top_1": false,
+        "localization_top_3": false,
+        "localization_top_5": false,
+        "localized_files": [],
+        "patch_applicable": false,
+        "structural_validation": false,
+        "reproduction_test_passed": false,
+        "hidden_test_passed": false,
+        "regression_test_passed": false,
+        "false_repair": false
+      },
+      "operational_e2e": {
+        "workspace_isolated": true,
+        "investigation_completed": false,
+        "planning_completed": false,
+        "structural_validation_completed": false,
+        "sandbox_verification_completed": false,
+        "approval_enforced": false,
+        "branch_created": false,
+        "commit_created": false,
+        "pr_created": false,
+        "remote_ci_completed": false,
+        "safety_barrier_enforced": false
+      },
+      "outcome": "LLM_QUOTA_EXHAUSTED",
+      "failure_stage": "STAGE_3_INVESTIGATION",
+      "failure_reason": "Gemini API returned HTTP 429 (quota exceeded): {\n  \"error\": {\n    \"code\": 429,\n    \"message\": \"You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://aistudio.google.com/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 20, model: gemini-2.5-flash, description: Generate content requests per day limit exceeded on Free Tier. See https://aistudio.google.com/docs/rate-limits.\\nPlease retry in 2h35.565506063s.\",\n    \"status\": \"RESOURCE_EXHAUSTED\",\n    \"details\": [\n      {\n        \"@type\": \"type.googleapis.com/google.rpc.Help\",\n        \"links\": [\n          {\n            \"description\": \"Learn more about Gemini API quotas\",\n            \"url\": \"https://aistudio.google.com/docs/rate-limits\"\n          }\n        ]\n      },\n      {\n        \"@type\": \"type.googleapis.com/google.rpc.QuotaFailure\",\n        \"violations\": [\n          {\n            \"description\": \"Generate content requests per day limit exceeded on Free Tier. See https://aistudio.google.com/docs/rate-limits.\",\n            \"quotaMetric\": \"generativelanguage.googleapis.com/generate_content_free_tier_requests\",\n            \"quotaId\": \"GenerateRequestsPerDayPerProjectPerModel-FreeTier\",\n            \"quotaDimensions\": {\n              \"model\": \"gemini-2.5-flash\",\n              \"location\": \"global\"\n            },\n            \"quotaValue\": \"20\"\n          }\n        ]\n      },\n      {\n        \"@type\": \"type.googleapis.com/google.rpc.RetryInfo\",\n        \"retryDelay\": \"7235s\"\n      }\n    ]\n  }\n}\n"
+    },
+    "E2E-004": {
+      "defect_id": "E2E-004",
+      "category": "Regression where existing test suite initially fails",
+      "target_branch": "base/e2e-004",
+      "expected_base_sha": "c92c0b60",
+      "run_id": "b4c5bf67",
+      "repair_id": "rep-e2e-004-b4c5bf67",
+      "timestamp": "2026-11-25T05:59:24.643568+00:00",
+      "target_repository": "shreyvirmani/devaura-disposable-e2e",
+      "llm_provider": "gemini",
+      "llm_model": "gemini-2.5-flash",
+      "stages": {
+        "stage_1_clone": {
+          "base_sha": "c92c0b60f10fb290d0056444382bd1d2344f59a3",
+          "expected_base_sha": "c92c0b60",
+          "boundary_verified": true,
+          "duration_ms": 2679.02
+        },
+        "stage_2_reproduction": {
+          "reproduction_confirmed": true,
+          "exit_code": 1,
+          "error_snippet": "imestamp '2026-11-25 12:30:45' does not match strict ISO-8601 format\nE       assert None\nE        +  where None = <function match at 0x000001C055B46CA0>('^\\\\d{4}-\\\\d{2}-\\\\d{2}T\\\\d{2}:\\\\d{2}:\\\\d{2}(\\\\.\\\\d+)?(Z|\\\\+00:00)$', '2026-11-25 12:30:45')\nE        +    where <function match at 0x000001C055B46CA0> = re.match\n\ntests\\test_formatter.py:16: AssertionError\n=========================== short test summary info ===========================\nFAILED tests/test_formatter.py::test_iso8601_strict_formatting - AssertionErr...\n============================== 1 failed in 0.10s ==============================\n",
+          "duration_ms": 1540.37
+        }
+      },
+      "tokens": {
+        "total": 0,
+        "input": 0,
+        "output": 0
+      },
+      "costs_usd": {
+        "llm": 0.0,
+        "github_api": 0.0
+      },
+      "repair_intelligence": {
+        "localization_top_1": false,
+        "localization_top_3": false,
+        "localization_top_5": false,
+        "localized_files": [],
+        "patch_applicable": false,
+        "structural_validation": false,
+        "reproduction_test_passed": false,
+        "hidden_test_passed": false,
+        "regression_test_passed": false,
+        "false_repair": false
+      },
+      "operational_e2e": {
+        "workspace_isolated": true,
+        "investigation_completed": false,
+        "planning_completed": false,
+        "structural_validation_completed": false,
+        "sandbox_verification_completed": false,
+        "approval_enforced": false,
+        "branch_created": false,
+        "commit_created": false,
+        "pr_created": false,
+        "remote_ci_completed": false,
+        "safety_barrier_enforced": false
+      },
+      "outcome": "LLM_QUOTA_EXHAUSTED",
+      "failure_stage": "STAGE_3_INVESTIGATION",
+      "failure_reason": "Gemini API returned HTTP 429 (quota exceeded): {\n  \"error\": {\n    \"code\": 429,\n    \"message\": \"You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://aistudio.google.com/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 20, model: gemini-2.5-flash, description: Generate content requests per day limit exceeded on Free Tier. See https://aistudio.google.com/docs/rate-limits.\\nPlease retry in 2h22.930323647s.\",\n    \"status\": \"RESOURCE_EXHAUSTED\",\n    \"details\": [\n      {\n        \"@type\": \"type.googleapis.com/google.rpc.Help\",\n        \"links\": [\n          {\n            \"description\": \"Learn more about Gemini API quotas\",\n            \"url\": \"https://aistudio.google.com/docs/rate-limits\"\n          }\n        ]\n      },\n      {\n        \"@type\": \"type.googleapis.com/google.rpc.QuotaFailure\",\n        \"violations\": [\n          {\n            \"description\": \"Generate content requests per day limit exceeded on Free Tier. See https://aistudio.google.com/docs/rate-limits.\",\n            \"quotaMetric\": \"generativelanguage.googleapis.com/generate_content_free_tier_requests\",\n            \"quotaId\": \"GenerateRequestsPerDayPerProjectPerModel-FreeTier\",\n            \"quotaDimensions\": {\n              \"model\": \"gemini-2.5-flash\",\n              \"location\": \"global\"\n            },\n            \"quotaValue\": \"20\"\n          }\n        ]\n      },\n      {\n        \"@type\": \"type.googleapis.com/google.rpc.RetryInfo\",\n        \"retryDelay\": \"7222s\"\n      }\n    ]\n  }\n}\n"
+    },
+    "E2E-005": {
+      "defect_id": "E2E-005",
+      "category": "Defect rejected due to unsafe proposed repair / insufficient evidence",
+      "target_branch": "base/e2e-005",
+      "expected_base_sha": "1d18d57f",
+      "run_id": "b63a5c90",
+      "repair_id": "rep-e2e-005-b63a5c90",
+      "timestamp": "2026-11-25T05:59:37.328834+00:00",
+      "target_repository": "shreyvirmani/devaura-disposable-e2e",
+      "llm_provider": "gemini",
+      "llm_model": "gemini-2.5-flash",
+      "stages": {
+        "stage_1_clone": {
+          "base_sha": "1d18d57fdfa5e196799cf37d4f7558546032f569",
+          "expected_base_sha": "1d18d57f",
+          "boundary_verified": true,
+          "duration_ms": 2378.96
+        },
+        "stage_2_reproduction": {
+          "reproduction_confirmed": true,
+          "exit_code": 0,
+          "error_snippet": "============================= test session starts =============================\nplatform win32 -- Python 3.12.10, pytest-9.2.0, pluggy-1.7.0\nrootdir: C:\\Users\\shrey\\AppData\\Local\\Temp\\devaura_e2e-005_54x3_oqf\\devaura-disposable-e2e\nplugins: anyio-4.16.0, asyncio-1.5.0\nasyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function\ncollected 2 items\n\ntests\\test_backup.py ..                                                  [100%]\n\n============================== 2 passed in 0.04s ==============================\n",
+          "duration_ms": 1243.25
+        }
+      },
+      "tokens": {
+        "total": 0,
+        "input": 0,
+        "output": 0
+      },
+      "costs_usd": {
+        "llm": 0.0,
+        "github_api": 0.0
+      },
+      "repair_intelligence": {
+        "localization_top_1": false,
+        "localization_top_3": false,
+        "localization_top_5": false,
+        "localized_files": [],
+        "patch_applicable": false,
+        "structural_validation": false,
+        "reproduction_test_passed": false,
+        "hidden_test_passed": false,
+        "regression_test_passed": false,
+        "false_repair": false
+      },
+      "operational_e2e": {
+        "workspace_isolated": true,
+        "investigation_completed": false,
+        "planning_completed": false,
+        "structural_validation_completed": false,
+        "sandbox_verification_completed": false,
+        "approval_enforced": false,
+        "branch_created": false,
+        "commit_created": false,
+        "pr_created": false,
+        "remote_ci_completed": false,
+        "safety_barrier_enforced": false
+      },
+      "outcome": "LLM_QUOTA_EXHAUSTED",
+      "failure_stage": "STAGE_3_INVESTIGATION",
+      "failure_reason": "Gemini API returned HTTP 429 (quota exceeded): {\n  \"error\": {\n    \"code\": 429,\n    \"message\": \"You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://aistudio.google.com/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 20, model: gemini-2.5-flash, description: Generate content requests per day limit exceeded on Free Tier. See https://aistudio.google.com/docs/rate-limits.\\nPlease retry in 2h10.985996365s.\",\n    \"status\": \"RESOURCE_EXHAUSTED\",\n    \"details\": [\n      {\n        \"@type\": \"type.googleapis.com/google.rpc.Help\",\n        \"links\": [\n          {\n            \"description\": \"Learn more about Gemini API quotas\",\n            \"url\": \"https://aistudio.google.com/docs/rate-limits\"\n          }\n        ]\n      },\n      {\n        \"@type\": \"type.googleapis.com/google.rpc.QuotaFailure\",\n        \"violations\": [\n          {\n            \"description\": \"Generate content requests per day limit exceeded on Free Tier. See https://aistudio.google.com/docs/rate-limits.\",\n            \"quotaMetric\": \"generativelanguage.googleapis.com/generate_content_free_tier_requests\",\n            \"quotaId\": \"GenerateRequestsPerDayPerProjectPerModel-FreeTier\",\n            \"quotaDimensions\": {\n              \"location\": \"global\",\n              \"model\": \"gemini-2.5-flash\"\n            },\n            \"quotaValue\": \"20\"\n          }\n        ]\n      },\n      {\n        \"@type\": \"type.googleapis.com/google.rpc.RetryInfo\",\n        \"retryDelay\": \"7210s\"\n      }\n    ]\n  }\n}\n"
+    }
+  },
+  "failure_injections": {
+    "test_a_stale_base_drift": {
+      "passed": true,
+      "action": "REJECTED_BASE_DRIFT"
+    },
+    "test_b_patch_mutation": {
+      "passed": true,
+      "action": "REJECTED_PATCH_MUTATION"
+    },
+    "test_c_invalid_approval": {
+      "passed": true,
+      "action": "REJECTED_APPROVAL_INVALID"
+    },
+    "test_d_protected_branch_blocked": {
+      "passed": true,
+      "action": "REJECTED_PROTECTED_BRANCH"
+    },
+    "test_e_duplicate_pr_idempotent": {
+      "passed": true,
+      "action": "REJECTED_DUPLICATE_PR"
+    }
+  },
+  "aggregate_metrics": {
+    "repair_intelligence": {
+      "total_defects": 5,
+      "localization_top_1_rate": "0/5 (0.0%)",
+      "localization_top_3_rate": "0/5 (0.0%)",
+      "localization_top_5_rate": "0/5 (0.0%)",
+      "structural_validation_rate": "0/5 (0.0%)",
+      "reproduction_test_pass_rate": "0/5 (0.0%)",
+      "hidden_test_pass_rate": "0/5 (0.0%)",
+      "false_repair_rate": "0/5 (0.0%)"
+    },
+    "operational_e2e": {
+      "workspace_isolation_rate": "5/5 (100.0%)",
+      "investigation_completion_rate": "0/5 (0.0%)",
+      "planning_completion_rate": "0/5 (0.0%)",
+      "approval_enforcement_rate": "0/5 (0.0%)",
+      "pull_request_creation_rate": "0/5 (0.0%)",
+      "safety_barrier_enforcement_rate": "0/5 (0.0%)"
+    }
+  }
+}

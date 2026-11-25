@@ -2845,7 +2845,19 @@ Phase 4 connects the existing Devaura repair, verification, approval, and PR sub
 
 ---
 
-# 72. Final Rule
+# 72. Zero-Cost Staging Profile (Phase 6C — `FREE STAGING ONLY`)
+
+**Status:** `IMPLEMENTED` (Blueprint & Isolated Worker Health Adapter); `FREE STAGING BLOCKED` (External Supabase/Render/Vercel/GitHub App Accounts Not Provisioned in Local Environment)
+
+- **PRODUCTION ARCHITECTURE (`render.yaml`):** Managed PostgreSQL + FastAPI Web Service + Dedicated Background Worker + Next.js Web Service.
+- **ZERO-COST STAGING ARCHITECTURE (`render.free-staging.yaml`):**
+  - `Vercel Hobby` -> `Render Free Web Service (devaura-staging-api)` -> `Supabase Free PostgreSQL` <- `Render Free Web Service (devaura-staging-worker)`
+  - `apps/worker/main.py` isolates a minimal stdlib HTTP `/healthz` listener behind `FREE_STAGING_HTTP_HEALTH=true` (disabled by default in production) so `DurableJobWorker` can run as a separate Render Free Web Service without merging into the API process or using `WORKER_ENABLED=true`.
+- **Limitations:** Render free services can sleep; Supabase free tier has resource limits; no paid Background Worker; no production SLA or production-readiness claim.
+
+---
+
+# 73. Final Rule
 
 **Never sacrifice correctness, security, or verifiability merely to make Devaura appear autonomous.**
 

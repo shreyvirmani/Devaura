@@ -7,6 +7,8 @@ Run with:
 from __future__ import annotations
 
 import asyncio
+import json
+import os
 import signal
 import sys
 
@@ -14,6 +16,42 @@ from apps.api.config import get_settings
 from apps.api.logger import logger
 from core.jobs.worker import DurableJobWorker
 from database.connection import close_db, init_db
+
+
+async def _start_free_staging_health_server() -> asyncio.AbstractServer | None:
+    """Isolated free-staging adapter: minimal HTTP /healthz listener for Render Free Web Service.
+
+    Active ONLY when FREE_STAGING_HTTP_HEALTH=true. Production workers never bind an HTTP port.
+    """
+    if os.getenv("FREE_STAGING_HTTP_HEALTH", "false").lower() not in {"1", "true", "yes"}:
+        return None
+
+    port = int(os.getenv("PORT", "10000"))
+
+    async def _handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
+        try:
+            await asyncio.wait_for(reader.read(1024), timeout=2.0)
+            body = json.dumps({"status": "alive", "mode": "free-staging-worker"}).encode("utf-8")
+            response = (
+                b"HTTP/1.1 200 OK\r\n"
+                b"Content-Type: application/json\r\n"
+                + f"Content-Length: {len(body)}\r\n".encode("ascii")
+                + b"Connection: close\r\n\r\n"
+                + body
+            )
+            writer.write(response)
+            await writer.drain()
+        except Exception:
+            pass
+        finally:
+            writer.close()
+
+    server = await asyncio.start_server(_handle_client, host="0.0.0.0", port=port)
+    logger.info(
+        f"Free-staging worker HTTP health adapter listening on port {port}",
+        extra={"component": "worker_main", "event": "free_staging_health_started", "port": port},
+    )
+    return server
 
 
 async def run_worker_process() -> None:
@@ -53,6 +91,7 @@ async def run_worker_process() -> None:
             # Windows ProactorEventLoop fallback
             signal.signal(sig, _request_shutdown)
 
+    health_server = await _start_free_staging_health_server()
     worker_task = asyncio.create_task(worker.run_loop())
     try:
         await worker_task
@@ -60,6 +99,9 @@ async def run_worker_process() -> None:
         pass
     finally:
         worker.stop()
+        if health_server is not None:
+            health_server.close()
+            await health_server.wait_closed()
         await close_db()
         logger.info("Standalone DurableJobWorker stopped cleanly", extra={"component": "worker_main", "event": "stopped"})
 

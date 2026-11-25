@@ -75,3 +75,33 @@ Chosen hosting stack: **Render** ([render.yaml](../render.yaml)) — Managed Pos
 4. **Create Disposable Staging Repo:** Create `devaura-staging-e2e` on GitHub with a failing pytest + GitHub Actions workflow, install the staging GitHub App on that repo only, and point the GitHub App webhook to `https://<staging-api-url>/api/v1/github/webhooks`.
 5. **Execute Live E2E:** Push a controlled defect to trigger GitHub Actions failure -> webhook -> incident -> investigation -> repair -> sandbox verification -> UI `Approve & Create PR` -> verify real branch, commit, and PR on GitHub (without merging).
 
+---
+
+## 6. Zero-Cost Staging (`FREE STAGING ONLY` — No Card / No Paid Services)
+
+### Architecture Comparison
+
+- **PRODUCTION ARCHITECTURE (`render.yaml`):** Managed PostgreSQL + FastAPI Web Service + Dedicated Background Worker + Next.js Web Service.
+- **ZERO-COST STAGING ARCHITECTURE (`render.free-staging.yaml` + Supabase + Vercel Hobby):**
+  - **Frontend:** Vercel Hobby (`NEXT_PUBLIC_API_URL=<Render API URL>`, `NEXT_PUBLIC_APP_ENV=staging`)
+  - **API:** Render Free Web Service (`devaura-staging-api`, `WORKER_ENABLED=false`)
+  - **Worker:** Render Free Web Service (`devaura-staging-worker`, `python -m apps.worker.main`, `FREE_STAGING_HTTP_HEALTH=true` exposing `/healthz`)
+  - **Database:** External Supabase Free PostgreSQL (`DATABASE_URL=postgresql+asyncpg://...`)
+
+### Manual Zero-Cost Provisioning Steps
+1. Create a free PostgreSQL database in **Supabase** and copy its PostgreSQL connection string (`postgresql+asyncpg://...`).
+2. Deploy [render.free-staging.yaml](../render.free-staging.yaml) in **Render** (two Free Web Services only — no Render Postgres, no paid Background Worker).
+3. Set `DATABASE_URL`, `SECRET_KEY`, `ALLOWED_ORIGINS` (your Vercel URL), `GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY`, `GITHUB_WEBHOOK_SECRET`, and `GEMINI_API_KEY` on both Render services.
+4. Deploy `apps/web` to **Vercel Hobby** with `NEXT_PUBLIC_API_URL` and `NEXT_PUBLIC_APP_ENV=staging`.
+5. Run `python scripts/verify_staging_readiness.py --api-url https://<devaura-staging-api>.onrender.com`.
+
+### Free-Staging Limitations (Mandatory Disclosure)
+1. **Render free services can sleep** after inactivity (cold-start latency and paused worker polling while sleeping).
+2. **Supabase free database has resource limits** (connection & storage caps).
+3. **Render's paid Background Worker is not used.**
+4. **The Worker is deployed through an isolated free Web Service HTTP health adapter** (`FREE_STAGING_HTTP_HEALTH=true` in `apps/worker/main.py`).
+5. **This configuration is NOT the intended production infrastructure.**
+6. **No production SLA is implied.**
+7. **No production readiness claim may be made from this environment.**
+
+

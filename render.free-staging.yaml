@@ -1,0 +1,61 @@
+# Devaura Zero-Cost Staging Blueprint (Render Free Web Services + External Supabase Free PostgreSQL + Vercel Hobby)
+# FREE STAGING ONLY — NOT intended production architecture (no Render Postgres, no paid Background Worker).
+# Frontend is hosted separately on Vercel Hobby (NEXT_PUBLIC_API_URL -> devaura-staging-api URL).
+
+services:
+  - type: web
+    name: devaura-staging-api
+    runtime: python
+    plan: free
+    buildCommand: pip install -r apps/api/requirements.txt
+    preDeployCommand: alembic upgrade head
+    startCommand: uvicorn apps.api.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/v1/health/ready
+    envVars:
+      - key: APP_ENV
+        value: staging
+      - key: WORKER_ENABLED
+        value: "false"
+      - key: ALLOW_DEV_USER_FALLBACK
+        value: "false"
+      - key: DATABASE_URL
+        sync: false
+      - key: SECRET_KEY
+        generateValue: true
+      - key: ALLOWED_ORIGINS
+        sync: false
+      - key: GITHUB_APP_ID
+        sync: false
+      - key: GITHUB_APP_PRIVATE_KEY
+        sync: false
+      - key: GITHUB_WEBHOOK_SECRET
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+
+  - type: web
+    name: devaura-staging-worker
+    runtime: python
+    plan: free
+    buildCommand: pip install -r apps/api/requirements.txt
+    startCommand: python -m apps.worker.main
+    healthCheckPath: /healthz
+    envVars:
+      - key: APP_ENV
+        value: staging
+      - key: FREE_STAGING_HTTP_HEALTH
+        value: "true"
+      - key: ALLOW_DEV_USER_FALLBACK
+        value: "false"
+      - key: DATABASE_URL
+        sync: false
+      - key: SECRET_KEY
+        sync: false
+      - key: GITHUB_APP_ID
+        sync: false
+      - key: GITHUB_APP_PRIVATE_KEY
+        sync: false
+      - key: GITHUB_WEBHOOK_SECRET
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false

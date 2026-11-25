@@ -205,3 +205,33 @@ async def test_operations_endpoint_and_quota_classification(clean_db):
         # Cross-workspace isolation
         forbidden = await client.get(f"/api/v1/workspaces/{ws2_id}/operations", headers=headers)
         assert forbidden.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_free_staging_worker_health_adapter(monkeypatch):
+    from apps.worker.main import _start_free_staging_health_server
+
+    # Disabled by default in production
+    monkeypatch.delenv("FREE_STAGING_HTTP_HEALTH", raising=False)
+    assert await _start_free_staging_health_server() is None
+
+    # Enabled in zero-cost staging: serves 200 OK on /healthz
+    import socket
+    with socket.socket() as s:
+        s.bind(("127.0.0.1", 0))
+        free_port = s.getsockname()[1]
+
+    monkeypatch.setenv("FREE_STAGING_HTTP_HEALTH", "true")
+    monkeypatch.setenv("PORT", str(free_port))
+    server = await _start_free_staging_health_server()
+    assert server is not None
+    try:
+        async with AsyncClient(timeout=5.0) as client:
+            resp = await client.get(f"http://127.0.0.1:{free_port}/healthz")
+            assert resp.status_code == 200
+            assert resp.json()["status"] == "alive"
+            assert resp.json()["mode"] == "free-staging-worker"
+    finally:
+        server.close()
+        await server.wait_closed()
+

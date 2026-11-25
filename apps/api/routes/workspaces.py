@@ -566,8 +566,8 @@ async def connect_workspace_repository(
 # Workspace-Scoped Resources: Incidents / Investigations
 # -------------------------------------------------------------------------
 
-@router.get("/{workspace_id}/incidents")
-async def list_workspace_incidents(
+@router.get("/{workspace_id}/investigations")
+async def list_workspace_investigations(
     limit: int = Query(50, ge=1, le=100),
     ctx: WorkspaceContext = Depends(require_workspace_member),
     db: AsyncSession = Depends(get_db),

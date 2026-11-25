@@ -11,11 +11,14 @@ Handles:
 from datetime import datetime, timezone
 import json
 from typing import Any, Dict, Optional
+import uuid
 from fastapi import APIRouter, Depends, Header, HTTPException, Request, Response, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from apps.api.logger import logger
+from core.events.normalizer import EventNormalizer
+from core.incidents.service import create_or_get_incident_and_enqueue_job
 from database.connection import get_db
 from database.models import (
     AuditEventRecord,
@@ -237,7 +240,32 @@ async def ingest_github_webhook(
     )
     db.add(webhook_rec)
 
-    # 9. Audit Event
+    # 9. Normalize Event & Create Incident + Durable Job (Non-blocking)
+    correlation_id = str(uuid.uuid4())
+    created_incident = None
+    created_job = None
+
+    normalized = EventNormalizer.normalize(
+        event_type=event_type,
+        delivery_id=x_github_delivery,
+        payload=payload,
+        repository_id=target_repo_id,
+    )
+    if (
+        normalized.incident_candidate is not None
+        and target_workspace_id is not None
+        and target_repo_id is not None
+    ):
+        created_incident, created_job, _ = await create_or_get_incident_and_enqueue_job(
+            db=db,
+            workspace_id=target_workspace_id,
+            repository_id=target_repo_id,
+            candidate=normalized.incident_candidate,
+            correlation_id=correlation_id,
+        )
+        webhook_rec.status = "PROCESSED"
+
+    # 10. Audit Event
     audit = AuditEventRecord(
         workspace_id=target_workspace_id,
         actor_id=None,
@@ -251,6 +279,9 @@ async def ingest_github_webhook(
             "event": event_type,
             "action": action,
             "repository_id": target_repo_id,
+            "incident_id": created_incident.id if created_incident else None,
+            "job_id": created_job.id if created_job else None,
+            "correlation_id": correlation_id,
         },
         ip_address=client_ip,
         user_agent=user_agent,
@@ -264,4 +295,7 @@ async def ingest_github_webhook(
         "delivery_id": x_github_delivery,
         "workspace_id": target_workspace_id,
         "repository_id": target_repo_id,
+        "incident_id": created_incident.id if created_incident else None,
+        "job_id": created_job.id if created_job else None,
+        "correlation_id": created_incident.correlation_id if created_incident else correlation_id,
     }

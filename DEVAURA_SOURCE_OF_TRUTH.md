@@ -2722,7 +2722,53 @@ Phase 2 establishes the trusted GitHub integration and repository onboarding bou
 
 ---
 
-# 68. Final Rule
+---
+
+# 68. PRODUCTION PHASE 3 — EVENT INGESTION, INCIDENT LIFECYCLE & DURABLE JOB EXECUTION
+
+**Status:** `IMPLEMENTED` (Core Event-to-Incident Pipeline, Durable DB-Backed Worker, Retry Policy, Workspace Quotas, & Live Incidents UI)
+
+Phase 3 implements the asynchronous production event-to-incident pipeline:
+`GitHub Webhook → HMAC Verification → Delivery Deduplication → Persisted WebhookEventRecord → NormalizedEvent → Idempotent Incident → Durable Job → Investigation Worker → Persisted Investigation & Lifecycle State → Live Incidents UI`.
+
+### 1. Incident Domain Model (`database/models/incidents.py`)
+- **`Incident` Entity (Workspace-Scoped):**
+  - Separate from the Repair FSM (`RepairRecord`).
+  - Fields: `id`, `workspace_id`, `repository_id`, `investigation_id`, `source` (`IncidentSource`), `external_event_id`, `external_run_id`, `external_check_id`, `dedup_key` (unique), `type` (`IncidentType`), `status` (`IncidentStatus`), `title`, `summary`, `failure_signature`, `commit_sha`, `branch`, `workflow_name`, `workflow_run_url`, `correlation_id`, `detected_at`, `started_at`, `resolved_at`, `metadata`.
+  - Lifecycle statuses: `NEW`, `QUEUED`, `BLOCKED_QUOTA`, `INVESTIGATING`, `INVESTIGATED`, `REPAIR_PENDING`, `REPAIRING`, `VERIFYING`, `AWAITING_APPROVAL`, `PR_CREATED`, `RESOLVED`, `FAILED`, `CANCELLED`.
+- **Alembic Migration:** `0003_incidents_and_jobs` (`database/migrations/versions/0003_incidents_and_jobs.py`).
+
+### 2. Event Normalization & Idempotency (`core/events/normalizer.py`, `core/incidents/service.py`)
+- **`EventNormalizer`:** Converts raw verified GitHub payloads (`workflow_run`, `check_run`, `push`, `pull_request`, `installation`, `installation_repositories`, `ping`) into `NormalizedEvent` and `IncidentCandidate`.
+- **Failure Filtering:** Only failure-producing completions (`workflow_run` / `check_run` with `action == "completed"` and `conclusion in {"failure", "timed_out", "startup_failure"}`) emit an `IncidentCandidate`.
+- **Idempotency:** Deterministic `dedup_key` (`{repository_id}:workflow_run:{run_id}` or `{repository_id}:check_run:{check_id}`) prevents duplicate incidents across webhook retries or multiple deliveries. Crash recovery enqueues a missing `Job` if an `Incident` exists without one.
+
+### 3. Durable Job System & Worker (`database/models/incidents.py`, `core/jobs/worker.py`, `core/jobs/retry_policy.py`)
+- **Database-Backed `Job` Queue:** Persisted in `jobs` table (`QUEUED`, `RUNNING`, `SUCCEEDED`, `FAILED`, `CANCELLED`, `RETRY_WAIT`, `DEAD_LETTER`, `PROVIDER_QUOTA_EXHAUSTED`).
+- **Atomic Claiming & Lease Recovery:** `DurableJobWorker.claim_next_job` uses conditional SQL `UPDATE ... WHERE status IN ('QUEUED', 'RETRY_WAIT')` to prevent duplicate execution across workers. `recover_expired_leases` re-queues abandoned `RUNNING` jobs whose `lease_expires_at` has passed (or transitions to `DEAD_LETTER` once `max_attempts` is reached).
+- **Explicit Failure Classification (`classify_exception`):**
+  - `RETRYABLE`: Network/timeout/transient 5xx errors -> bounded exponential backoff (`RETRY_WAIT`) up to `JOB_MAX_ATTEMPTS`.
+  - `NON_RETRYABLE`: Invalid repository, auth failure, malformed event, policy violation -> immediate `FAILED`.
+  - `PROVIDER_QUOTA_EXHAUSTED`: Rate limit / quota exhaustion -> explicit `PROVIDER_QUOTA_EXHAUSTED` terminal state (never retried blindly).
+- **Workspace Quotas:** Enforces `WORKSPACE_MAX_CONCURRENT_JOBS` and `WORKSPACE_MAX_QUEUED_JOBS`. When queued limit is exceeded, the `Incident` is persisted with `status="BLOCKED_QUOTA"` instead of dropping the event.
+
+### 4. API & Live Incidents UI (`apps/api/routes/incidents.py`, `apps/web/src/app/incidents/`)
+- **Workspace-Scoped Endpoints:**
+  - `GET /api/v1/workspaces/{workspace_id}/incidents`
+  - `GET /api/v1/workspaces/{workspace_id}/incidents/{incident_id}`
+  - `POST /api/v1/workspaces/{workspace_id}/incidents/{incident_id}/cancel`
+  - `POST /api/v1/workspaces/{workspace_id}/incidents/{incident_id}/retry`
+  - `GET /api/v1/workspaces/{workspace_id}/jobs`
+  - `GET /api/v1/workspaces/{workspace_id}/jobs/{job_id}`
+- **Frontend:** Added `/incidents` and `/incidents/[id]` with strict `LIVE TELEMETRY` vs `EVALUATION DATA` separation, explicit empty state, audit timeline, durable job history, and investigation findings without fabricated telemetry.
+
+### 5. Production Limitations (Honest Assessment)
+- **Database Polling:** `DurableJobWorker` uses relational database polling (`WORKER_POLL_INTERVAL_SECONDS`) rather than a dedicated message broker (e.g. Redis/RabbitMQ/SQS), which is sufficient for moderate throughput and single/multi-worker SQLite/PostgreSQL deployments but will require broker-backed push queues at high scale.
+- **Autonomous Merge/Deploy:** `NOT IMPLEMENTED` (human approval gate remains mandatory).
+
+---
+
+# 69. Final Rule
 
 **Never sacrifice correctness, security, or verifiability merely to make Devaura appear autonomous.**
 

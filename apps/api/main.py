@@ -1,3 +1,4 @@
+import asyncio
 import time
 import uuid
 from contextlib import asynccontextmanager
@@ -13,6 +14,7 @@ from apps.api.routes import (
     evaluation,
     github,
     health,
+    incidents,
     investigations,
     mcp_servers,
     metrics,
@@ -22,6 +24,7 @@ from apps.api.routes import (
     webhooks,
     workspaces,
 )
+from core.jobs.worker import DurableJobWorker
 from database.connection import close_db, init_db
 
 
@@ -42,7 +45,24 @@ async def lifespan(app: FastAPI):
     # Initialize database tables
     await init_db()
     logger.info("Database initialized successfully", extra={"component": "database", "event": "init_db"})
+
+    # Start durable background job worker in non-testing environments when enabled
+    worker = None
+    worker_task = None
+    if settings.WORKER_ENABLED and settings.APP_ENV.lower() != "testing":
+        worker = DurableJobWorker()
+        worker_task = asyncio.create_task(worker.run_loop())
+
     yield
+
+    if worker and worker_task:
+        worker.stop()
+        worker_task.cancel()
+        try:
+            await worker_task
+        except asyncio.CancelledError:
+            pass
+
     # Shutdown
     logger.info("Shutting down Devaura API", extra={"component": "lifespan", "event": "shutdown"})
     await close_db()
@@ -139,6 +159,7 @@ app.include_router(metrics.router, prefix=api_v1_prefix)
 app.include_router(pull_requests.router, prefix=api_v1_prefix)
 app.include_router(evaluation.router, prefix=api_v1_prefix)
 app.include_router(github.router, prefix=api_v1_prefix)
+app.include_router(incidents.router, prefix=api_v1_prefix)
 app.include_router(webhooks.router, prefix=api_v1_prefix)
 
 

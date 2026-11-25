@@ -57,6 +57,16 @@ class Settings(BaseSettings):
     SANDBOX_TIMEOUT_SECONDS: int = 120
     SANDBOX_MEMORY_LIMIT: str = "2048m"
 
+    # Durable Worker & Job Execution (Phase 3)
+    WORKER_ENABLED: bool = True
+    WORKER_CONCURRENCY: int = 2
+    WORKER_POLL_INTERVAL_SECONDS: float = 2.0
+    JOB_LEASE_DURATION_SECONDS: int = 300
+    JOB_MAX_ATTEMPTS: int = 3
+    INVESTIGATION_MAX_RUNTIME_SECONDS: int = 180
+    WORKSPACE_MAX_CONCURRENT_JOBS: int = 3
+    WORKSPACE_MAX_QUEUED_JOBS: int = 20
+
     @property
     def cors_origins(self) -> List[str]:
         return [origin.strip() for origin in self.ALLOWED_ORIGINS.split(",") if origin.strip()]

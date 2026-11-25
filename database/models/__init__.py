@@ -68,9 +68,25 @@ from database.models.evaluation import (
     EvaluationRunRecord,
     EvaluationBugResultRecord,
 )
+from database.models.incidents import (
+    Incident,
+    IncidentSource,
+    IncidentStatus,
+    IncidentType,
+    Job,
+    JobStatus,
+    JobType,
+)
 
 __all__ = [
     "Base",
+    "Incident",
+    "IncidentSource",
+    "IncidentStatus",
+    "IncidentType",
+    "Job",
+    "JobStatus",
+    "JobType",
     "EvaluationRunRecord",
     "EvaluationBugResultRecord",
     "AgentState",

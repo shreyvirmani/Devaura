@@ -31,6 +31,7 @@ interface SidebarProps {
 
 const navigation = [
   { name: "Overview", href: "/", icon: LayoutDashboard },
+  { name: "Incidents", href: "/incidents", icon: ShieldAlert },
   { name: "Issues", href: "/investigations", icon: Search },
   { name: "Repairs", href: "/repairs", icon: Wrench },
   { name: "Code Intelligence", href: "/code-intelligence", icon: Network },

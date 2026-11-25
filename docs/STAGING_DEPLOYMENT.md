@@ -61,3 +61,17 @@ Expected head revision: `0004_phase4_repair_pipeline`.
 ### Rollback Strategy
 - **Never** automatically run `alembic downgrade` in staging/production.
 - For application regressions, roll back the API and Worker container images/processes to the previous commit while keeping forward-compatible DB schema, or restore from a PostgreSQL point-in-time snapshot taken prior to migration.
+
+---
+
+## 5. Phase 6 Single-Stack Blueprint (`render.yaml`) & Manual Provisioning Steps
+
+Chosen hosting stack: **Render** ([render.yaml](../render.yaml)) — Managed PostgreSQL (`devaura-staging-db`), FastAPI API (`devaura-staging-api`), independent Worker (`devaura-staging-worker`), and Next.js Web (`devaura-staging-web`).
+
+### Manual Steps Requiring External Credentials (Blocked in Local Environment)
+1. **Provision Stack:** Connect the repository in Render using `render.yaml` (or deploy PostgreSQL + API + Worker + Web services).
+2. **Set Unsynced Secrets:** Populate `ALLOWED_ORIGINS`, `GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY`, `GITHUB_WEBHOOK_SECRET`, `GEMINI_API_KEY`, and `NEXT_PUBLIC_API_URL` in the Render dashboard.
+3. **Verify Health/Readiness:** Run `python scripts/verify_staging_readiness.py --api-url https://<staging-api-url>`.
+4. **Create Disposable Staging Repo:** Create `devaura-staging-e2e` on GitHub with a failing pytest + GitHub Actions workflow, install the staging GitHub App on that repo only, and point the GitHub App webhook to `https://<staging-api-url>/api/v1/github/webhooks`.
+5. **Execute Live E2E:** Push a controlled defect to trigger GitHub Actions failure -> webhook -> incident -> investigation -> repair -> sandbox verification -> UI `Approve & Create PR` -> verify real branch, commit, and PR on GitHub (without merging).
+

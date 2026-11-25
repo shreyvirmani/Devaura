@@ -2830,7 +2830,22 @@ Phase 4 connects the existing Devaura repair, verification, approval, and PR sub
 
 ---
 
-# 71. Final Rule
+# 71. Production Phase 6 — Live Staging Deployment & Real GitHub E2E
+
+**Status:** `BLOCKED` (External Hosting Infrastructure, Managed PostgreSQL, Public HTTPS Webhook Endpoint, & Staging GitHub App Credentials Not Provisioned in Current Local Environment)
+
+### 1. Hosting Blueprint & Pre-Flight Tooling (`IMPLEMENTED`)
+- **`render.yaml`:** Single-stack staging blueprint defining Managed PostgreSQL 16 (`devaura-staging-db`), FastAPI API (`devaura-staging-api` with `preDeployCommand: alembic upgrade head`, `WORKER_ENABLED=false`, `/api/v1/health/ready`), independent Worker (`devaura-staging-worker` running `python -m apps.worker.main`), and Next.js Web (`devaura-staging-web` with `NEXT_PUBLIC_APP_ENV=staging`).
+- **`scripts/verify_staging_readiness.py`:** Pre-flight verification script for `/api/v1/health/live` and `/api/v1/health/ready`.
+- **`docs/STAGING_DEPLOYMENT.md`:** Updated with exact manual provisioning and live E2E verification steps.
+
+### 2. Blocked Live Execution Items (`BLOCKED`)
+- **Tooling Audit:** `docker`, `gh`, `psql`, `pg_isready`, `railway`, `render`, `flyctl`, `vercel`, `cloudflared`, and `ngrok` are not installed on the local machine; `.env` lacks `DATABASE_URL`, `GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY`, and `GITHUB_WEBHOOK_SECRET`.
+- **Unverified Live Items:** Live hosted PostgreSQL `0001 -> 0004`, live API/Worker independent restarts, live GitHub App webhook delivery, live LLM repair on a disposable staging repo, and live GitHub PR creation from hosted staging remain `BLOCKED` until external staging infrastructure and credentials are provisioned.
+
+---
+
+# 72. Final Rule
 
 **Never sacrifice correctness, security, or verifiability merely to make Devaura appear autonomous.**
 

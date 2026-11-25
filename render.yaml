@@ -1,0 +1,80 @@
+# Devaura Staging Infrastructure Blueprint (Render)
+# Single-stack hosting: Managed PostgreSQL + FastAPI API + Independent DurableJobWorker + Next.js Web
+
+databases:
+  - name: devaura-staging-db
+    plan: starter
+    databaseName: devaura_staging
+    user: devaura
+
+services:
+  - type: web
+    name: devaura-staging-api
+    runtime: python
+    plan: starter
+    buildCommand: pip install -r apps/api/requirements.txt
+    preDeployCommand: alembic upgrade head
+    startCommand: uvicorn apps.api.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/v1/health/ready
+    envVars:
+      - key: APP_ENV
+        value: staging
+      - key: WORKER_ENABLED
+        value: "false"
+      - key: ALLOW_DEV_USER_FALLBACK
+        value: "false"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: devaura-staging-db
+          property: connectionString
+      - key: SECRET_KEY
+        generateValue: true
+      - key: ALLOWED_ORIGINS
+        sync: false
+      - key: GITHUB_APP_ID
+        sync: false
+      - key: GITHUB_APP_PRIVATE_KEY
+        sync: false
+      - key: GITHUB_WEBHOOK_SECRET
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+
+  - type: worker
+    name: devaura-staging-worker
+    runtime: python
+    plan: starter
+    buildCommand: pip install -r apps/api/requirements.txt
+    startCommand: python -m apps.worker.main
+    envVars:
+      - key: APP_ENV
+        value: staging
+      - key: ALLOW_DEV_USER_FALLBACK
+        value: "false"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: devaura-staging-db
+          property: connectionString
+      - key: SECRET_KEY
+        sync: false
+      - key: GITHUB_APP_ID
+        sync: false
+      - key: GITHUB_APP_PRIVATE_KEY
+        sync: false
+      - key: GITHUB_WEBHOOK_SECRET
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+
+  - type: web
+    name: devaura-staging-web
+    runtime: node
+    plan: starter
+    rootDir: apps/web
+    buildCommand: npm ci && npm run build
+    startCommand: npm run start -- -p $PORT
+    envVars:
+      - key: NEXT_PUBLIC_APP_ENV
+        value: staging
+      - key: NEXT_PUBLIC_API_URL
+        sync: false

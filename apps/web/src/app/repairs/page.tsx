@@ -828,7 +828,7 @@ export default function RepairWorkspacePage() {
   return (
     <div className="max-w-7xl mx-auto space-y-8">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-[#1e293b]">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-[#2A3036]">
         <div>
           <div className="flex items-center gap-3">
             <h1 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
@@ -975,7 +975,7 @@ export default function RepairWorkspacePage() {
                 ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
                 : step.current
                 ? "bg-blue-500/10 border-blue-500/40 text-blue-300 ring-1 ring-blue-500/30"
-                : "bg-[#111726]/60 border-[#1e293b] text-gray-500"
+                : "bg-[#121518]/60 border-[#2A3036] text-gray-500"
             }`}
           >
             {step.label}
@@ -984,7 +984,7 @@ export default function RepairWorkspacePage() {
       </div>
 
       {/* Bounded Repair Loop Timeline (Max 3 Attempts) */}
-      <div className="bg-[#111726] border border-[#1e293b] rounded-xl p-5 space-y-4">
+      <div className="bg-[#121518] border border-[#2A3036] rounded-[6px] p-5 space-y-4">
         <div className="flex items-center justify-between">
           <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
             <RotateCcw className="w-4 h-4 text-amber-400" /> Bounded Repair Loop Progress (Max 3 Total Attempts)
@@ -1016,10 +1016,10 @@ export default function RepairWorkspacePage() {
                 key={attemptNum}
                 className={`p-4 rounded-lg border space-y-2 transition-all ${
                   isCurrent
-                    ? "bg-[#0d131f] border-blue-500/40 ring-1 ring-blue-500/30"
+                    ? "bg-[#121518] border-blue-500/40 ring-1 ring-blue-500/30"
                     : isPast
-                    ? "bg-[#0d131f]/60 border-[#1e293b]"
-                    : "bg-[#111726]/40 border-[#1e293b]/60 opacity-60"
+                    ? "bg-[#121518]/60 border-[#2A3036]"
+                    : "bg-[#121518]/40 border-[#2A3036]/60 opacity-60"
                 }`}
               >
                 <div className="flex items-center justify-between">
@@ -1038,7 +1038,7 @@ export default function RepairWorkspacePage() {
                     : "Final fallback boundary. If failed -> REPAIR_EXHAUSTED."}
                 </p>
                 {isCurrent && activeRepair.patch && (
-                  <div className="pt-2 border-t border-[#1e293b] flex items-center justify-between text-[11px] font-mono text-gray-400">
+                  <div className="pt-2 border-t border-[#2A3036] flex items-center justify-between text-[11px] font-mono text-gray-400">
                     <span>Patch:</span>
                     <span className="text-blue-400">{activeRepair.patch.patch_hash.substring(0, 10)}...</span>
                   </div>
@@ -1052,7 +1052,7 @@ export default function RepairWorkspacePage() {
       {/* Top Details Grid: Root Cause & Repair Scope */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Root Cause Card */}
-        <div className="bg-[#111726] border border-[#1e293b] rounded-xl p-5 space-y-3">
+        <div className="bg-[#121518] border border-[#2A3036] rounded-[6px] p-5 space-y-3">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
               <Sparkles className="w-4 h-4 text-amber-400" /> Diagnosed Root Cause
@@ -1064,13 +1064,13 @@ export default function RepairWorkspacePage() {
           <p className="text-sm text-gray-200 font-medium">
             {activeRepair.plan?.root_cause || "Analyzing failure evidence..."}
           </p>
-          <div className="pt-2 border-t border-[#1e293b] text-xs text-gray-400">
+          <div className="pt-2 border-t border-[#2A3036] text-xs text-gray-400">
             Candidate ID: <span className="font-mono text-gray-300">{activeRepair.context?.candidate_id || "c-1"}</span>
           </div>
         </div>
 
         {/* Repair Scope Card */}
-        <div className="bg-[#111726] border border-[#1e293b] rounded-xl p-5 space-y-3">
+        <div className="bg-[#121518] border border-[#2A3036] rounded-[6px] p-5 space-y-3">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
               <Layers className="w-4 h-4 text-blue-400" /> Repair Scope Guard
@@ -1081,19 +1081,19 @@ export default function RepairWorkspacePage() {
           </div>
           <div className="space-y-1">
             {activeRepair.context?.affected_files.map((file, i) => (
-              <div key={i} className="flex items-center gap-2 text-xs font-mono text-gray-300 bg-[#0d131f] px-2.5 py-1 rounded border border-[#1e293b]">
+              <div key={i} className="flex items-center gap-2 text-xs font-mono text-gray-300 bg-[#121518] px-2.5 py-1 rounded border border-[#2A3036]">
                 <FileCode className="w-3.5 h-3.5 text-blue-400" />
                 {file}
               </div>
             ))}
           </div>
-          <div className="pt-2 border-t border-[#1e293b] text-xs text-gray-500">
+          <div className="pt-2 border-t border-[#2A3036] text-xs text-gray-500">
             Strict bounded scope &bull; No sensitive files &bull; Max 5 files
           </div>
         </div>
 
         {/* Supporting Evidence Card */}
-        <div className="bg-[#111726] border border-[#1e293b] rounded-xl p-5 space-y-3">
+        <div className="bg-[#121518] border border-[#2A3036] rounded-[6px] p-5 space-y-3">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
               <Fingerprint className="w-4 h-4 text-purple-400" /> Supporting Evidence
@@ -1109,7 +1109,7 @@ export default function RepairWorkspacePage() {
               </span>
             ))}
           </div>
-          <div className="pt-2 border-t border-[#1e293b] text-xs text-gray-400">
+          <div className="pt-2 border-t border-[#2A3036] text-xs text-gray-400">
             Targeted Tests:{" "}
             <span className="font-mono text-emerald-400">
               {activeRepair.context?.related_tests.join(", ") || "tests/test_foundation.py"}
@@ -1120,7 +1120,7 @@ export default function RepairWorkspacePage() {
 
       {/* Repair Plan Section */}
       {activeRepair.plan && (
-        <div className="bg-[#111726] border border-[#1e293b] rounded-xl p-6 space-y-4">
+        <div className="bg-[#121518] border border-[#2A3036] rounded-[6px] p-6 space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-semibold text-white flex items-center gap-2">
               <Terminal className="w-4 h-4 text-blue-400" /> Evidence-Backed Repair Plan
@@ -1132,7 +1132,7 @@ export default function RepairWorkspacePage() {
 
           <div className="space-y-3">
             {activeRepair.plan.proposed_changes.map((change, idx) => (
-              <div key={idx} className="p-4 rounded-lg bg-[#0d131f] border border-[#1e293b] space-y-2">
+              <div key={idx} className="p-4 rounded-lg bg-[#121518] border border-[#2A3036] space-y-2">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-mono font-semibold text-white">{change.file}</span>
@@ -1159,8 +1159,8 @@ export default function RepairWorkspacePage() {
 
       {/* Patch Diff Viewer Card */}
       {activeRepair.patch && (
-        <div className="bg-[#111726] border border-[#1e293b] rounded-xl overflow-hidden">
-          <div className="h-11 bg-[#0d131f] border-b border-[#1e293b] px-4 flex items-center justify-between">
+        <div className="bg-[#121518] border border-[#2A3036] rounded-[6px] overflow-hidden">
+          <div className="h-11 bg-[#121518] border-b border-[#2A3036] px-4 flex items-center justify-between">
             <div className="flex items-center gap-2 text-xs font-mono text-gray-300">
               <FileDiff className="w-4 h-4 text-blue-400" />
               <span>diff --git a/{activeRepair.patch.changed_files[0]} b/{activeRepair.patch.changed_files[0]}</span>
@@ -1175,7 +1175,7 @@ export default function RepairWorkspacePage() {
             </div>
           </div>
 
-          <pre className="p-4 font-mono text-xs overflow-x-auto bg-[#090d16] text-gray-200 leading-relaxed">
+          <pre className="p-4 font-mono text-xs overflow-x-auto bg-[#0C0E10] text-gray-200 leading-relaxed">
             <code>
               {activeRepair.patch.unified_diff || "No diff generated."}
             </code>
@@ -1185,7 +1185,7 @@ export default function RepairWorkspacePage() {
 
       {/* Static Patch Risk Analysis (Prompt Section 5) */}
       {activeRepair.risk && (
-        <div className="bg-[#111726] border border-[#1e293b] rounded-xl p-6 space-y-4">
+        <div className="bg-[#121518] border border-[#2A3036] rounded-[6px] p-6 space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-semibold text-white flex items-center gap-2">
               <ShieldCheck className="w-4 h-4 text-emerald-400" /> Static Patch Risk Analysis (5 Dimensions)
@@ -1204,7 +1204,7 @@ export default function RepairWorkspacePage() {
                 className={`p-3 rounded-lg border text-xs space-y-1 ${
                   f.is_blocking
                     ? "bg-red-500/10 border-red-500/30 text-red-300"
-                    : "bg-[#0d131f] border-[#1e293b] text-gray-300"
+                    : "bg-[#121518] border-[#2A3036] text-gray-300"
                 }`}
               >
                 <div className="flex items-center justify-between">
@@ -1229,24 +1229,24 @@ export default function RepairWorkspacePage() {
       {/* Human Approval Gate & Sandbox Status */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Human Authorization Record */}
-        <div className="bg-[#111726] border border-[#1e293b] rounded-xl p-5 space-y-3">
+        <div className="bg-[#121518] border border-[#2A3036] rounded-[6px] p-5 space-y-3">
           <h3 className="text-sm font-semibold text-white flex items-center gap-2">
             <Lock className="w-4 h-4 text-amber-400" /> Human Approval Gate
           </h3>
           <div className="text-xs space-y-2 text-gray-400">
-            <div className="flex justify-between py-1 border-b border-[#1e293b]">
+            <div className="flex justify-between py-1 border-b border-[#2A3036]">
               <span>Approval Status:</span>
               <span className="font-mono text-white font-medium">
                 {activeRepair.approval?.status || "PENDING"}
               </span>
             </div>
-            <div className="flex justify-between py-1 border-b border-[#1e293b]">
+            <div className="flex justify-between py-1 border-b border-[#2A3036]">
               <span>Approved By:</span>
               <span className="font-mono text-gray-200">
                 {activeRepair.approval?.approved_by || "Awaiting Human Review"}
               </span>
             </div>
-            <div className="flex justify-between py-1 border-b border-[#1e293b]">
+            <div className="flex justify-between py-1 border-b border-[#2A3036]">
               <span>Cryptographic Binding:</span>
               <span className="font-mono text-emerald-400">
                 SHA-256 Verified
@@ -1264,18 +1264,18 @@ export default function RepairWorkspacePage() {
         </div>
 
         {/* Isolated Sandbox Workspace Record */}
-        <div className="bg-[#111726] border border-[#1e293b] rounded-xl p-5 space-y-3">
+        <div className="bg-[#121518] border border-[#2A3036] rounded-[6px] p-5 space-y-3">
           <h3 className="text-sm font-semibold text-white flex items-center gap-2">
             <Box className="w-4 h-4 text-purple-400" /> Isolated Sandbox Workspace
           </h3>
           <div className="text-xs space-y-2 text-gray-400">
-            <div className="flex justify-between py-1 border-b border-[#1e293b]">
+            <div className="flex justify-between py-1 border-b border-[#2A3036]">
               <span>Workspace Directory:</span>
               <span className="font-mono text-gray-200 text-[11px]">
                 {activeRepair.workspace?.isolated_path || ".devaura_sandboxes/..."}
               </span>
             </div>
-            <div className="flex justify-between py-1 border-b border-[#1e293b]">
+            <div className="flex justify-between py-1 border-b border-[#2A3036]">
               <span>Original Repo Isolation:</span>
               <span className="font-mono text-emerald-400">100% UNTOUCHED</span>
             </div>
@@ -1294,8 +1294,8 @@ export default function RepairWorkspacePage() {
       </div>
 
       {/* Phase 6: Sandbox Verification Results Panel */}
-      <div className="bg-[#111726] border border-[#1e293b] rounded-xl p-6 space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-[#1e293b]">
+      <div className="bg-[#121518] border border-[#2A3036] rounded-[6px] p-6 space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-[#2A3036]">
           <div>
             <h3 className="text-base font-semibold text-white flex items-center gap-2">
               <CheckCircle2 className="w-5 h-5 text-blue-400" /> Sandbox Verification Suite (Phase 6)
@@ -1323,7 +1323,7 @@ export default function RepairWorkspacePage() {
                 return (
                   <div
                     key={idx}
-                    className="p-4 rounded-xl bg-[#0d131f] border border-[#1e293b] flex flex-col justify-between space-y-3"
+                    className="p-4 rounded-[6px] bg-[#121518] border border-[#2A3036] flex flex-col justify-between space-y-3"
                   >
                     <div>
                       <div className="flex items-center justify-between">
@@ -1335,12 +1335,12 @@ export default function RepairWorkspacePage() {
                           {check.status}
                         </span>
                       </div>
-                      <div className="mt-2 text-xs font-mono text-gray-400 bg-[#080d16] px-2 py-1.5 rounded border border-[#1e293b] overflow-x-auto">
+                      <div className="mt-2 text-xs font-mono text-gray-400 bg-[#080d16] px-2 py-1.5 rounded border border-[#2A3036] overflow-x-auto">
                         $ {check.command}
                       </div>
                     </div>
 
-                    <div className="space-y-2 pt-2 border-t border-[#1e293b] text-xs">
+                    <div className="space-y-2 pt-2 border-t border-[#2A3036] text-xs">
                       <div className="flex justify-between text-gray-400 text-[11px]">
                         <span>Duration:</span>
                         <span className="font-mono text-gray-300">{check.duration_ms} ms</span>
@@ -1367,7 +1367,7 @@ export default function RepairWorkspacePage() {
                       {/* Log Toggle */}
                       <button
                         onClick={() => setExpandedCheck(isExpanded ? null : (check.id || `check-${idx}`))}
-                        className="w-full flex items-center justify-center gap-1 py-1 rounded bg-[#111726] hover:bg-[#151f33] text-gray-400 hover:text-white text-[11px] font-medium border border-[#1e293b] transition-all"
+                        className="w-full flex items-center justify-center gap-1 py-1 rounded bg-[#121518] hover:bg-[#151f33] text-gray-400 hover:text-white text-[11px] font-medium border border-[#2A3036] transition-all"
                       >
                         {isExpanded ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
                         {isExpanded ? "Hide Logs" : "View Console Output"}
@@ -1380,7 +1380,7 @@ export default function RepairWorkspacePage() {
                         {check.stdout && (
                           <div className="space-y-1">
                             <span className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider">stdout</span>
-                            <pre className="p-2 rounded bg-[#060910] border border-[#1e293b] font-mono text-[10px] text-gray-300 max-h-36 overflow-y-auto whitespace-pre-wrap">
+                            <pre className="p-2 rounded bg-[#060910] border border-[#2A3036] font-mono text-[10px] text-gray-300 max-h-36 overflow-y-auto whitespace-pre-wrap">
                               {check.stdout}
                             </pre>
                           </div>
@@ -1402,7 +1402,7 @@ export default function RepairWorkspacePage() {
 
             {/* Failure Analysis & Signature Diagnosis */}
             {verificationRun.failure_analysis && (
-              <div className="p-4 rounded-xl bg-[#0d131f] border border-[#1e293b] space-y-3">
+              <div className="p-4 rounded-[6px] bg-[#121518] border border-[#2A3036] space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
                     <AlertTriangle className="w-4 h-4 text-amber-400" /> Automated Verification Diagnosis
@@ -1417,13 +1417,13 @@ export default function RepairWorkspacePage() {
                 </p>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 text-xs">
-                  <div className="p-2.5 rounded bg-[#111726] border border-[#1e293b] space-y-1">
+                  <div className="p-2.5 rounded bg-[#121518] border border-[#2A3036] space-y-1">
                     <span className="text-[11px] text-gray-400 font-semibold">Deterministic Failure Signature (SHA-256):</span>
                     <div className="font-mono text-[10px] text-purple-300 truncate">
                       {verificationRun.failure_analysis.failure_signature}
                     </div>
                   </div>
-                  <div className="p-2.5 rounded bg-[#111726] border border-[#1e293b] space-y-1">
+                  <div className="p-2.5 rounded bg-[#121518] border border-[#2A3036] space-y-1">
                     <span className="text-[11px] text-gray-400 font-semibold">Bounded Retry Permission:</span>
                     <div className="font-mono text-[11px] font-bold">
                       {verificationRun.failure_analysis.can_retry ? (
@@ -1451,7 +1451,7 @@ export default function RepairWorkspacePage() {
             )}
           </div>
         ) : (
-          <div className="py-8 text-center text-gray-500 text-sm border border-dashed border-[#1e293b] rounded-xl">
+          <div className="py-8 text-center text-gray-500 text-sm border border-dashed border-[#2A3036] rounded-[6px]">
             No verification suite has been executed for this repair attempt yet. Click &quot;Run Sandbox Verification&quot; to test the isolated sandbox.
           </div>
         )}
@@ -1460,8 +1460,8 @@ export default function RepairWorkspacePage() {
       {/* -------------------------------------------------------------------------- */}
       {/* Phase 7: Verified Pull Request Orchestration & Human Review */}
       {/* -------------------------------------------------------------------------- */}
-      <div className="p-6 rounded-2xl bg-[#0a0e17] border border-[#1e293b] space-y-6">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-[#1e293b]">
+      <div className="p-6 rounded-[8px] bg-[#0a0e17] border border-[#2A3036] space-y-6">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-[#2A3036]">
           <div>
             <div className="flex items-center gap-2">
               <GitPullRequest className="w-5 h-5 text-purple-400" />
@@ -1490,7 +1490,7 @@ export default function RepairWorkspacePage() {
         </div>
 
         {/* Verification Prerequisite Banner */}
-        <div className="p-3.5 rounded-xl bg-[#0f172a] border border-[#1e293b] flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs">
+        <div className="p-3.5 rounded-[6px] bg-[#0f172a] border border-[#2A3036] flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs">
           <div className="flex items-center gap-2.5">
             <ShieldCheck className="w-4 h-4 text-emerald-400" />
             <span className="text-gray-300 font-medium">Phase 6 Verification Status:</span>
@@ -1507,7 +1507,7 @@ export default function RepairWorkspacePage() {
         {prContext && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* PR Branch & Commit Metadata */}
-            <div className="p-4 rounded-xl bg-[#0d131f] border border-[#1e293b] space-y-3">
+            <div className="p-4 rounded-[6px] bg-[#121518] border border-[#2A3036] space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
                   <GitBranch className="w-3.5 h-3.5 text-blue-400" /> Branch &amp; Commit Spec
@@ -1518,21 +1518,21 @@ export default function RepairWorkspacePage() {
               </div>
 
               <div className="space-y-2 text-xs">
-                <div className="flex justify-between items-center py-1 border-b border-[#1e293b]">
+                <div className="flex justify-between items-center py-1 border-b border-[#2A3036]">
                   <span className="text-gray-400">Repository:</span>
                   <span className="font-mono text-white font-medium">{prContext.repository}</span>
                 </div>
-                <div className="flex justify-between items-center py-1 border-b border-[#1e293b]">
+                <div className="flex justify-between items-center py-1 border-b border-[#2A3036]">
                   <span className="text-gray-400">Base Branch:</span>
                   <span className="font-mono text-gray-300">{prContext.base_branch} ({prContext.base_revision.slice(0, 8)})</span>
                 </div>
-                <div className="flex justify-between items-center py-1 border-b border-[#1e293b]">
+                <div className="flex justify-between items-center py-1 border-b border-[#2A3036]">
                   <span className="text-gray-400">Repair Branch:</span>
                   <span className="font-mono text-purple-300 font-semibold">{prContext.repair_branch}</span>
                 </div>
                 <div className="space-y-1 pt-1">
                   <span className="text-gray-400 text-[11px]">Commit Message:</span>
-                  <div className="p-2 rounded bg-[#060910] border border-[#1e293b] font-mono text-[11px] text-gray-200">
+                  <div className="p-2 rounded bg-[#060910] border border-[#2A3036] font-mono text-[11px] text-gray-200">
                     {prContext.commit_message}
                   </div>
                 </div>
@@ -1540,7 +1540,7 @@ export default function RepairWorkspacePage() {
             </div>
 
             {/* PR Title & Description Preview */}
-            <div className="p-4 rounded-xl bg-[#0d131f] border border-[#1e293b] space-y-3">
+            <div className="p-4 rounded-[6px] bg-[#121518] border border-[#2A3036] space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
                   <FileCode className="w-3.5 h-3.5 text-purple-400" /> Pull Request Description
@@ -1555,7 +1555,7 @@ export default function RepairWorkspacePage() {
                 </div>
                 <div>
                   <span className="text-[11px] text-gray-400 font-medium">Description:</span>
-                  <pre className="mt-1 p-2.5 rounded bg-[#060910] border border-[#1e293b] font-mono text-[10px] text-gray-300 max-h-32 overflow-y-auto whitespace-pre-wrap">
+                  <pre className="mt-1 p-2.5 rounded bg-[#060910] border border-[#2A3036] font-mono text-[10px] text-gray-300 max-h-32 overflow-y-auto whitespace-pre-wrap">
                     {prContext.pr_body}
                   </pre>
                 </div>
@@ -1566,7 +1566,7 @@ export default function RepairWorkspacePage() {
 
         {/* Human Authorization Gate (Phase 7 Independent Gate) */}
         {prContext && !prRecord && (
-          <div className="p-4 rounded-xl bg-gradient-to-r from-[#0d131f] to-[#151c2e] border border-blue-500/30 space-y-3">
+          <div className="p-4 rounded-[6px] bg-gradient-to-r from-[#121518] to-[#151c2e] border border-blue-500/30 space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Lock className="w-4 h-4 text-blue-400" />
@@ -1591,7 +1591,7 @@ export default function RepairWorkspacePage() {
                   type="text"
                   value={prApproverIdentity}
                   onChange={(e) => setPrApproverIdentity(e.target.value)}
-                  className="px-2.5 py-1 rounded bg-[#060910] border border-[#1e293b] text-white text-xs font-mono focus:border-blue-500 focus:outline-none"
+                  className="px-2.5 py-1 rounded bg-[#060910] border border-[#2A3036] text-white text-xs font-mono focus:border-blue-500 focus:outline-none"
                   placeholder="engineer@devaura.ai"
                 />
               </div>
@@ -1663,7 +1663,7 @@ export default function RepairWorkspacePage() {
 
         {/* Opened GitHub Pull Request Card */}
         {prRecord && (
-          <div className="p-5 rounded-xl bg-[#0d131f] border border-purple-500/40 space-y-4">
+          <div className="p-5 rounded-[6px] bg-[#121518] border border-purple-500/40 space-y-4">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-lg bg-purple-500/20 border border-purple-500/30 flex items-center justify-center">
@@ -1691,22 +1691,22 @@ export default function RepairWorkspacePage() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-4 gap-3 text-xs">
-              <div className="p-2.5 rounded bg-[#111726] border border-[#1e293b]">
+              <div className="p-2.5 rounded bg-[#121518] border border-[#2A3036]">
                 <span className="text-[11px] text-gray-400 font-medium">Head Branch</span>
                 <div className="font-mono text-purple-300 font-semibold truncate mt-0.5">{prRecord.repair_branch}</div>
               </div>
-              <div className="p-2.5 rounded bg-[#111726] border border-[#1e293b]">
+              <div className="p-2.5 rounded bg-[#121518] border border-[#2A3036]">
                 <span className="text-[11px] text-gray-400 font-medium">Commit SHA</span>
                 <div className="font-mono text-gray-200 truncate mt-0.5">{prRecord.commit_sha}</div>
               </div>
-              <div className="p-2.5 rounded bg-[#111726] border border-[#1e293b]">
+              <div className="p-2.5 rounded bg-[#121518] border border-[#2A3036]">
                 <span className="text-[11px] text-gray-400 font-medium">CI Check Runs</span>
                 <div className="font-semibold text-emerald-400 mt-0.5 flex items-center gap-1">
                   <CheckCircle2 className="w-3 h-3 text-emerald-400" />
                   {prRecord.ci_status?.overall_status || "PASSED"}
                 </div>
               </div>
-              <div className="p-2.5 rounded bg-[#111726] border border-[#1e293b]">
+              <div className="p-2.5 rounded bg-[#121518] border border-[#2A3036]">
                 <span className="text-[11px] text-gray-400 font-medium">Review Status</span>
                 <div className="font-semibold text-blue-400 mt-0.5">
                   {prRecord.review_status?.review_status || "PENDING_REVIEW"}

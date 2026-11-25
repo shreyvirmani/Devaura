@@ -23,7 +23,7 @@ export default function SettingsPage() {
   return (
     <div className="max-w-4xl mx-auto space-y-8">
       {/* Header */}
-      <div className="flex items-center justify-between pb-2 border-b border-[#1e293b]">
+      <div className="flex items-center justify-between pb-2 border-b border-[#2A3036]">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-white">System Settings</h1>
           <p className="text-sm text-gray-400 mt-1">
@@ -40,7 +40,7 @@ export default function SettingsPage() {
       </div>
 
       {/* LLM Provider Configuration */}
-      <div className="bg-[#111726] border border-[#1e293b] rounded-xl p-6 space-y-4">
+      <div className="bg-[#121518] border border-[#2A3036] rounded-[6px] p-6 space-y-4">
         <div className="flex items-center gap-2 text-base font-semibold text-white">
           <Key className="w-4 h-4 text-blue-400" />
           <span>LLM Inference Provider</span>
@@ -57,7 +57,7 @@ export default function SettingsPage() {
               className={`p-3.5 rounded-lg border cursor-pointer text-center transition-all ${
                 provider === prov
                   ? "bg-blue-600/15 border-blue-500 text-blue-300 font-semibold"
-                  : "bg-[#090d16] border-[#1e293b] text-gray-400 hover:border-gray-700"
+                  : "bg-[#0C0E10] border-[#2A3036] text-gray-400 hover:border-gray-700"
               }`}
             >
               <div className="capitalize text-sm">{prov}</div>
@@ -75,13 +75,13 @@ export default function SettingsPage() {
           <input
             type="password"
             defaultValue="••••••••••••••••••••••••••••••••"
-            className="w-full bg-[#090d16] border border-[#1e293b] rounded-lg px-4 py-2 text-sm text-gray-200 font-mono focus:outline-none focus:border-blue-500"
+            className="w-full bg-[#0C0E10] border border-[#2A3036] rounded-lg px-4 py-2 text-sm text-gray-200 font-mono focus:outline-none focus:border-blue-500"
           />
         </div>
       </div>
 
       {/* GitHub Integration */}
-      <div className="bg-[#111726] border border-[#1e293b] rounded-xl p-6 space-y-4">
+      <div className="bg-[#121518] border border-[#2A3036] rounded-[6px] p-6 space-y-4">
         <div className="flex items-center gap-2 text-base font-semibold text-white">
           <Github className="w-4 h-4 text-purple-400" />
           <span>GitHub Integration Credentials</span>
@@ -95,13 +95,13 @@ export default function SettingsPage() {
           <input
             type="password"
             defaultValue="ghp_••••••••••••••••••••••••••••••••••••"
-            className="w-full bg-[#090d16] border border-[#1e293b] rounded-lg px-4 py-2 text-sm text-gray-200 font-mono focus:outline-none focus:border-blue-500"
+            className="w-full bg-[#0C0E10] border border-[#2A3036] rounded-lg px-4 py-2 text-sm text-gray-200 font-mono focus:outline-none focus:border-blue-500"
           />
         </div>
       </div>
 
       {/* Sandbox Isolation Constraints */}
-      <div className="bg-[#111726] border border-[#1e293b] rounded-xl p-6 space-y-4">
+      <div className="bg-[#121518] border border-[#2A3036] rounded-[6px] p-6 space-y-4">
         <div className="flex items-center gap-2 text-base font-semibold text-white">
           <Shield className="w-4 h-4 text-emerald-400" />
           <span>Execution Sandbox Boundaries</span>
@@ -111,19 +111,19 @@ export default function SettingsPage() {
         </p>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs font-mono">
-          <div className="p-3 rounded-lg bg-[#090d16] border border-[#1e293b] flex items-center justify-between">
+          <div className="p-3 rounded-lg bg-[#0C0E10] border border-[#2A3036] flex items-center justify-between">
             <span className="text-gray-400">Max Execution Timeout:</span>
             <span className="text-white">120 seconds</span>
           </div>
-          <div className="p-3 rounded-lg bg-[#090d16] border border-[#1e293b] flex items-center justify-between">
+          <div className="p-3 rounded-lg bg-[#0C0E10] border border-[#2A3036] flex items-center justify-between">
             <span className="text-gray-400">Memory Cap:</span>
             <span className="text-white">2048 MB</span>
           </div>
-          <div className="p-3 rounded-lg bg-[#090d16] border border-[#1e293b] flex items-center justify-between">
+          <div className="p-3 rounded-lg bg-[#0C0E10] border border-[#2A3036] flex items-center justify-between">
             <span className="text-gray-400">CPU Core Quota:</span>
             <span className="text-white">2.0 vCPUs</span>
           </div>
-          <div className="p-3 rounded-lg bg-[#090d16] border border-[#1e293b] flex items-center justify-between">
+          <div className="p-3 rounded-lg bg-[#0C0E10] border border-[#2A3036] flex items-center justify-between">
             <span className="text-gray-400">Repair Attempt Cap:</span>
             <span className="text-white">3 iterations max</span>
           </div>

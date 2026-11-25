@@ -210,7 +210,7 @@ export default function EvaluationDashboardPage() {
   return (
     <div className="max-w-7xl mx-auto space-y-8 pb-16">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-[#1e293b]">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-[#2A3036]">
         <div>
           <div className="flex items-center gap-3">
             <h1 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2.5">
@@ -262,7 +262,7 @@ export default function EvaluationDashboardPage() {
       {/* Primary KPI Ribbon - Held-Out Generalization FIRST */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         {/* Card 1: PRIMARY METRIC - Held-Out Repository Generalization */}
-        <div className="p-4 rounded-xl bg-[#0f172a] border-2 border-emerald-500 flex flex-col justify-between shadow-md shadow-emerald-500/20 relative overflow-hidden">
+        <div className="p-4 rounded-[6px] bg-[#0f172a] border-2 border-emerald-500 flex flex-col justify-between shadow-md shadow-emerald-500/20 relative overflow-hidden">
           <div className="absolute top-0 right-0 bg-emerald-500 text-black text-[9px] font-black uppercase px-2 py-0.5 rounded-bl">
             Primary Metric
           </div>
@@ -275,7 +275,7 @@ export default function EvaluationDashboardPage() {
         </div>
 
         {/* Card 2: SECONDARY - Train Split Performance */}
-        <div className="p-4 rounded-xl bg-[#0f172a] border border-blue-500/30 flex flex-col justify-between">
+        <div className="p-4 rounded-[6px] bg-[#0f172a] border border-blue-500/30 flex flex-col justify-between">
           <div className="text-xs font-medium text-gray-400 flex items-center justify-between">
             Train Split (Secondary)
             <Activity className="w-4 h-4 text-blue-400" />
@@ -285,7 +285,7 @@ export default function EvaluationDashboardPage() {
         </div>
 
         {/* Card 3: SECONDARY - Validation Split Performance */}
-        <div className="p-4 rounded-xl bg-[#0f172a] border border-purple-500/30 flex flex-col justify-between">
+        <div className="p-4 rounded-[6px] bg-[#0f172a] border border-purple-500/30 flex flex-col justify-between">
           <div className="text-xs font-medium text-gray-400 flex items-center justify-between">
             Validation (Secondary)
             <Layers2 className="w-4 h-4 text-purple-400" />
@@ -295,7 +295,7 @@ export default function EvaluationDashboardPage() {
         </div>
 
         {/* Card 4: SECONDARY - Aggregate Suite Performance */}
-        <div className="p-4 rounded-xl bg-[#0f172a] border border-[#1e293b] flex flex-col justify-between">
+        <div className="p-4 rounded-[6px] bg-[#0f172a] border border-[#2A3036] flex flex-col justify-between">
           <div className="text-xs font-medium text-gray-400 flex items-center justify-between">
             Aggregate (Secondary)
             <BarChart3 className="w-4 h-4 text-amber-400" />
@@ -305,7 +305,7 @@ export default function EvaluationDashboardPage() {
         </div>
 
         {/* Card 5: Held-Out Localization Top-1 */}
-        <div className="p-4 rounded-xl bg-[#0f172a] border border-[#1e293b] flex flex-col justify-between">
+        <div className="p-4 rounded-[6px] bg-[#0f172a] border border-[#2A3036] flex flex-col justify-between">
           <div className="text-xs font-medium text-gray-400 flex items-center justify-between">
             Held-Out Localization Top-1
             <CheckCircle2 className="w-4 h-4 text-emerald-400" />
@@ -315,7 +315,7 @@ export default function EvaluationDashboardPage() {
         </div>
 
         {/* Card 6: False Repair Rate */}
-        <div className="p-4 rounded-xl bg-[#0f172a] border border-emerald-500/30 flex flex-col justify-between">
+        <div className="p-4 rounded-[6px] bg-[#0f172a] border border-emerald-500/30 flex flex-col justify-between">
           <div className="text-xs font-medium text-gray-400 flex items-center justify-between">
             False Repair Rate
             <AlertTriangle className="w-4 h-4 text-emerald-400" />
@@ -326,7 +326,7 @@ export default function EvaluationDashboardPage() {
       </div>
 
       {/* Navigation Tabs */}
-      <div className="flex items-center gap-2 border-b border-[#1e293b] pb-2 overflow-x-auto">
+      <div className="flex items-center gap-2 border-b border-[#2A3036] pb-2 overflow-x-auto">
         <button
           onClick={() => setActiveTab("HELD_OUT")}
           className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
@@ -396,7 +396,7 @@ export default function EvaluationDashboardPage() {
       {/* TAB: HELD-OUT GENERALIZATION (PHASE 9.3) */}
       {activeTab === "HELD_OUT" && (
         <div className="space-y-6">
-          <div className="rounded-xl bg-[#0d131f] border border-[#1e293b] p-6 space-y-6">
+          <div className="rounded-[6px] bg-[#121518] border border-[#2A3036] p-6 space-y-6">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div>
                 <h2 className="text-base font-semibold text-white flex items-center gap-2">
@@ -446,7 +446,7 @@ export default function EvaluationDashboardPage() {
                 <div className="text-[10px] text-gray-400 mt-0.5">9 / 9 runs passed (100.0%)</div>
               </div>
 
-              <div className="p-3 rounded-lg bg-[#080d1a] border border-[#1e293b]">
+              <div className="p-3 rounded-lg bg-[#080d1a] border border-[#2A3036]">
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] font-mono text-gray-400 uppercase">4. Aggregate Suite (Secondary)</span>
                   <span className="text-[9px] bg-slate-700 text-gray-300 px-1.5 py-0.2 rounded font-mono">22 Repos</span>
@@ -502,15 +502,15 @@ export default function EvaluationDashboardPage() {
 
               {/* Independent Localization Hierarchy (Top-1, Top-3, Top-5) */}
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 pt-1">
-                <div className="p-2.5 rounded-lg bg-[#080d1a] border border-[#1e293b]">
+                <div className="p-2.5 rounded-lg bg-[#080d1a] border border-[#2A3036]">
                   <span className="text-[10px] font-mono text-gray-400 uppercase">Overall Top-1</span>
                   <div className="text-base font-bold text-white font-mono mt-0.5">36 / 39 (92.3%)</div>
                 </div>
-                <div className="p-2.5 rounded-lg bg-[#080d1a] border border-[#1e293b]">
+                <div className="p-2.5 rounded-lg bg-[#080d1a] border border-[#2A3036]">
                   <span className="text-[10px] font-mono text-gray-400 uppercase">Overall Top-3</span>
                   <div className="text-base font-bold text-white font-mono mt-0.5">39 / 39 (100.0%)</div>
                 </div>
-                <div className="p-2.5 rounded-lg bg-[#080d1a] border border-[#1e293b]">
+                <div className="p-2.5 rounded-lg bg-[#080d1a] border border-[#2A3036]">
                   <span className="text-[10px] font-mono text-gray-400 uppercase">Overall Top-5</span>
                   <div className="text-base font-bold text-white font-mono mt-0.5">39 / 39 (100.0%)</div>
                 </div>
@@ -538,9 +538,9 @@ export default function EvaluationDashboardPage() {
                 <BarChart3 className="w-4 h-4 text-purple-400" />
                 Held-Out Baselines Comparison (Held-Out Test Set ONLY &bull; 13 Repositories)
               </h3>
-              <div className="overflow-x-auto rounded-lg border border-[#1e293b]">
+              <div className="overflow-x-auto rounded-lg border border-[#2A3036]">
                 <table className="w-full text-left text-xs font-mono">
-                  <thead className="bg-[#1e293b]/50 text-gray-300 uppercase text-[10px]">
+                  <thead className="bg-[#2A3036]/50 text-gray-300 uppercase text-[10px]">
                     <tr>
                       <th className="px-4 py-2.5">Pipeline Baseline</th>
                       <th className="px-4 py-2.5 text-center">Reliable Success</th>
@@ -548,7 +548,7 @@ export default function EvaluationDashboardPage() {
                       <th className="px-4 py-2.5">Pipeline Configuration &amp; Invariants</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[#1e293b]/50">
+                  <tbody className="divide-y divide-[#2A3036]/50">
                     <tr className="hover:bg-slate-800/30">
                       <td className="px-4 py-3 font-semibold text-gray-300">Baseline A: Raw LLM</td>
                       <td className="px-4 py-3 text-center font-bold text-rose-400">0 / 13 (0.0%)</td>
@@ -588,9 +588,9 @@ export default function EvaluationDashboardPage() {
                 <span className="text-[11px] font-mono text-gray-400">3 Repeated Independent Trials / Defect</span>
               </div>
 
-              <div className="overflow-x-auto rounded-lg border border-[#1e293b]">
+              <div className="overflow-x-auto rounded-lg border border-[#2A3036]">
                 <table className="w-full text-left text-xs font-mono">
-                  <thead className="bg-[#1e293b]/50 text-gray-300 uppercase text-[10px]">
+                  <thead className="bg-[#2A3036]/50 text-gray-300 uppercase text-[10px]">
                     <tr>
                       <th className="px-3 py-2.5">Bug ID</th>
                       <th className="px-3 py-2.5">Repository</th>
@@ -603,7 +603,7 @@ export default function EvaluationDashboardPage() {
                       <th className="px-3 py-2.5">Diagnosis / Failure Taxonomy</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[#1e293b]/50">
+                  <tbody className="divide-y divide-[#2A3036]/50">
                     {HISTORICAL_TRACK_C_BUGS.filter((b) => b.split === "test").map((b) => (
                       <tr key={b.id} className="hover:bg-slate-800/30">
                         <td className="px-3 py-2.5 font-bold text-white">{b.id}</td>
@@ -660,7 +660,7 @@ export default function EvaluationDashboardPage() {
 
             {/* Empirical Diagnoses of HIST-004 & HIST-009 */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 text-xs">
-              <div className="p-4 rounded-xl bg-black/40 border border-amber-500/30 space-y-2">
+              <div className="p-4 rounded-[6px] bg-black/40 border border-amber-500/30 space-y-2">
                 <div className="text-amber-400 font-bold flex items-center gap-2 uppercase text-[11px]">
                   <AlertTriangle className="w-4 h-4 text-amber-400" />
                   HIST-004 (pydantic): Test Failure Diagnosis
@@ -673,7 +673,7 @@ export default function EvaluationDashboardPage() {
                 </p>
               </div>
 
-              <div className="p-4 rounded-xl bg-black/40 border border-rose-500/30 space-y-2">
+              <div className="p-4 rounded-[6px] bg-black/40 border border-rose-500/30 space-y-2">
                 <div className="text-rose-400 font-bold flex items-center gap-2 uppercase text-[11px]">
                   <X className="w-4 h-4 text-rose-400" />
                   HIST-009 (pytest): Wrong Localization Diagnosis
@@ -693,7 +693,7 @@ export default function EvaluationDashboardPage() {
       {/* TAB 1: OVERVIEW */}
       {activeTab === "OVERVIEW" && (
         <div className="space-y-6">
-          <div className="rounded-xl bg-[#0d131f] border border-[#1e293b] p-6 space-y-4">
+          <div className="rounded-[6px] bg-[#121518] border border-[#2A3036] p-6 space-y-4">
             <h2 className="text-base font-semibold text-white flex items-center gap-2">
               <Sparkles className="w-5 h-5 text-purple-400" />
               Phase 9 Capability Verification: The Tri-Track Architecture
@@ -739,7 +739,7 @@ export default function EvaluationDashboardPage() {
 
       {/* TAB: REAL-WORLD DATASET (v1.0.0) */}
       {activeTab === "REAL_DATASET" && (
-        <div className="rounded-xl bg-[#0d131f] border border-[#1e293b] p-6 space-y-6">
+        <div className="rounded-[6px] bg-[#121518] border border-[#2A3036] p-6 space-y-6">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
               <h2 className="text-base font-semibold text-white flex items-center gap-2">
@@ -761,7 +761,7 @@ export default function EvaluationDashboardPage() {
           </div>
 
           {/* Training & Fine-Tuning Status Banner */}
-          <div className="p-4 rounded-xl bg-purple-950/20 border border-purple-500/30 space-y-2">
+          <div className="p-4 rounded-[6px] bg-purple-950/20 border border-purple-500/30 space-y-2">
             <div className="flex items-center gap-2 text-xs font-mono text-purple-300 font-bold uppercase">
               <Sparkles className="w-4 h-4 text-purple-400" />
               Inference Architecture &amp; Training Status
@@ -794,9 +794,9 @@ export default function EvaluationDashboardPage() {
           </div>
 
           {/* Table of Repositories */}
-          <div className="overflow-x-auto rounded-lg border border-[#1e293b]">
+          <div className="overflow-x-auto rounded-lg border border-[#2A3036]">
             <table className="w-full text-left text-xs font-mono">
-              <thead className="bg-[#1e293b]/50 text-gray-300 uppercase text-[10px]">
+              <thead className="bg-[#2A3036]/50 text-gray-300 uppercase text-[10px]">
                 <tr>
                   <th className="px-4 py-3">Bug ID</th>
                   <th className="px-4 py-3">Repository</th>
@@ -808,7 +808,7 @@ export default function EvaluationDashboardPage() {
                   <th className="px-4 py-3">Issue / CVE</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#1e293b]/50">
+              <tbody className="divide-y divide-[#2A3036]/50">
                 {REAL_DATASET_REPOS.map((item) => (
                   <tr key={item.bug_id} className="hover:bg-slate-800/30">
                     <td className="px-4 py-3 font-bold text-white">{item.bug_id}</td>
@@ -839,7 +839,7 @@ export default function EvaluationDashboardPage() {
 
       {/* TAB 2: TRACK C (HISTORICAL REAL-WORLD BUGS) */}
       {activeTab === "TRACK_C" && (
-        <div className="rounded-xl bg-[#0d131f] border border-[#1e293b] p-6 space-y-6">
+        <div className="rounded-[6px] bg-[#121518] border border-[#2A3036] p-6 space-y-6">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
               <h2 className="text-base font-semibold text-white flex items-center gap-2">
@@ -857,9 +857,9 @@ export default function EvaluationDashboardPage() {
             </div>
           </div>
 
-          <div className="overflow-x-auto rounded-lg border border-[#1e293b]">
+          <div className="overflow-x-auto rounded-lg border border-[#2A3036]">
             <table className="w-full text-left text-xs">
-              <thead className="bg-[#1e293b]/50 text-gray-300 font-mono uppercase text-[10px]">
+              <thead className="bg-[#2A3036]/50 text-gray-300 font-mono uppercase text-[10px]">
                 <tr>
                   <th className="px-3 py-3">Bug ID</th>
                   <th className="px-3 py-3">Project</th>
@@ -874,7 +874,7 @@ export default function EvaluationDashboardPage() {
                   <th className="px-3 py-3">Outcome</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#1e293b]/50 font-mono">
+              <tbody className="divide-y divide-[#2A3036]/50 font-mono">
                 {HISTORICAL_TRACK_C_BUGS.map((bug) => (
                   <tr key={bug.id} className="hover:bg-slate-800/30 transition-colors">
                     <td className="px-3 py-3 font-bold text-white">{bug.id}</td>
@@ -928,7 +928,7 @@ export default function EvaluationDashboardPage() {
 
       {/* TAB 3: TRACK A (DETERMINISTIC BENCHMARK) */}
       {activeTab === "TRACK_A" && (
-        <div className="rounded-xl bg-[#0d131f] border border-[#1e293b] p-6 space-y-6">
+        <div className="rounded-[6px] bg-[#121518] border border-[#2A3036] p-6 space-y-6">
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-base font-semibold text-white flex items-center gap-2">
@@ -942,9 +942,9 @@ export default function EvaluationDashboardPage() {
             <div className="text-xs font-mono text-gray-400">Total Cases: 36 &bull; Passing: 32</div>
           </div>
 
-          <div className="overflow-x-auto rounded-lg border border-[#1e293b]">
+          <div className="overflow-x-auto rounded-lg border border-[#2A3036]">
             <table className="w-full text-left text-xs font-mono">
-              <thead className="bg-[#1e293b]/50 text-gray-300 uppercase text-[10px]">
+              <thead className="bg-[#2A3036]/50 text-gray-300 uppercase text-[10px]">
                 <tr>
                   <th className="px-4 py-3">ID</th>
                   <th className="px-4 py-3">Category</th>
@@ -955,7 +955,7 @@ export default function EvaluationDashboardPage() {
                   <th className="px-4 py-3">Outcome</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#1e293b]/50">
+              <tbody className="divide-y divide-[#2A3036]/50">
                 {filteredBugs.slice(0, 15).map((b) => (
                   <tr key={b.bug_id} className="hover:bg-slate-800/30">
                     <td className="px-4 py-3 text-white font-bold">{b.bug_id}</td>
@@ -987,7 +987,7 @@ export default function EvaluationDashboardPage() {
 
       {/* TAB 4: TRACK B (LIVE LLM BENCHMARK & TELEMETRY) */}
       {activeTab === "TRACK_B" && (
-        <div className="rounded-xl bg-[#0d131f] border border-[#1e293b] p-6 space-y-6">
+        <div className="rounded-[6px] bg-[#121518] border border-[#2A3036] p-6 space-y-6">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
               <div className="flex items-center gap-2">
@@ -1013,22 +1013,22 @@ export default function EvaluationDashboardPage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="p-4 rounded-lg bg-[#080d1a] border border-[#1e293b]">
+            <div className="p-4 rounded-lg bg-[#080d1a] border border-[#2A3036]">
               <div className="text-xs text-gray-400">API Prompt Tokens</div>
               <div className="text-xl font-bold text-white font-mono mt-1">15,480</div>
               <div className="text-[11px] text-gray-500 mt-1">Extracted from usageMetadata</div>
             </div>
-            <div className="p-4 rounded-lg bg-[#080d1a] border border-[#1e293b]">
+            <div className="p-4 rounded-lg bg-[#080d1a] border border-[#2A3036]">
               <div className="text-xs text-gray-400">API Completion Tokens</div>
               <div className="text-xl font-bold text-white font-mono mt-1">3,612</div>
               <div className="text-[11px] text-gray-500 mt-1">Strict JSON Schemas</div>
             </div>
-            <div className="p-4 rounded-lg bg-[#080d1a] border border-[#1e293b]">
+            <div className="p-4 rounded-lg bg-[#080d1a] border border-[#2A3036]">
               <div className="text-xs text-gray-400">Live Financial Cost</div>
               <div className="text-xl font-bold text-emerald-400 font-mono mt-1">$0.00224</div>
               <div className="text-[11px] text-gray-500 mt-1">$0.075 / $0.30 per 1M tokens</div>
             </div>
-            <div className="p-4 rounded-lg bg-[#080d1a] border border-[#1e293b]">
+            <div className="p-4 rounded-lg bg-[#080d1a] border border-[#2A3036]">
               <div className="text-xs text-gray-400">Mean Live Latency</div>
               <div className="text-xl font-bold text-purple-400 font-mono mt-1">8,240ms</div>
               <div className="text-[11px] text-gray-500 mt-1">Investigation + Plan + Patch</div>
@@ -1036,7 +1036,7 @@ export default function EvaluationDashboardPage() {
           </div>
 
           {/* Single Live Repair Walkthrough & Derivation Proof */}
-          <div className="p-5 rounded-xl bg-[#080d1a] border border-purple-500/30 space-y-4">
+          <div className="p-5 rounded-[6px] bg-[#080d1a] border border-purple-500/30 space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-semibold text-white flex items-center gap-2">
                 <Sparkles className="w-4 h-4 text-purple-400" />
@@ -1048,7 +1048,7 @@ export default function EvaluationDashboardPage() {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 text-xs font-mono">
-              <div className="p-3 rounded-lg bg-black/40 border border-[#1e293b]">
+              <div className="p-3 rounded-lg bg-black/40 border border-[#2A3036]">
                 <div className="text-gray-400 text-[11px] mb-2 font-bold text-purple-300">Live Generated Unified Diff (Parsed from LLM Response):</div>
                 <pre className="text-gray-300 overflow-x-auto leading-relaxed text-[11px]">
 {`--- a/flask_router/router.py
@@ -1064,7 +1064,7 @@ export default function EvaluationDashboardPage() {
                 </pre>
               </div>
 
-              <div className="p-3 rounded-lg bg-black/40 border border-[#1e293b] space-y-2">
+              <div className="p-3 rounded-lg bg-black/40 border border-[#2A3036] space-y-2">
                 <div className="text-gray-400 text-[11px] font-bold text-blue-300">Sandbox Verification Audit:</div>
                 <div className="flex items-center justify-between text-[11px] py-1 border-b border-gray-800">
                   <span className="text-gray-400">Pre-repair Reproduction Test:</span>
@@ -1094,7 +1094,7 @@ export default function EvaluationDashboardPage() {
 
       {/* TAB 5: ABLATION STUDIES */}
       {activeTab === "ABLATION" && (
-        <div className="rounded-xl bg-[#0d131f] border border-[#1e293b] p-6 space-y-6">
+        <div className="rounded-[6px] bg-[#121518] border border-[#2A3036] p-6 space-y-6">
           <h2 className="text-base font-semibold text-white flex items-center gap-2">
             <TrendingUp className="w-5 h-5 text-blue-400" />
             Controlled Ablation Experiments
@@ -1102,9 +1102,9 @@ export default function EvaluationDashboardPage() {
 
           <div className="space-y-4">
             <h3 className="text-sm font-semibold text-gray-200">1. Architecture Impact (Code Intelligence vs Raw Search)</h3>
-            <div className="overflow-x-auto rounded-lg border border-[#1e293b]">
+            <div className="overflow-x-auto rounded-lg border border-[#2A3036]">
               <table className="w-full text-left text-xs font-mono">
-                <thead className="bg-[#1e293b]/50 text-gray-300 uppercase text-[10px]">
+                <thead className="bg-[#2A3036]/50 text-gray-300 uppercase text-[10px]">
                   <tr>
                     <th className="px-4 py-3">Condition</th>
                     <th className="px-4 py-3">Localization Top-1</th>
@@ -1115,7 +1115,7 @@ export default function EvaluationDashboardPage() {
                     <th className="px-4 py-3">Cost (USD)</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#1e293b]/50">
+                <tbody className="divide-y divide-[#2A3036]/50">
                   <tr className="bg-emerald-500/5">
                     <td className="px-4 py-3 font-bold text-white">Full Devaura Pipeline</td>
                     <td className="px-4 py-3 text-emerald-400 font-bold">90.0%</td>
@@ -1152,14 +1152,14 @@ export default function EvaluationDashboardPage() {
 
       {/* TAB 6: SECURITY & GOVERNANCE */}
       {activeTab === "SECURITY" && (
-        <div className="rounded-xl bg-[#0d131f] border border-[#1e293b] p-6 space-y-6">
+        <div className="rounded-[6px] bg-[#121518] border border-[#2A3036] p-6 space-y-6">
           <h2 className="text-base font-semibold text-white flex items-center gap-2">
             <Lock className="w-5 h-5 text-emerald-400" />
             Security &amp; Governance Verification
           </h2>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="p-4 rounded-lg bg-[#080d1a] border border-[#1e293b] space-y-2">
+            <div className="p-4 rounded-lg bg-[#080d1a] border border-[#2A3036] space-y-2">
               <div className="text-xs font-mono text-emerald-400 font-bold">UNTRUSTED CONTENT BOUNDARY</div>
               <p className="text-xs text-gray-300">
                 All third-party repository code, comments, and docstrings are encapsulated in &lt;repository_content&gt; tags. Prompt injection instructions are ignored by system invariant.
@@ -1167,7 +1167,7 @@ export default function EvaluationDashboardPage() {
               <div className="text-[11px] text-emerald-400 font-mono">Status: Enforced &amp; Tested</div>
             </div>
 
-            <div className="p-4 rounded-lg bg-[#080d1a] border border-[#1e293b] space-y-2">
+            <div className="p-4 rounded-lg bg-[#080d1a] border border-[#2A3036] space-y-2">
               <div className="text-xs font-mono text-emerald-400 font-bold">SECRET REDACTION DEFENSE</div>
               <p className="text-xs text-gray-300">
                 Deterministic regex scanners scrub GitHub PATs, AWS secrets, Google API keys, and RSA private keys before prompt transmission.
@@ -1175,7 +1175,7 @@ export default function EvaluationDashboardPage() {
               <div className="text-[11px] text-emerald-400 font-mono">Status: Enforced &amp; Tested</div>
             </div>
 
-            <div className="p-4 rounded-lg bg-[#080d1a] border border-[#1e293b] space-y-2">
+            <div className="p-4 rounded-lg bg-[#080d1a] border border-[#2A3036] space-y-2">
               <div className="text-xs font-mono text-emerald-400 font-bold">LIFECYCLE TOOL GOVERNANCE</div>
               <p className="text-xs text-gray-300">
                 Autonomous PR creation, branch pushing, patch self-approval, and merging are permanently blocked from LLM execution across all phases.

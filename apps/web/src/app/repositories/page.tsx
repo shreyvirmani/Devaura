@@ -20,7 +20,7 @@ export default function RepositoriesPage() {
   return (
     <div className="max-w-7xl mx-auto space-y-8">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-2 border-b border-[#1e293b]">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-2 border-b border-[#2A3036]">
         <div>
           <div className="flex items-center gap-3">
             <h1 className="text-2xl font-bold tracking-tight text-white">shreyvirmani / Devaura</h1>
@@ -42,7 +42,7 @@ export default function RepositoriesPage() {
             href="https://github.com/shreyvirmani/Devaura"
             target="_blank"
             rel="noreferrer"
-            className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#151c2d] hover:bg-[#1a2337] border border-[#1e293b] text-xs font-medium text-gray-300 transition-colors"
+            className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#191D21] hover:bg-[#1a2337] border border-[#2A3036] text-xs font-medium text-gray-300 transition-colors"
           >
             <ExternalLink className="w-3.5 h-3.5" />
             View on GitHub
@@ -52,7 +52,7 @@ export default function RepositoriesPage() {
 
       {/* Repository Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-[#111726] border border-[#1e293b] rounded-xl p-4">
+        <div className="bg-[#121518] border border-[#2A3036] rounded-[6px] p-4">
           <div className="text-xs text-gray-400 mb-1 flex items-center gap-1.5">
             <Code2 className="w-3.5 h-3.5 text-blue-400" />
             Language Stack
@@ -60,7 +60,7 @@ export default function RepositoriesPage() {
           <div className="text-sm font-semibold text-white">Python 3.12 / Next.js 15</div>
         </div>
 
-        <div className="bg-[#111726] border border-[#1e293b] rounded-xl p-4">
+        <div className="bg-[#121518] border border-[#2A3036] rounded-[6px] p-4">
           <div className="text-xs text-gray-400 mb-1 flex items-center gap-1.5">
             <GitBranch className="w-3.5 h-3.5 text-purple-400" />
             Default Branch
@@ -68,7 +68,7 @@ export default function RepositoriesPage() {
           <div className="text-sm font-semibold text-white font-mono">main</div>
         </div>
 
-        <div className="bg-[#111726] border border-[#1e293b] rounded-xl p-4">
+        <div className="bg-[#121518] border border-[#2A3036] rounded-[6px] p-4">
           <div className="text-xs text-gray-400 mb-1 flex items-center gap-1.5">
             <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
             CI Status
@@ -78,7 +78,7 @@ export default function RepositoriesPage() {
           </div>
         </div>
 
-        <div className="bg-[#111726] border border-[#1e293b] rounded-xl p-4">
+        <div className="bg-[#121518] border border-[#2A3036] rounded-[6px] p-4">
           <div className="text-xs text-gray-400 mb-1 flex items-center gap-1.5">
             <Search className="w-3.5 h-3.5 text-amber-400" />
             Active Issues
@@ -88,7 +88,7 @@ export default function RepositoriesPage() {
       </div>
 
       {/* Navigation Tabs */}
-      <div className="flex border-b border-[#1e293b] space-x-6">
+      <div className="flex border-b border-[#2A3036] space-x-6">
         {(["overview", "commits", "prs", "ci"] as const).map((tab) => (
           <button
             key={tab}
@@ -108,32 +108,32 @@ export default function RepositoriesPage() {
       {activeTab === "overview" && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
-            <div className="bg-[#111726] border border-[#1e293b] rounded-xl p-6">
+            <div className="bg-[#121518] border border-[#2A3036] rounded-[6px] p-6">
               <h3 className="text-base font-semibold text-white mb-3">Repository Architecture Profile</h3>
               <div className="grid grid-cols-2 gap-4 text-xs">
-                <div className="p-3 rounded-lg bg-[#0d131f] border border-[#1e293b]">
+                <div className="p-3 rounded-lg bg-[#121518] border border-[#2A3036]">
                   <span className="text-gray-500 block mb-1">Backend Framework</span>
                   <span className="text-gray-200 font-mono font-medium">FastAPI + Async SQLAlchemy</span>
                 </div>
-                <div className="p-3 rounded-lg bg-[#0d131f] border border-[#1e293b]">
+                <div className="p-3 rounded-lg bg-[#121518] border border-[#2A3036]">
                   <span className="text-gray-500 block mb-1">Frontend Framework</span>
                   <span className="text-gray-200 font-mono font-medium">Next.js 14/15 App Router</span>
                 </div>
-                <div className="p-3 rounded-lg bg-[#0d131f] border border-[#1e293b]">
+                <div className="p-3 rounded-lg bg-[#121518] border border-[#2A3036]">
                   <span className="text-gray-500 block mb-1">Testing Framework</span>
                   <span className="text-gray-200 font-mono font-medium">Pytest + Asyncio Runner</span>
                 </div>
-                <div className="p-3 rounded-lg bg-[#0d131f] border border-[#1e293b]">
+                <div className="p-3 rounded-lg bg-[#121518] border border-[#2A3036]">
                   <span className="text-gray-500 block mb-1">Protocol Standard</span>
                   <span className="text-gray-200 font-mono font-medium">MCP Native Specification</span>
                 </div>
               </div>
             </div>
 
-            <div className="bg-[#111726] border border-[#1e293b] rounded-xl p-6">
+            <div className="bg-[#121518] border border-[#2A3036] rounded-[6px] p-6">
               <h3 className="text-base font-semibold text-white mb-3">Devaura Analysis History</h3>
               <div className="space-y-3">
-                <div className="p-3 rounded-lg bg-[#0d131f] border border-[#1e293b] flex items-center justify-between text-xs">
+                <div className="p-3 rounded-lg bg-[#121518] border border-[#2A3036] flex items-center justify-between text-xs">
                   <div>
                     <span className="font-semibold text-gray-200 block">Analysis #01: Issue #42 Initial Intake</span>
                     <span className="text-gray-400">Diagnosis complete &bull; Malformed token handling</span>
@@ -146,16 +146,16 @@ export default function RepositoriesPage() {
             </div>
           </div>
 
-          <div className="bg-[#111726] border border-[#1e293b] rounded-xl p-6 space-y-4">
+          <div className="bg-[#121518] border border-[#2A3036] rounded-[6px] p-6 space-y-4">
             <h3 className="text-base font-semibold text-white">Connected Branches</h3>
             <div className="space-y-2 text-xs font-mono">
-              <div className="p-2.5 rounded bg-[#0d131f] border border-[#1e293b] flex items-center justify-between">
+              <div className="p-2.5 rounded bg-[#121518] border border-[#2A3036] flex items-center justify-between">
                 <span className="text-blue-400 flex items-center gap-1.5">
                   <GitBranch className="w-3.5 h-3.5" /> main
                 </span>
                 <span className="text-gray-500">default</span>
               </div>
-              <div className="p-2.5 rounded bg-[#0d131f] border border-[#1e293b] flex items-center justify-between text-gray-400">
+              <div className="p-2.5 rounded bg-[#121518] border border-[#2A3036] flex items-center justify-between text-gray-400">
                 <span className="flex items-center gap-1.5">
                   <GitBranch className="w-3.5 h-3.5" /> devaura/repair-issue-42
                 </span>
@@ -167,17 +167,17 @@ export default function RepositoriesPage() {
       )}
 
       {activeTab === "commits" && (
-        <div className="bg-[#111726] border border-[#1e293b] rounded-xl p-6">
+        <div className="bg-[#121518] border border-[#2A3036] rounded-[6px] p-6">
           <h3 className="text-base font-semibold text-white mb-4">Recent Git History</h3>
           <div className="space-y-3 font-mono text-xs">
-            <div className="p-3 rounded-lg bg-[#0d131f] border border-[#1e293b] flex items-center justify-between">
+            <div className="p-3 rounded-lg bg-[#121518] border border-[#2A3036] flex items-center justify-between">
               <div>
                 <span className="text-gray-200 font-semibold block">feat(backend): implement FastAPI application, SQLAlchemy models, health & lifecycle routes</span>
                 <span className="text-gray-500 text-[11px]">Shrey Virmani &bull; main</span>
               </div>
               <span className="text-blue-400">66da821</span>
             </div>
-            <div className="p-3 rounded-lg bg-[#0d131f] border border-[#1e293b] flex items-center justify-between">
+            <div className="p-3 rounded-lg bg-[#121518] border border-[#2A3036] flex items-center justify-between">
               <div>
                 <span className="text-gray-200 font-semibold block">docs: establish architecture specifications, security model, and initial foundation</span>
                 <span className="text-gray-500 text-[11px]">Shrey Virmani &bull; main</span>
@@ -189,16 +189,16 @@ export default function RepositoriesPage() {
       )}
 
       {activeTab === "prs" && (
-        <div className="bg-[#111726] border border-[#1e293b] rounded-xl p-6">
+        <div className="bg-[#121518] border border-[#2A3036] rounded-[6px] p-6">
           <h3 className="text-base font-semibold text-white mb-4">Pull Requests</h3>
           <p className="text-xs text-gray-400">No open human PRs currently. Devaura repair PRs require explicit Human Approval.</p>
         </div>
       )}
 
       {activeTab === "ci" && (
-        <div className="bg-[#111726] border border-[#1e293b] rounded-xl p-6">
+        <div className="bg-[#121518] border border-[#2A3036] rounded-[6px] p-6">
           <h3 className="text-base font-semibold text-white mb-4">CI / CD Workflow Executions</h3>
-          <div className="p-3 rounded-lg bg-[#0d131f] border border-[#1e293b] flex items-center justify-between text-xs">
+          <div className="p-3 rounded-lg bg-[#121518] border border-[#2A3036] flex items-center justify-between text-xs">
             <div className="flex items-center gap-3">
               <CheckCircle2 className="w-4 h-4 text-emerald-400" />
               <div>

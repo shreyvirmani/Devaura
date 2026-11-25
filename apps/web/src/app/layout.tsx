@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { Sidebar } from "@/components/Sidebar";
-import { Navbar } from "@/components/Navbar";
+import { AppShell } from "@/components/AppShell";
 
 export const metadata: Metadata = {
-  title: "Devaura — AI Software Repair & Maintenance Platform",
-  description: "MCP-Native AI software maintenance agent. From failure to verified fix.",
+  title: "Devaura — Engineering, with evidence.",
+  description:
+    "A restrained system for detection, repair, verification and human control. From failure to verified fix.",
 };
 
 export default function RootLayout({
@@ -14,13 +14,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="dark">
-      <body className="bg-[#090d16] text-gray-100 flex min-h-screen">
-        <Sidebar />
-        <div className="flex-1 flex flex-col min-w-0">
-          <Navbar />
-          <main className="flex-1 p-8 overflow-y-auto">{children}</main>
-        </div>
+    <html lang="en" className="dark" suppressHydrationWarning>
+      <body className="bg-[#0C0E10] text-[#EDF0F2] antialiased" suppressHydrationWarning>
+        <AppShell>{children}</AppShell>
       </body>
     </html>
   );

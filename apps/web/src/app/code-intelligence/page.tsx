@@ -193,7 +193,7 @@ export default function CodeIntelligencePage() {
   return (
     <div className="space-y-8 max-w-7xl mx-auto">
       {/* Top Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[#1e293b] pb-6">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[#2A3036] pb-6">
         <div>
           <div className="flex items-center gap-3">
             <h1 className="text-2xl font-bold tracking-tight text-white">Code Intelligence</h1>
@@ -226,7 +226,7 @@ export default function CodeIntelligencePage() {
 
       {/* Summary Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-[#0f172a]/60 border border-[#1e293b] rounded-xl p-5">
+        <div className="bg-[#0f172a]/60 border border-[#2A3036] rounded-[6px] p-5">
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium text-gray-400 uppercase tracking-wider">Indexed Files</span>
             <FileCode className="w-5 h-5 text-blue-400" />
@@ -235,7 +235,7 @@ export default function CodeIntelligencePage() {
           <p className="text-xs text-gray-500 mt-1">Python, TypeScript, JavaScript</p>
         </div>
 
-        <div className="bg-[#0f172a]/60 border border-[#1e293b] rounded-xl p-5">
+        <div className="bg-[#0f172a]/60 border border-[#2A3036] rounded-[6px] p-5">
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium text-gray-400 uppercase tracking-wider">AST Symbols</span>
             <Code2 className="w-5 h-5 text-indigo-400" />
@@ -244,7 +244,7 @@ export default function CodeIntelligencePage() {
           <p className="text-xs text-gray-500 mt-1">Classes, Methods, Functions</p>
         </div>
 
-        <div className="bg-[#0f172a]/60 border border-[#1e293b] rounded-xl p-5">
+        <div className="bg-[#0f172a]/60 border border-[#2A3036] rounded-[6px] p-5">
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium text-gray-400 uppercase tracking-wider">Graph Relationships</span>
             <Network className="w-5 h-5 text-purple-400" />
@@ -253,7 +253,7 @@ export default function CodeIntelligencePage() {
           <p className="text-xs text-gray-500 mt-1">Calls, Imports, Extends</p>
         </div>
 
-        <div className="bg-[#0f172a]/60 border border-[#1e293b] rounded-xl p-5">
+        <div className="bg-[#0f172a]/60 border border-[#2A3036] rounded-[6px] p-5">
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium text-gray-400 uppercase tracking-wider">Discovered Tests</span>
             <CheckCircle2 className="w-5 h-5 text-emerald-400" />
@@ -264,7 +264,7 @@ export default function CodeIntelligencePage() {
       </div>
 
       {/* Navigation Tabs */}
-      <div className="flex items-center gap-2 border-b border-[#1e293b] pb-px">
+      <div className="flex items-center gap-2 border-b border-[#2A3036] pb-px">
         {[
           { key: "search", label: "Multi-Tier Search", icon: Search },
           { key: "symbols", label: "Symbol Explorer", icon: Code2 },
@@ -302,7 +302,7 @@ export default function CodeIntelligencePage() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search functions, classes, regex, or file paths..."
-                className="w-full pl-10 pr-4 py-2.5 bg-[#0d131f] border border-[#1e293b] rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 transition-colors"
+                className="w-full pl-10 pr-4 py-2.5 bg-[#121518] border border-[#2A3036] rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 transition-colors"
               />
             </div>
 
@@ -310,7 +310,7 @@ export default function CodeIntelligencePage() {
               <select
                 value={searchTier}
                 onChange={(e) => setSearchTier(e.target.value as any)}
-                className="px-3 py-2.5 bg-[#0d131f] border border-[#1e293b] rounded-lg text-sm text-gray-300 focus:outline-none focus:border-blue-500"
+                className="px-3 py-2.5 bg-[#121518] border border-[#2A3036] rounded-lg text-sm text-gray-300 focus:outline-none focus:border-blue-500"
               >
                 <option value="all">All Tiers (Unified)</option>
                 <option value="symbol">Tier 2: AST Symbols</option>
@@ -341,14 +341,14 @@ export default function CodeIntelligencePage() {
             </div>
 
             {searchResults.length === 0 ? (
-              <div className="p-8 text-center bg-[#0f172a]/30 border border-[#1e293b] rounded-xl text-gray-500 text-sm">
+              <div className="p-8 text-center bg-[#0f172a]/30 border border-[#2A3036] rounded-[6px] text-gray-500 text-sm">
                 Enter a search query above to inspect code across AST symbols, Ripgrep matches, and paths.
               </div>
             ) : (
               searchResults.map((m, idx) => (
                 <div
                   key={idx}
-                  className="bg-[#0f172a]/60 border border-[#1e293b] rounded-xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-3 hover:border-blue-500/40 transition-colors"
+                  className="bg-[#0f172a]/60 border border-[#2A3036] rounded-[6px] p-4 flex flex-col md:flex-row md:items-center justify-between gap-3 hover:border-blue-500/40 transition-colors"
                 >
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
@@ -369,7 +369,7 @@ export default function CodeIntelligencePage() {
                     <div className="text-xs font-mono text-gray-400">
                       {m.file}:{m.line}
                     </div>
-                    <div className="text-xs font-mono text-gray-300 bg-[#090d16] px-3 py-1.5 rounded border border-[#1e293b] mt-1">
+                    <div className="text-xs font-mono text-gray-300 bg-[#0C0E10] px-3 py-1.5 rounded border border-[#2A3036] mt-1">
                       {m.text}
                     </div>
                   </div>
@@ -394,7 +394,7 @@ export default function CodeIntelligencePage() {
               <select
                 value={symbolKindFilter}
                 onChange={(e) => setSymbolKindFilter(e.target.value)}
-                className="px-3 py-1.5 bg-[#0d131f] border border-[#1e293b] rounded-lg text-xs text-gray-300"
+                className="px-3 py-1.5 bg-[#121518] border border-[#2A3036] rounded-lg text-xs text-gray-300"
               >
                 <option value="all">All Kinds</option>
                 <option value="class">Class</option>
@@ -408,7 +408,7 @@ export default function CodeIntelligencePage() {
           </div>
 
           {filteredSymbols.length === 0 ? (
-            <div className="p-8 text-center bg-[#0f172a]/30 border border-[#1e293b] rounded-xl text-gray-500 text-sm">
+            <div className="p-8 text-center bg-[#0f172a]/30 border border-[#2A3036] rounded-[6px] text-gray-500 text-sm">
               No symbols extracted yet. Click &quot;Index Repository&quot; to parse workspace symbols.
             </div>
           ) : (
@@ -416,7 +416,7 @@ export default function CodeIntelligencePage() {
               {filteredSymbols.map((sym) => (
                 <div
                   key={sym.id}
-                  className="bg-[#0f172a]/60 border border-[#1e293b] rounded-xl p-5 hover:border-indigo-500/40 transition-colors space-y-2"
+                  className="bg-[#0f172a]/60 border border-[#2A3036] rounded-[6px] p-5 hover:border-indigo-500/40 transition-colors space-y-2"
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
@@ -432,7 +432,7 @@ export default function CodeIntelligencePage() {
                   </div>
 
                   {sym.signature && (
-                    <div className="text-xs font-mono text-blue-300 bg-[#090d16] px-3 py-2 rounded border border-[#1e293b]">
+                    <div className="text-xs font-mono text-blue-300 bg-[#0C0E10] px-3 py-2 rounded border border-[#2A3036]">
                       {sym.signature}
                     </div>
                   )}
@@ -449,7 +449,7 @@ export default function CodeIntelligencePage() {
 
       {/* Tab 3: Dependency Graph */}
       {activeTab === "graph" && (
-        <div className="bg-[#0f172a]/60 border border-[#1e293b] rounded-xl p-6 space-y-6">
+        <div className="bg-[#0f172a]/60 border border-[#2A3036] rounded-[6px] p-6 space-y-6">
           <div className="flex items-center justify-between">
             <h3 className="text-base font-semibold text-white">Repository Knowledge Graph</h3>
             <span className="text-xs font-mono text-purple-400 bg-purple-500/10 px-2.5 py-1 rounded border border-purple-500/30">
@@ -466,7 +466,7 @@ export default function CodeIntelligencePage() {
               {graphEdges.slice(0, 30).map((edge) => (
                 <div
                   key={edge.id}
-                  className="p-4 bg-[#090d16] rounded-lg border border-[#1e293b] flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs font-mono"
+                  className="p-4 bg-[#0C0E10] rounded-lg border border-[#2A3036] flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs font-mono"
                 >
                   <div className="space-y-1">
                     <div className="flex items-center gap-3 text-gray-200">
@@ -509,14 +509,14 @@ export default function CodeIntelligencePage() {
           </div>
 
           {testMappings.length === 0 ? (
-            <div className="p-8 text-center bg-[#0f172a]/30 border border-[#1e293b] rounded-xl text-gray-500 text-sm">
+            <div className="p-8 text-center bg-[#0f172a]/30 border border-[#2A3036] rounded-[6px] text-gray-500 text-sm">
               No test relationships discovered. Index repository to map test suites to implementation sources.
             </div>
           ) : (
             testMappings.map((tm, idx) => (
               <div
                 key={idx}
-                className="bg-[#0f172a]/60 border border-[#1e293b] rounded-xl p-5 flex flex-col md:flex-row md:items-center justify-between gap-4"
+                className="bg-[#0f172a]/60 border border-[#2A3036] rounded-[6px] p-5 flex flex-col md:flex-row md:items-center justify-between gap-4"
               >
                 <div className="space-y-1">
                   <div className="flex items-center gap-3">
@@ -544,7 +544,7 @@ export default function CodeIntelligencePage() {
 
       {/* Tab 5: Git Intelligence */}
       {activeTab === "git" && (
-        <div className="bg-[#0f172a]/60 border border-[#1e293b] rounded-xl p-6 space-y-4">
+        <div className="bg-[#0f172a]/60 border border-[#2A3036] rounded-[6px] p-6 space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="text-base font-semibold text-white">Recent Git History & Provenance</h3>
             <span className="text-xs text-gray-500 font-mono">Commit Log</span>
@@ -580,7 +580,7 @@ export default function CodeIntelligencePage() {
             ].map((commit, idx) => (
               <div
                 key={idx}
-                className="p-3 bg-[#090d16] rounded-lg border border-[#1e293b] flex items-center justify-between gap-4 text-xs font-mono"
+                className="p-3 bg-[#0C0E10] rounded-lg border border-[#2A3036] flex items-center justify-between gap-4 text-xs font-mono"
               >
                 <div className="flex items-center gap-3">
                   <span className="text-blue-400 font-bold">{commit.hash}</span>

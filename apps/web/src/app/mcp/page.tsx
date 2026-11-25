@@ -155,7 +155,7 @@ export default function MCPServerPage() {
   return (
     <div className="max-w-7xl mx-auto space-y-8">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-2 border-b border-[#1e293b]">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-2 border-b border-[#2A3036]">
         <div>
           <div className="flex items-center gap-3">
             <h1 className="text-2xl font-bold tracking-tight text-white">Model Context Protocol (MCP) Hub</h1>
@@ -198,10 +198,10 @@ export default function MCPServerPage() {
               <div
                 key={server.id}
                 onClick={() => setSelectedServer(server)}
-                className={`p-4 rounded-xl border cursor-pointer transition-all ${
+                className={`p-4 rounded-[6px] border cursor-pointer transition-all ${
                   isSelected
-                    ? "bg-[#111726] border-blue-500 shadow-md shadow-blue-500/10"
-                    : "bg-[#0d131f] border-[#1e293b] hover:border-gray-700"
+                    ? "bg-[#121518] border-blue-500 shadow-md shadow-blue-500/10"
+                    : "bg-[#121518] border-[#2A3036] hover:border-gray-700"
                 }`}
               >
                 <div className="flex items-center justify-between mb-2">
@@ -217,7 +217,7 @@ export default function MCPServerPage() {
                   </span>
                 </div>
                 <div className="text-xs text-gray-400 font-mono mb-2 truncate">{server.transport}</div>
-                <div className="flex items-center justify-between text-xs text-gray-500 pt-2 border-t border-[#1e293b]/60">
+                <div className="flex items-center justify-between text-xs text-gray-500 pt-2 border-t border-[#2A3036]/60">
                   <span>{server.tools.length} Tools</span>
                   <span className="text-blue-400 font-mono text-[11px]">{server.trust}</span>
                 </div>
@@ -227,9 +227,9 @@ export default function MCPServerPage() {
         </div>
 
         {/* Server Operations & Tool Matrix (2 Cols) */}
-        <div className="lg:col-span-2 bg-[#111726] border border-[#1e293b] rounded-xl p-6 space-y-6">
+        <div className="lg:col-span-2 bg-[#121518] border border-[#2A3036] rounded-[6px] p-6 space-y-6">
           {/* Top Server Bar */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-[#1e293b] gap-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-[#2A3036] gap-3">
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-base font-semibold text-white">{selectedServer.name}</h2>
@@ -263,7 +263,7 @@ export default function MCPServerPage() {
           </div>
 
           {/* Subtabs */}
-          <div className="flex items-center gap-4 border-b border-[#1e293b] pb-2 text-xs">
+          <div className="flex items-center gap-4 border-b border-[#2A3036] pb-2 text-xs">
             <button
               onClick={() => setActiveTab("tools")}
               className={`pb-1 font-semibold border-b-2 transition-colors ${
@@ -299,7 +299,7 @@ export default function MCPServerPage() {
                     className={`px-2.5 py-1 rounded text-xs font-mono transition-colors ${
                       filterRisk === r
                         ? "bg-blue-600 text-white"
-                        : "bg-[#0d131f] text-gray-400 hover:text-gray-200 border border-[#1e293b]"
+                        : "bg-[#121518] text-gray-400 hover:text-gray-200 border border-[#2A3036]"
                     }`}
                   >
                     {r}
@@ -320,7 +320,7 @@ export default function MCPServerPage() {
                   return (
                     <div
                       key={tool.name}
-                      className="p-3.5 rounded-lg bg-[#090d16] border border-[#1e293b] flex items-start justify-between gap-4"
+                      className="p-3.5 rounded-lg bg-[#0C0E10] border border-[#2A3036] flex items-start justify-between gap-4"
                     >
                       <div>
                         <div className="flex items-center gap-2 mb-1">
@@ -338,7 +338,7 @@ export default function MCPServerPage() {
                             setExecutingTool(tool.name);
                             setActiveTab("execute");
                           }}
-                          className="px-2.5 py-1 rounded bg-[#151c2d] hover:bg-[#1a2337] text-gray-300 text-xs font-mono border border-[#1e293b] transition-colors"
+                          className="px-2.5 py-1 rounded bg-[#191D21] hover:bg-[#1a2337] text-gray-300 text-xs font-mono border border-[#2A3036] transition-colors"
                         >
                           Execute
                         </button>
@@ -359,7 +359,7 @@ export default function MCPServerPage() {
                   <select
                     value={executingTool}
                     onChange={(e) => setExecutingTool(e.target.value)}
-                    className="w-full bg-[#090d16] border border-[#1e293b] rounded-lg px-3 py-2 text-xs font-mono text-white focus:outline-none focus:border-blue-500"
+                    className="w-full bg-[#0C0E10] border border-[#2A3036] rounded-lg px-3 py-2 text-xs font-mono text-white focus:outline-none focus:border-blue-500"
                   >
                     {selectedServer.tools.map((t) => (
                       <option key={t.name} value={t.name}>
@@ -371,7 +371,7 @@ export default function MCPServerPage() {
 
                 <div>
                   <label className="text-xs font-mono text-gray-300 block mb-1">Policy Risk Level</label>
-                  <div className="h-9 px-3 flex items-center rounded-lg bg-[#090d16] border border-[#1e293b] text-xs font-mono text-blue-400">
+                  <div className="h-9 px-3 flex items-center rounded-lg bg-[#0C0E10] border border-[#2A3036] text-xs font-mono text-blue-400">
                     {selectedServer.tools.find((t) => t.name === executingTool)?.risk || "SAFE"}
                   </div>
                 </div>
@@ -383,7 +383,7 @@ export default function MCPServerPage() {
                   value={toolArgs}
                   onChange={(e) => setToolArgs(e.target.value)}
                   rows={4}
-                  className="w-full bg-[#090d16] border border-[#1e293b] rounded-lg p-3 text-xs font-mono text-gray-200 focus:outline-none focus:border-blue-500"
+                  className="w-full bg-[#0C0E10] border border-[#2A3036] rounded-lg p-3 text-xs font-mono text-gray-200 focus:outline-none focus:border-blue-500"
                 />
               </div>
 
@@ -414,7 +414,7 @@ export default function MCPServerPage() {
               {execOutput && (
                 <div className="pt-2">
                   <label className="text-xs font-mono text-gray-400 block mb-1">Console Output &bull; Audit Verified</label>
-                  <pre className="p-4 rounded-lg bg-[#090d16] border border-[#1e293b] font-mono text-xs text-gray-200 overflow-x-auto whitespace-pre-wrap">
+                  <pre className="p-4 rounded-lg bg-[#0C0E10] border border-[#2A3036] font-mono text-xs text-gray-200 overflow-x-auto whitespace-pre-wrap">
                     {execOutput}
                   </pre>
                 </div>
@@ -434,7 +434,7 @@ export default function MCPServerPage() {
                     value={newServerName}
                     onChange={(e) => setNewServerName(e.target.value)}
                     placeholder="e.g. docker-mcp-server"
-                    className="w-full bg-[#090d16] border border-[#1e293b] rounded-lg px-3 py-2 text-white font-mono focus:outline-none focus:border-blue-500"
+                    className="w-full bg-[#0C0E10] border border-[#2A3036] rounded-lg px-3 py-2 text-white font-mono focus:outline-none focus:border-blue-500"
                   />
                 </div>
                 <div>
@@ -442,7 +442,7 @@ export default function MCPServerPage() {
                   <select
                     value={newServerTransport}
                     onChange={(e) => setNewServerTransport(e.target.value)}
-                    className="w-full bg-[#090d16] border border-[#1e293b] rounded-lg px-3 py-2 text-white font-mono focus:outline-none focus:border-blue-500"
+                    className="w-full bg-[#0C0E10] border border-[#2A3036] rounded-lg px-3 py-2 text-white font-mono focus:outline-none focus:border-blue-500"
                   >
                     <option value="stdio">stdio (Standard I/O)</option>
                     <option value="sse">sse (Server-Sent Events / HTTP)</option>
@@ -456,7 +456,7 @@ export default function MCPServerPage() {
                     value={newServerEndpoint}
                     onChange={(e) => setNewServerEndpoint(e.target.value)}
                     placeholder="e.g. npx -y @modelcontextprotocol/server-postgres"
-                    className="w-full bg-[#090d16] border border-[#1e293b] rounded-lg px-3 py-2 text-white font-mono focus:outline-none focus:border-blue-500"
+                    className="w-full bg-[#0C0E10] border border-[#2A3036] rounded-lg px-3 py-2 text-white font-mono focus:outline-none focus:border-blue-500"
                   />
                 </div>
                 <button

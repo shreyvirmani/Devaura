@@ -211,7 +211,7 @@ export default function InvestigationsPage() {
   return (
     <div className="max-w-7xl mx-auto space-y-8">
       {/* Top Header Bar */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-[#1e293b]">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-[#2A3036]">
         <div>
           <div className="flex items-center gap-3">
             <h1 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
@@ -233,7 +233,7 @@ export default function InvestigationsPage() {
         <div className="flex items-center gap-3">
           <button
             onClick={() => setShowCreateModal(true)}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#151c2d] hover:bg-[#1a233a] text-gray-200 text-sm font-medium border border-[#1e293b] transition-colors"
+            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#191D21] hover:bg-[#191D21] text-gray-200 text-sm font-medium border border-[#2A3036] transition-colors"
           >
             <Plus className="w-4 h-4 text-blue-400" /> New Investigation
           </button>
@@ -268,7 +268,7 @@ export default function InvestigationsPage() {
               className={`px-3 py-1.5 rounded-lg text-xs font-mono border whitespace-nowrap transition-all ${
                 selectedInv?.id === inv.id
                   ? "bg-blue-600/20 text-blue-300 border-blue-500/50 shadow-sm"
-                  : "bg-[#111726] text-gray-400 border-[#1e293b] hover:text-white"
+                  : "bg-[#121518] text-gray-400 border-[#2A3036] hover:text-white"
               }`}
             >
               {inv.title || inv.summary.slice(0, 30)} &bull; {inv.status}
@@ -280,7 +280,7 @@ export default function InvestigationsPage() {
       {selectedInv ? (
         <div className="space-y-6">
           {/* Navigation Tabs */}
-          <div className="flex items-center gap-4 border-b border-[#1e293b]">
+          <div className="flex items-center gap-4 border-b border-[#2A3036]">
             <button
               onClick={() => setActiveTab("overview")}
               className={`pb-3 text-sm font-medium border-b-2 transition-colors ${
@@ -300,7 +300,7 @@ export default function InvestigationsPage() {
               }`}
             >
               Ranked Evidence
-              <span className="px-1.5 py-0.5 rounded-full text-xs bg-[#1e293b] text-gray-300">
+              <span className="px-1.5 py-0.5 rounded-full text-xs bg-[#2A3036] text-gray-300">
                 {selectedInv.evidence_items.length}
               </span>
             </button>
@@ -313,7 +313,7 @@ export default function InvestigationsPage() {
               }`}
             >
               Investigation Steps
-              <span className="px-1.5 py-0.5 rounded-full text-xs bg-[#1e293b] text-gray-300">
+              <span className="px-1.5 py-0.5 rounded-full text-xs bg-[#2A3036] text-gray-300">
                 {selectedInv.investigation_steps.length}
               </span>
             </button>
@@ -325,12 +325,12 @@ export default function InvestigationsPage() {
               {/* Left Column (2 Cols): Root Cause Candidates & Diagnosis */}
               <div className="lg:col-span-2 space-y-6">
                 {/* Failure Context Summary */}
-                <div className="bg-[#111726] border border-[#1e293b] rounded-xl p-5 space-y-3">
+                <div className="bg-[#121518] border border-[#2A3036] rounded-[6px] p-5 space-y-3">
                   <div className="flex items-center justify-between">
                     <h2 className="text-sm font-semibold text-white flex items-center gap-2">
                       <Terminal className="w-4 h-4 text-blue-400" /> Failure Information
                     </h2>
-                    <span className="px-2 py-0.5 rounded text-xs font-mono bg-[#151c2d] text-gray-300 border border-[#1e293b]">
+                    <span className="px-2 py-0.5 rounded text-xs font-mono bg-[#191D21] text-gray-300 border border-[#2A3036]">
                       {selectedInv.failure_type}
                     </span>
                   </div>
@@ -344,7 +344,7 @@ export default function InvestigationsPage() {
                   {selectedInv.stack_trace && (
                     <div className="space-y-1">
                       <span className="text-xs text-gray-400 font-mono">Stack Trace:</span>
-                      <pre className="p-3 rounded-lg bg-[#090d16] border border-[#1e293b] text-xs font-mono text-gray-300 overflow-x-auto max-h-48">
+                      <pre className="p-3 rounded-lg bg-[#0C0E10] border border-[#2A3036] text-xs font-mono text-gray-300 overflow-x-auto max-h-48">
                         {selectedInv.stack_trace}
                       </pre>
                     </div>
@@ -353,7 +353,7 @@ export default function InvestigationsPage() {
                   {selectedInv.failed_tests && selectedInv.failed_tests.length > 0 && (
                     <div className="space-y-1">
                       <span className="text-xs text-gray-400 font-mono">Failing Tests:</span>
-                      <div className="p-2.5 rounded-lg bg-[#090d16] border border-[#1e293b] space-y-1 text-xs">
+                      <div className="p-2.5 rounded-lg bg-[#0C0E10] border border-[#2A3036] space-y-1 text-xs">
                         {selectedInv.failed_tests.map((ft: any, i: number) => (
                           <div key={i} className="text-rose-400 font-mono">
                             &bull; {typeof ft === "string" ? ft : `${ft.test_file}::${ft.test_function}`}
@@ -376,7 +376,7 @@ export default function InvestigationsPage() {
                   </div>
 
                   {selectedInv.root_cause_candidates.length === 0 ? (
-                    <div className="p-6 rounded-xl bg-[#111726] border border-[#1e293b] text-center space-y-2">
+                    <div className="p-6 rounded-[6px] bg-[#121518] border border-[#2A3036] text-center space-y-2">
                       <HelpCircle className="w-8 h-8 text-gray-500 mx-auto" />
                       <p className="text-sm text-gray-300 font-medium">No root cause candidates generated yet.</p>
                       <p className="text-xs text-gray-500">
@@ -389,16 +389,16 @@ export default function InvestigationsPage() {
                     selectedInv.root_cause_candidates.map((cand, idx) => (
                       <div
                         key={cand.id}
-                        className={`rounded-xl border p-5 space-y-3 transition-all ${
+                        className={`rounded-[6px] border p-5 space-y-3 transition-all ${
                           idx === 0
-                            ? "bg-[#111726] border-blue-500/30 shadow-md"
-                            : "bg-[#0d131f] border-[#1e293b]"
+                            ? "bg-[#121518] border-blue-500/30 shadow-md"
+                            : "bg-[#121518] border-[#2A3036]"
                         }`}
                       >
                         <div className="flex items-start justify-between gap-4">
                           <div>
                             <div className="flex items-center gap-2">
-                              <span className="px-2 py-0.5 rounded text-xs font-mono font-semibold bg-[#1e293b] text-gray-300">
+                              <span className="px-2 py-0.5 rounded text-xs font-mono font-semibold bg-[#2A3036] text-gray-300">
                                 #{idx + 1}
                               </span>
                               <h3 className="text-sm font-semibold text-white">{cand.title}</h3>
@@ -413,7 +413,7 @@ export default function InvestigationsPage() {
                         </div>
 
                         {/* Affected Components */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 border-t border-[#1e293b]/50 text-xs font-mono">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 border-t border-[#2A3036]/50 text-xs font-mono">
                           <div>
                             <span className="text-gray-500">Affected Files:</span>
                             <div className="text-blue-300 truncate">
@@ -430,7 +430,7 @@ export default function InvestigationsPage() {
 
                         {/* Reasoning */}
                         {cand.reasoning && (
-                          <div className="p-3 rounded-lg bg-[#090d16] border border-[#1e293b]/60 text-xs text-gray-300">
+                          <div className="p-3 rounded-lg bg-[#0C0E10] border border-[#2A3036]/60 text-xs text-gray-300">
                             <span className="text-gray-500 block mb-0.5">Reasoning:</span>
                             {cand.reasoning}
                           </div>
@@ -444,7 +444,7 @@ export default function InvestigationsPage() {
                               {cand.supporting_evidence_ids.map((evId) => (
                                 <span
                                   key={evId}
-                                  className="px-2 py-0.5 rounded bg-[#1e293b] text-blue-400 font-mono text-[11px]"
+                                  className="px-2 py-0.5 rounded bg-[#2A3036] text-blue-400 font-mono text-[11px]"
                                 >
                                   {evId}
                                 </span>
@@ -461,7 +461,7 @@ export default function InvestigationsPage() {
               {/* Right Column: Evidence Graph & Sufficiency Checklist */}
               <div className="space-y-6">
                 {/* Evidence Sufficiency Status */}
-                <div className="bg-[#111726] border border-[#1e293b] rounded-xl p-5 space-y-3">
+                <div className="bg-[#121518] border border-[#2A3036] rounded-[6px] p-5 space-y-3">
                   <h3 className="text-sm font-semibold text-white flex items-center gap-2">
                     <ShieldCheck className="w-4 h-4 text-blue-400" /> Evidence Sufficiency
                   </h3>
@@ -494,26 +494,26 @@ export default function InvestigationsPage() {
                 </div>
 
                 {/* Evidence Traceability Graph Flow */}
-                <div className="bg-[#111726] border border-[#1e293b] rounded-xl p-5 space-y-3">
+                <div className="bg-[#121518] border border-[#2A3036] rounded-[6px] p-5 space-y-3">
                   <h3 className="text-sm font-semibold text-white flex items-center gap-2">
                     <Layers className="w-4 h-4 text-purple-400" /> Evidence Provenance Flow
                   </h3>
                   <div className="space-y-2 text-xs">
-                    <div className="p-2.5 rounded-lg bg-[#090d16] border border-[#1e293b] font-mono">
+                    <div className="p-2.5 rounded-lg bg-[#0C0E10] border border-[#2A3036] font-mono">
                       <span className="text-rose-400 font-semibold block">1. Failure Event</span>
                       <span className="text-gray-400 truncate block">
                         {selectedInv.failure_type} &bull; {selectedInv.title || selectedInv.summary}
                       </span>
                     </div>
                     <div className="flex justify-center text-gray-600">&darr;</div>
-                    <div className="p-2.5 rounded-lg bg-[#090d16] border border-[#1e293b] font-mono">
+                    <div className="p-2.5 rounded-lg bg-[#0C0E10] border border-[#2A3036] font-mono">
                       <span className="text-blue-400 font-semibold block">2. Failing Symbol</span>
                       <span className="text-gray-400 truncate block">
                         {selectedInv.root_cause_candidates[0]?.affected_symbols[0] || "Target Symbol (Resolving...)"}
                       </span>
                     </div>
                     <div className="flex justify-center text-gray-600">&darr;</div>
-                    <div className="p-2.5 rounded-lg bg-[#090d16] border border-[#1e293b] font-mono">
+                    <div className="p-2.5 rounded-lg bg-[#0C0E10] border border-[#2A3036] font-mono">
                       <span className="text-amber-400 font-semibold block">3. Call Graph & Tests</span>
                       <span className="text-gray-400 truncate block">
                         {selectedInv.evidence_items.filter((e) => e.type === "CALL_RELATIONSHIP").length} Call(s),{" "}
@@ -521,7 +521,7 @@ export default function InvestigationsPage() {
                       </span>
                     </div>
                     <div className="flex justify-center text-gray-600">&darr;</div>
-                    <div className="p-2.5 rounded-lg bg-[#090d16] border border-[#1e293b] font-mono">
+                    <div className="p-2.5 rounded-lg bg-[#0C0E10] border border-[#2A3036] font-mono">
                       <span className="text-emerald-400 font-semibold block">4. Verified Change Context</span>
                       <span className="text-gray-400 truncate block">
                         {selectedInv.evidence_items.filter((e) => e.type === "COMMIT").length} Recent Commit(s)
@@ -545,7 +545,7 @@ export default function InvestigationsPage() {
                     className={`px-3 py-1.5 rounded-lg text-xs font-mono border transition-all ${
                       evidenceFilter === cat
                         ? "bg-blue-600/20 text-blue-300 border-blue-500/50"
-                        : "bg-[#111726] text-gray-400 border-[#1e293b] hover:text-white"
+                        : "bg-[#121518] text-gray-400 border-[#2A3036] hover:text-white"
                     }`}
                   >
                     {cat}
@@ -554,7 +554,7 @@ export default function InvestigationsPage() {
               </div>
 
               {filteredEvidence.length === 0 ? (
-                <div className="p-8 text-center text-gray-500 text-sm bg-[#111726] rounded-xl border border-[#1e293b]">
+                <div className="p-8 text-center text-gray-500 text-sm bg-[#121518] rounded-[6px] border border-[#2A3036]">
                   No evidence matching current filter.
                 </div>
               ) : (
@@ -562,11 +562,11 @@ export default function InvestigationsPage() {
                   {filteredEvidence.map((ev) => (
                     <div
                       key={ev.id}
-                      className="p-4 rounded-xl bg-[#111726] border border-[#1e293b] flex flex-col md:flex-row md:items-center justify-between gap-4 text-xs font-mono"
+                      className="p-4 rounded-[6px] bg-[#121518] border border-[#2A3036] flex flex-col md:flex-row md:items-center justify-between gap-4 text-xs font-mono"
                     >
                       <div className="space-y-1 max-w-3xl">
                         <div className="flex items-center gap-2">
-                          <span className="px-2 py-0.5 rounded text-[11px] bg-[#1e293b] text-blue-400 font-semibold">
+                          <span className="px-2 py-0.5 rounded text-[11px] bg-[#2A3036] text-blue-400 font-semibold">
                             {ev.id}
                           </span>
                           <span className="text-gray-400 font-semibold">{ev.type}</span>
@@ -601,7 +601,7 @@ export default function InvestigationsPage() {
                       <div className="flex md:flex-col items-end gap-2 text-right">
                         <div className="space-y-0.5">
                           <span className="text-[10px] text-gray-500">Relevance</span>
-                          <div className="w-24 bg-[#090d16] rounded-full h-1.5 overflow-hidden">
+                          <div className="w-24 bg-[#0C0E10] rounded-full h-1.5 overflow-hidden">
                             <div
                               className="bg-blue-500 h-1.5 rounded-full"
                               style={{ width: `${Math.round(ev.relevance * 100)}%` }}
@@ -610,7 +610,7 @@ export default function InvestigationsPage() {
                         </div>
                         <div className="space-y-0.5">
                           <span className="text-[10px] text-gray-500">Confidence</span>
-                          <div className="w-24 bg-[#090d16] rounded-full h-1.5 overflow-hidden">
+                          <div className="w-24 bg-[#0C0E10] rounded-full h-1.5 overflow-hidden">
                             <div
                               className="bg-emerald-500 h-1.5 rounded-full"
                               style={{ width: `${Math.round(ev.confidence * 100)}%` }}
@@ -636,7 +636,7 @@ export default function InvestigationsPage() {
                 {selectedInv.investigation_steps.map((step) => (
                   <div
                     key={step.id || step.step_number}
-                    className="p-4 rounded-xl bg-[#111726] border border-[#1e293b] space-y-2 text-xs font-mono"
+                    className="p-4 rounded-[6px] bg-[#121518] border border-[#2A3036] space-y-2 text-xs font-mono"
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
@@ -653,7 +653,7 @@ export default function InvestigationsPage() {
                     </div>
                     <p className="text-gray-300 font-sans">{step.observation}</p>
                     {step.tool_output && Object.keys(step.tool_output).length > 0 && (
-                      <pre className="p-2.5 rounded bg-[#090d16] border border-[#1e293b]/60 text-gray-400 overflow-x-auto">
+                      <pre className="p-2.5 rounded bg-[#0C0E10] border border-[#2A3036]/60 text-gray-400 overflow-x-auto">
                         {JSON.stringify(step.tool_output, null, 2)}
                       </pre>
                     )}
@@ -664,7 +664,7 @@ export default function InvestigationsPage() {
           )}
         </div>
       ) : (
-        <div className="p-12 text-center text-gray-400 bg-[#111726] rounded-xl border border-[#1e293b]">
+        <div className="p-12 text-center text-gray-400 bg-[#121518] rounded-[6px] border border-[#2A3036]">
           Select or create an investigation above.
         </div>
       )}
@@ -672,7 +672,7 @@ export default function InvestigationsPage() {
       {/* Modal: New Investigation */}
       {showCreateModal && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-[#111726] border border-[#1e293b] rounded-xl max-w-xl w-full p-6 space-y-4">
+          <div className="bg-[#121518] border border-[#2A3036] rounded-[6px] max-w-xl w-full p-6 space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-bold text-white">Create New Investigation</h2>
               <button
@@ -691,7 +691,7 @@ export default function InvestigationsPage() {
                   placeholder="e.g. TypeError in UserService"
                   value={newTitle}
                   onChange={(e) => setNewTitle(e.target.value)}
-                  className="w-full p-2.5 rounded-lg bg-[#090d16] border border-[#1e293b] text-white focus:outline-none focus:border-blue-500 font-sans text-sm"
+                  className="w-full p-2.5 rounded-lg bg-[#0C0E10] border border-[#2A3036] text-white focus:outline-none focus:border-blue-500 font-sans text-sm"
                   required
                 />
               </div>
@@ -701,7 +701,7 @@ export default function InvestigationsPage() {
                 <select
                   value={newFailureType}
                   onChange={(e) => setNewFailureType(e.target.value)}
-                  className="w-full p-2.5 rounded-lg bg-[#090d16] border border-[#1e293b] text-white focus:outline-none focus:border-blue-500 text-xs"
+                  className="w-full p-2.5 rounded-lg bg-[#0C0E10] border border-[#2A3036] text-white focus:outline-none focus:border-blue-500 text-xs"
                 >
                   <option value="RUNTIME_ERROR">RUNTIME_ERROR</option>
                   <option value="TEST_FAILURE">TEST_FAILURE</option>
@@ -719,7 +719,7 @@ export default function InvestigationsPage() {
                   placeholder="e.g. TypeError: 'NoneType' object is not subscriptable"
                   value={newErrorMsg}
                   onChange={(e) => setNewErrorMsg(e.target.value)}
-                  className="w-full p-2.5 rounded-lg bg-[#090d16] border border-[#1e293b] text-white focus:outline-none focus:border-blue-500 font-sans text-xs"
+                  className="w-full p-2.5 rounded-lg bg-[#0C0E10] border border-[#2A3036] text-white focus:outline-none focus:border-blue-500 font-sans text-xs"
                 />
               </div>
 
@@ -730,7 +730,7 @@ export default function InvestigationsPage() {
                   placeholder="Paste Python, Pytest, or JS stack trace..."
                   value={newStackTrace}
                   onChange={(e) => setNewStackTrace(e.target.value)}
-                  className="w-full p-2.5 rounded-lg bg-[#090d16] border border-[#1e293b] text-white focus:outline-none focus:border-blue-500 text-xs"
+                  className="w-full p-2.5 rounded-lg bg-[#0C0E10] border border-[#2A3036] text-white focus:outline-none focus:border-blue-500 text-xs"
                 />
               </div>
 
@@ -738,7 +738,7 @@ export default function InvestigationsPage() {
                 <button
                   type="button"
                   onClick={() => setShowCreateModal(false)}
-                  className="px-4 py-2 rounded-lg bg-[#151c2d] hover:bg-[#1a233a] text-gray-300 text-xs font-semibold border border-[#1e293b]"
+                  className="px-4 py-2 rounded-lg bg-[#191D21] hover:bg-[#191D21] text-gray-300 text-xs font-semibold border border-[#2A3036]"
                 >
                   Cancel
                 </button>

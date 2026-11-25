@@ -10,6 +10,9 @@ def default_deterministic_mode_for_tests(monkeypatch):
     if not os.getenv("TEST_USE_LIVE_LLM"):
         monkeypatch.setenv("DEVAURA_LLM_MODE", "deterministic")
     monkeypatch.setenv("ALLOW_DEV_USER_FALLBACK", "true")
+    monkeypatch.setenv("APP_ENV", "testing")
+    if not os.getenv("TEST_USE_REAL_DB"):
+        monkeypatch.setenv("DATABASE_URL", "sqlite+aiosqlite:///:memory:")
     from apps.api.config import get_settings
     get_settings.cache_clear()
     yield

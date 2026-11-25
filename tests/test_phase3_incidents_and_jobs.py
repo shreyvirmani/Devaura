@@ -427,12 +427,45 @@ async def test_cross_workspace_incident_and_job_isolation(client: AsyncClient):
     inc_id = res.json()["incident_id"]
     job_id = res.json()["job_id"]
 
-    # Tenant B trying to list Tenant A's incidents -> 403
+    # Tenant B trying to list/access/mutate Tenant A's incidents or jobs -> 403
     assert (await client.get(f"/api/v1/workspaces/{ws_a}/incidents", headers=headers_b)).status_code == 403
-    # Tenant B trying to access Tenant A's incident via Tenant B's workspace -> 404
+    assert (await client.get(f"/api/v1/workspaces/{ws_a}/incidents/{inc_id}", headers=headers_b)).status_code == 403
+    assert (await client.post(f"/api/v1/workspaces/{ws_a}/incidents/{inc_id}/retry", headers=headers_b)).status_code == 403
+    assert (await client.post(f"/api/v1/workspaces/{ws_a}/incidents/{inc_id}/cancel", headers=headers_b)).status_code == 403
+    assert (await client.get(f"/api/v1/workspaces/{ws_a}/jobs", headers=headers_b)).status_code == 403
+    assert (await client.get(f"/api/v1/workspaces/{ws_a}/jobs/{job_id}", headers=headers_b)).status_code == 403
+
+    # Tenant B trying to access/mutate Tenant A's resource IDs via Tenant B's workspace -> 404
     assert (await client.get(f"/api/v1/workspaces/{ws_b}/incidents/{inc_id}", headers=headers_b)).status_code == 404
-    # Tenant B trying to access Tenant A's job via Tenant B's workspace -> 404
+    assert (await client.post(f"/api/v1/workspaces/{ws_b}/incidents/{inc_id}/retry", headers=headers_b)).status_code == 404
+    assert (await client.post(f"/api/v1/workspaces/{ws_b}/incidents/{inc_id}/cancel", headers=headers_b)).status_code == 404
     assert (await client.get(f"/api/v1/workspaces/{ws_b}/jobs/{job_id}", headers=headers_b)).status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_worker_api_separation_and_clean_shutdown(monkeypatch):
+    """Verify APP_ENV=testing skips worker startup and worker.stop() shuts down cleanly."""
+    import asyncio
+    from apps.api.main import lifespan
+
+    monkeypatch.setenv("APP_ENV", "testing")
+    monkeypatch.setenv("WORKER_ENABLED", "true")
+    get_settings.cache_clear()
+
+    # Lifespan in testing mode must NOT spawn background worker
+    async with lifespan(app):
+        pass
+
+    # Worker run_loop survives process_one exception and exits cleanly on stop()
+    worker = DurableJobWorker(worker_id="shutdown-test-worker")
+
+    async def failing_process_one(*args, **kwargs):
+        worker.stop()
+        raise RuntimeError("transient db blip")
+
+    worker.process_one = failing_process_one  # type: ignore[method-assign]
+    await asyncio.wait_for(worker.run_loop(), timeout=5.0)
+    assert worker._stop_event.is_set()
 
 
 @pytest.mark.asyncio

@@ -45,7 +45,7 @@ class IsolatedWorkspace:
 
         os.makedirs(os.path.dirname(self.workspace_path), exist_ok=True)
 
-        ignore_func = shutil.ignore_patterns(
+        base_ignore = shutil.ignore_patterns(
             ".venv*",
             "node_modules",
             ".git",
@@ -58,6 +58,13 @@ class IsolatedWorkspace:
             "bug_meta.json",
             "*.meta.json",
         )
+        dataset_dir = os.path.abspath(os.path.join(self.source_repo_path, "evaluation", "historical", "dataset"))
+
+        def ignore_func(directory: str, contents: List[str]) -> set:
+            ignored = set(base_ignore(directory, contents))
+            if os.path.abspath(directory) == os.path.dirname(dataset_dir) and "dataset" in contents:
+                ignored.add("dataset")
+            return ignored
 
         shutil.copytree(
             self.source_repo_path,

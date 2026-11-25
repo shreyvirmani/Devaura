@@ -3,7 +3,7 @@ from pathlib import Path
 import httpx
 import pytest
 from apps.api.main import app
-from database.connection import init_db
+from database.connection import close_db, init_db
 from mcp.server.devaura_server import get_native_mcp_server
 
 FIXTURE_PATH = str((Path(__file__).parent / "fixtures" / "fixture_repo").resolve()).replace("\\", "/")
@@ -51,6 +51,13 @@ async def test_native_mcp_code_intelligence_tools():
 @pytest.mark.asyncio
 async def test_code_intelligence_api_endpoints():
     await init_db()
+    try:
+        await _run_code_intel_api_checks()
+    finally:
+        await close_db()
+
+
+async def _run_code_intel_api_checks():
     transport = httpx.ASGITransport(app=app)
     async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
         # 1. Trigger Index

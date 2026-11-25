@@ -13,6 +13,7 @@ class Base(DeclarativeBase):
     pass
 
 _engine: AsyncEngine | None = None
+_engine_url: str | None = None
 _session_maker: async_sessionmaker[AsyncSession] | None = None
 
 
@@ -29,9 +30,9 @@ def get_database_url() -> str:
 
 def get_engine() -> AsyncEngine:
     """Lazy initialize and return the async engine."""
-    global _engine, _session_maker
-    if _engine is None:
-        db_url = get_database_url()
+    global _engine, _engine_url, _session_maker
+    db_url = get_database_url()
+    if _engine is None or _engine_url != db_url:
         connect_args = {}
         if "sqlite" in db_url:
             connect_args["check_same_thread"] = False
@@ -40,6 +41,7 @@ def get_engine() -> AsyncEngine:
             echo=os.getenv("LOG_LEVEL", "INFO").upper() == "DEBUG",
             connect_args=connect_args,
         )
+        _engine_url = db_url
         _session_maker = async_sessionmaker(
             _engine,
             expire_on_commit=False,

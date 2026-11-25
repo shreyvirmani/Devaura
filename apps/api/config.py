@@ -23,6 +23,9 @@ class Settings(BaseSettings):
     API_PORT: int = 8000
     ALLOWED_ORIGINS: str = "http://localhost:3000,http://127.0.0.1:3000"
 
+    # Security & Auth Gating
+    ALLOW_DEV_USER_FALLBACK: bool = False  # Strictly forbidden in production/staging
+
     # Database
     DATABASE_URL: str = Field(default="sqlite+aiosqlite:///./devaura.db")
 
@@ -32,10 +35,16 @@ class Settings(BaseSettings):
     OPENAI_API_KEY: str | None = None
     ANTHROPIC_API_KEY: str | None = None
 
-    # GitHub Integration
+    # GitHub Integration & GitHub App
     GITHUB_TOKEN: str | None = None
     GITHUB_CLIENT_ID: str | None = None
     GITHUB_CLIENT_SECRET: str | None = None
+    GITHUB_APP_ID: str | None = None
+    GITHUB_APP_PRIVATE_KEY: str | None = None
+    GITHUB_APP_CLIENT_ID: str | None = None
+    GITHUB_APP_CLIENT_SECRET: str | None = None
+    GITHUB_WEBHOOK_SECRET: str | None = None
+    GITHUB_APP_SLUG: str = "devaura-repair"
 
     # MCP Protocol
     MCP_SERVER_CONFIG: str = "config/mcp_servers.json"

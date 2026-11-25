@@ -1,6 +1,8 @@
 from database.connection import Base
 from database.models.tenancy import (
     AuditEventRecord,
+    GitHubAppInstallation,
+    WebhookEventRecord,
     Workspace,
     WorkspaceMember,
     WorkspaceRole,
@@ -96,6 +98,8 @@ __all__ = [
     "WorkspaceMember",
     "WorkspaceRole",
     "AuditEventRecord",
+    "GitHubAppInstallation",
+    "WebhookEventRecord",
     "VerificationRun",
     "CodeFile",
     "CodeSymbol",

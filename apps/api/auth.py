@@ -149,21 +149,33 @@ async def require_authenticated_user(
 async def get_current_user(
     current_user: Optional[CurrentUser] = Depends(get_current_user_optional),
 ) -> CurrentUser:
-    """Backward-compatible identity dependency.
+    """Identity dependency with strict production boundary enforcement.
     
-    In dev/test environments without credentials, defaults to DEV_USER
-    if allow_dev_fallback is True, otherwise strictly requires authentication.
+    In production, staging, or production-like environments, DEV_USER fallback
+    is strictly prohibited and fails closed with HTTP 401 Unauthorized.
+    In testing/development, fallback is ONLY permitted if ALLOW_DEV_USER_FALLBACK
+    is explicitly enabled in configuration for legacy test isolation.
     """
     if current_user:
         return current_user
 
     settings = get_settings()
-    # In development mode without credentials, allow fallback for legacy tests
-    if settings.APP_ENV in ("development", "testing"):
+
+    # Fail closed: DEV_USER fallback is strictly prohibited in production and staging
+    normalized_env = (settings.APP_ENV or "").lower().strip()
+    if normalized_env in ("production", "staging", "prod", "stage"):
+        raise create_auth_error(
+            status.HTTP_401_UNAUTHORIZED,
+            "UNAUTHORIZED",
+            "Authentication required. Identity fallback is strictly disabled in production/staging environments.",
+        )
+
+    # In development/testing, fallback is only allowed if explicitly enabled in configuration
+    if normalized_env in ("development", "testing") and getattr(settings, "ALLOW_DEV_USER_FALLBACK", False):
         return DEV_USER
 
     raise create_auth_error(
         status.HTTP_401_UNAUTHORIZED,
         "UNAUTHORIZED",
-        "Authentication required.",
+        "Authentication required. Missing Bearer token or session cookie.",
     )

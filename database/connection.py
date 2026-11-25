@@ -104,8 +104,20 @@ async def init_db() -> None:
 
                     cursor.execute("PRAGMA table_info(repositories)")
                     repo_cols = {row[1] for row in cursor.fetchall()}
-                    if "workspace_id" not in repo_cols:
-                        cursor.execute("ALTER TABLE repositories ADD COLUMN workspace_id VARCHAR(36)")
+                    new_repo_cols = [
+                        ("workspace_id", "VARCHAR(36)"),
+                        ("github_installation_id", "VARCHAR(36)"),
+                        ("github_repository_id", "INTEGER"),
+                        ("full_name", "VARCHAR(200)"),
+                        ("private", "BOOLEAN DEFAULT 0"),
+                        ("connection_status", "VARCHAR(30) DEFAULT 'CONNECTED'"),
+                        ("permissions_snapshot", "JSON DEFAULT '{}'"),
+                        ("last_webhook_received_at", "DATETIME"),
+                        ("last_indexed_at", "DATETIME"),
+                    ]
+                    for col_name, col_type in new_repo_cols:
+                        if col_name not in repo_cols:
+                            cursor.execute(f"ALTER TABLE repositories ADD COLUMN {col_name} {col_type}")
 
                     cursor.execute("PRAGMA table_info(users)")
                     user_cols = {row[1] for row in cursor.fetchall()}

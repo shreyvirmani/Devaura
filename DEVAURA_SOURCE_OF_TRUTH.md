@@ -2616,7 +2616,113 @@ Phase 9.3 establishes held-out repository generalization as Devaura's primary ca
 
 ---
 
-# 67. Final Rule
+---
+
+# 67. PRODUCTION PHASE 2 — GITHUB APP INTEGRATION, REPOSITORY ONBOARDING & REAL REPOSITORY CONNECTIVITY
+
+Phase 2 establishes the trusted GitHub integration and repository onboarding boundary for Devaura. It connects multi-tenant workspaces to real GitHub repositories via the official GitHub App architecture while maintaining strict credential isolation, authoritative server-side metadata validation, and replay-resistant webhook ingestion.
+
+### 1. Architectural Principles & Security Boundary
+- **Official GitHub App Model (Zero User PATs):** Devaura never prompts users to paste GitHub Personal Access Tokens (PATs) and never stores arbitrary user tokens in the database. All repository interactions use scoped GitHub App permissions.
+- **Dual-Layer GitHub Authentication (`integrations/github/app_service.py`):**
+  1. *App JWT:* RS256-signed JWT generated dynamically from `GITHUB_APP_PRIVATE_KEY` and `GITHUB_APP_ID` with a 10-minute maximum lifespan, used solely to request installation tokens.
+  2. *Installation Access Token:* Short-lived (`ghs_...`, 1-hour expiration) tokens minted on-the-fly and cached in memory with a 2-minute expiration buffer. Never persisted to disk or database.
+- **Hardened Fail-Closed Authentication Boundary (`apps/api/auth.py`):**
+  - In `production`, `staging`, `prod`, or `stage` environments, `DEV_USER` fallback is strictly prohibited and immediately fails closed with HTTP 401 Unauthorized (`UNAUTHORIZED`), even if `ALLOW_DEV_USER_FALLBACK=true` is present in the environment.
+  - In `development` and `testing`, fallback is only permitted if `ALLOW_DEV_USER_FALLBACK` is explicitly enabled in configuration for legacy test isolation.
+
+### 2. Multi-Tenant GitHub Data Model (`database/models/tenancy.py`, `database/models/models.py`)
+- **`GitHubAppInstallation` Model:**
+  - `id`: UUID primary key.
+  - `workspace_id`: Foreign key strictly scoping the installation to a tenant workspace (`workspaces.id`, cascade delete).
+  - `installation_id`: Unique GitHub installation ID.
+  - `account_id`, `account_name`, `account_type`, `account_avatar_url`: GitHub account metadata.
+  - `repository_selection`: `"all"` or `"selected"`.
+  - `permissions`, `events`: JSON snapshots of authorized permissions and subscriptions.
+  - `is_active`: Boolean flag indicating active connection state.
+- **`WebhookEventRecord` Model:**
+  - Append-only audit log of verified GitHub webhooks.
+  - `delivery_id`: Unique index enforcing `X-GitHub-Delivery` replay resistance.
+  - `event_type`: Event type (`X-GitHub-Event`).
+  - `installation_id`, `workspace_id`, `repository_id`: Resolved tenant foreign keys.
+  - `payload`: Sanitized JSON payload (stripped of sensitive authorization tokens).
+  - `status`: `"RECEIVED"`, `"PROCESSED"`, `"DUPLICATE"`, `"REJECTED"`.
+  - `signature_verified`: Boolean confirmation of cryptographic verification.
+- **`Repository` Model Extensions:**
+  - `github_installation_id`: Foreign key to `github_app_installations.id`.
+  - `github_repository_id`: Authoritative GitHub numeric ID.
+  - `full_name`: Authoritative repository full name (e.g., `owner/repo`).
+  - `private`: Boolean visibility flag.
+  - `connection_status`: `"CONNECTED"`, `"DISCONNECTED"`, `"ACCESS_REVOKED"`.
+  - `permissions_snapshot`: JSON dictionary of permissions.
+  - `last_webhook_received_at`: Timestamp of the latest verified webhook for this repo.
+  - `last_indexed_at`: Timestamp of the latest Code Intelligence AST index.
+- **Alembic Migration:** Version `0002_github_app_integration` (`database/migrations/versions/0002_github_app_integration.py`).
+
+### 3. Server-Side Onboarding API (`apps/api/routes/github.py`)
+- **`GET /api/v1/workspaces/{workspace_id}/github/install-url`:**
+  - Requires `require_workspace_admin`. Returns official install URL with signed state token embedding `workspace_id`.
+- **`POST /api/v1/workspaces/{workspace_id}/github/installations`:**
+  - Requires `require_workspace_admin`. Links installation to workspace. Rejects cross-workspace takeover with HTTP 409 (`INSTALLATION_ALREADY_LINKED`). Audits `github.installation.connected`.
+- **`GET /api/v1/workspaces/{workspace_id}/github/installations`:**
+  - Requires `require_workspace_member`. Lists active installations for the workspace.
+- **`DELETE /api/v1/workspaces/{workspace_id}/github/installations/{installation_id}`:**
+  - Requires `require_workspace_owner`. Deactivates installation and marks all child repositories as `ACCESS_REVOKED`. Audits `github.installation.disconnected`.
+- **`GET /api/v1/workspaces/{workspace_id}/github/installations/{installation_id}/repositories`:**
+  - Requires `require_workspace_member`. Discovers repositories granted by the installation token and annotates `is_connected` status within the workspace.
+- **`POST /api/v1/workspaces/{workspace_id}/github/repositories/connect`:**
+  - Requires `require_workspace_admin`. Authoritative server-side anti-spoofing validation against GitHub API using installation token. Prevents duplicate connections with HTTP 409 (`REPOSITORY_ALREADY_CONNECTED`). Audits `repository.connect`.
+- **`DELETE /api/v1/workspaces/{workspace_id}/github/repositories/{repository_id}`:**
+  - Requires `require_workspace_admin`. Disconnects repository and sets `connection_status="DISCONNECTED"`. Audits `repository.disconnect`.
+- **`GET /api/v1/workspaces/{workspace_id}/github/repositories/{repository_id}/detail`:**
+  - Requires `require_workspace_member`. Returns authoritative health telemetry (Code Intelligence index state, last webhook timestamp, active incident count, investigation count, repair count, PR count) without fabricating mock numbers.
+
+### 4. Webhook Ingestion & Secure Verification (`apps/api/routes/webhooks.py`)
+- **Public Receiver Endpoint:** `POST /api/v1/github/webhooks`.
+- **Cryptographic Signature Verification:**
+  - Validates `X-Hub-Signature-256` HMAC-SHA256 digest against `GITHUB_WEBHOOK_SECRET` using `hmac.compare_digest`.
+  - Missing or invalid signatures reject immediately with HTTP 401 Unauthorized (`MISSING_SIGNATURE`, `INVALID_SIGNATURE`) and log audit event `github.webhook.rejected`.
+- **Idempotency & Replay Resistance:**
+  - Enforces `X-GitHub-Delivery` header presence.
+  - Queries `WebhookEventRecord` by `delivery_id`. If a record already exists, returns HTTP 200 `already_processed` without re-mutating state or re-executing actions. Audits `github.webhook.duplicate`.
+- **Lifecycle Propagation:**
+  - `installation` (`action == "deleted"` or `"suspend"`): Marks installation `is_active=False` and cascades `connection_status="ACCESS_REVOKED"` to all child repositories.
+  - `installation_repositories` (`action == "removed"`): Sets `connection_status="ACCESS_REVOKED"` on removed repositories.
+- **Repository Activity Tracking:**
+  - `push`, `workflow_run`, `check_run`, `pull_request`: Updates `repository.last_webhook_received_at` with zero autonomous repair or merge triggering.
+
+### 5. Frontend Repository Onboarding & Detail Views (`apps/web/src/app/repositories/`)
+- **Workspace Repositories Hub (`/repositories`):**
+  - **Live Telemetry vs Evaluation Split:** Mode switcher between Live Workspace Repositories and Ground-Truth Evaluation Benchmark Datasets.
+  - **Onboarding State Machine:**
+    1. *Empty State:* Explains Devaura security boundaries (Read-only access, isolated sandboxes, mandatory human approval) with direct `[ Install Devaura GitHub App ]` launcher.
+    2. *Repository Discovery Selector:* Filterable checklist displaying accessible GitHub repositories with instant `[ Connect ]` action and active status badges.
+    3. *Connected Repositories Grid:* Repository cards detailing full name, private/public visibility, default branch, connection status, Code Intelligence indexing status, and last webhook timestamp.
+- **Repository Technical Detail View (`/repositories/[id]`):**
+  - Header with full repository metadata, clone URL, and GitHub App installation badge.
+  - Devaura Readiness Grid: Code Intelligence index status, Webhook ingestion status, Active incidents count, and verified repairs count.
+  - Real metric display: Renders actual counts or "No investigations/repairs recorded yet" (zero synthetic mock values).
+  - Safety boundary guarantees: Enforces sandboxed verification and mandatory human approval gates.
+
+### 6. Automated Verification
+- **11/11 Phase 2 Integration Tests Passing (`tests/test_github_app_integration.py`):**
+  - `test_dev_user_fallback_strictly_impossible_in_production` (PASSED)
+  - `test_dev_user_fallback_strictly_impossible_in_staging` (PASSED)
+  - `test_dev_user_disabled_by_default_in_development` (PASSED)
+  - `test_install_url_requires_admin` (PASSED)
+  - `test_record_installation_and_isolation` (PASSED)
+  - `test_repository_discovery_and_connect` (PASSED)
+  - `test_webhook_rejects_missing_or_invalid_signature` (PASSED)
+  - `test_webhook_ping_and_idempotency` (PASSED)
+  - `test_webhook_repository_activity_updates_timestamp` (PASSED)
+  - `test_webhook_installation_deleted_revokes_access` (PASSED)
+  - `test_secrets_redaction_in_audit_records` (PASSED)
+- **Unified Regression Suite Passing:** All SaaS multi-tenancy, foundation, security regression, and E2E tests verified.
+- **Next.js Production Build:** 13/13 pages statically and dynamically compiled with clean typecheck (`npm run build`).
+
+---
+
+# 68. Final Rule
 
 **Never sacrifice correctness, security, or verifiability merely to make Devaura appear autonomous.**
 

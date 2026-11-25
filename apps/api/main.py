@@ -11,6 +11,7 @@ from apps.api.routes import (
     auth,
     code_intelligence,
     evaluation,
+    github,
     health,
     investigations,
     mcp_servers,
@@ -18,6 +19,7 @@ from apps.api.routes import (
     pull_requests,
     repairs,
     repositories,
+    webhooks,
     workspaces,
 )
 from database.connection import close_db, init_db
@@ -136,6 +138,8 @@ app.include_router(code_intelligence.router, prefix=api_v1_prefix)
 app.include_router(metrics.router, prefix=api_v1_prefix)
 app.include_router(pull_requests.router, prefix=api_v1_prefix)
 app.include_router(evaluation.router, prefix=api_v1_prefix)
+app.include_router(github.router, prefix=api_v1_prefix)
+app.include_router(webhooks.router, prefix=api_v1_prefix)
 
 
 @app.get("/")

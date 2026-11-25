@@ -58,6 +58,12 @@ class Workspace(Base):
     audit_events: Mapped[List["AuditEventRecord"]] = relationship(
         "AuditEventRecord", back_populates="workspace", cascade="all, delete-orphan", lazy="selectin"
     )
+    github_installations: Mapped[List["GitHubAppInstallation"]] = relationship(
+        "GitHubAppInstallation", back_populates="workspace", cascade="all, delete-orphan", lazy="selectin"
+    )
+    webhook_events: Mapped[List["WebhookEventRecord"]] = relationship(
+        "WebhookEventRecord", back_populates="workspace", cascade="all, delete-orphan", lazy="selectin"
+    )
 
 
 class WorkspaceMember(Base):
@@ -101,4 +107,48 @@ class AuditEventRecord(Base):
 
     # Relationships
     workspace: Mapped[Optional["Workspace"]] = relationship("Workspace", back_populates="audit_events")
-    actor: Mapped[Optional["User"]] = relationship("User", lazy="selectin")
+
+
+class GitHubAppInstallation(Base):
+    """Represents a GitHub App installation authorized for a workspace."""
+    __tablename__ = "github_app_installations"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    workspace_id: Mapped[str] = mapped_column(String(36), ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False, index=True)
+    installation_id: Mapped[int] = mapped_column(Integer, unique=True, nullable=False, index=True)  # GitHub numeric ID
+    account_id: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    account_name: Mapped[str] = mapped_column(String(100), nullable=False)  # User or Org login
+    account_type: Mapped[str] = mapped_column(String(20), default="User", nullable=False)  # User or Organization
+    account_avatar_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    repository_selection: Mapped[str] = mapped_column(String(20), default="all", nullable=False)  # all | selected
+    permissions: Mapped[Dict[str, Any]] = mapped_column(JSON, default=dict, nullable=False)
+    events: Mapped[List[str]] = mapped_column(JSON, default=list, nullable=False)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    installed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now, nullable=False)
+
+    # Relationships
+    workspace: Mapped["Workspace"] = relationship("Workspace", back_populates="github_installations")
+    repositories: Mapped[List["Repository"]] = relationship(
+        "Repository", back_populates="github_installation", cascade="all, delete-orphan", lazy="selectin"
+    )
+
+
+class WebhookEventRecord(Base):
+    """Durable append-only event log for GitHub webhooks ensuring replay resistance and idempotency."""
+    __tablename__ = "webhook_events"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    delivery_id: Mapped[str] = mapped_column(String(100), unique=True, nullable=False, index=True)  # X-GitHub-Delivery
+    event_type: Mapped[str] = mapped_column(String(50), nullable=False, index=True)  # X-GitHub-Event
+    installation_id: Mapped[Optional[int]] = mapped_column(Integer, nullable=True, index=True)
+    workspace_id: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey("workspaces.id", ondelete="SET NULL"), nullable=True, index=True)
+    repository_id: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey("repositories.id", ondelete="SET NULL"), nullable=True, index=True)
+    payload: Mapped[Dict[str, Any]] = mapped_column(JSON, default=dict, nullable=False)  # Sanitized payload
+    status: Mapped[str] = mapped_column(String(30), default="RECEIVED", nullable=False, index=True)  # RECEIVED, PROCESSED, DUPLICATE, IGNORED, REJECTED
+    signature_verified: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False, index=True)
+    processed_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    # Relationships
+    workspace: Mapped[Optional["Workspace"]] = relationship("Workspace", back_populates="webhook_events")

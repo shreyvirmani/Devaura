@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, List, Optional
+from typing import Any, Dict, List, Optional
 from sqlalchemy import (
     Boolean,
     DateTime,
@@ -133,10 +133,19 @@ class Repository(Base):
     provider: Mapped[str] = mapped_column(String(50), default="github", nullable=False)
     default_branch: Mapped[str] = mapped_column(String(100), default="main", nullable=False)
     clone_url: Mapped[str] = mapped_column(String(500), nullable=False)
+    github_installation_id: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey("github_app_installations.id", ondelete="SET NULL"), nullable=True, index=True)
+    github_repository_id: Mapped[Optional[int]] = mapped_column(Integer, nullable=True, index=True)
+    full_name: Mapped[Optional[str]] = mapped_column(String(200), nullable=True, index=True)
+    private: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    connection_status: Mapped[str] = mapped_column(String(30), default="CONNECTED", nullable=False)  # CONNECTED, DISCONNECTED, ACCESS_REVOKED
+    permissions_snapshot: Mapped[Dict[str, Any]] = mapped_column(JSON, default=dict)
+    last_webhook_received_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_indexed_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
 
     workspace: Mapped[Optional["Workspace"]] = relationship("Workspace", back_populates="repositories", lazy="selectin")
+    github_installation: Mapped[Optional["GitHubAppInstallation"]] = relationship("GitHubAppInstallation", back_populates="repositories", lazy="selectin")
     investigations: Mapped[List["Investigation"]] = relationship(
         "Investigation", back_populates="repository", cascade="all, delete-orphan", lazy="selectin"
     )

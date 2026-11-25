@@ -136,12 +136,13 @@ async def signup(
 
     # 5. Issue JWT
     token = create_access_token(subject=new_user.id, email=new_user.email)
+    from apps.api.config import get_settings
     response.set_cookie(
         key="devaura_token",
         value=token,
         httponly=True,
         samesite="lax",
-        secure=request.url.scheme == "https",
+        secure=get_settings().is_staging_or_production or request.url.scheme == "https",
         max_age=86400,
     )
 
@@ -255,12 +256,13 @@ async def login(
     await db.commit()
 
     token = create_access_token(subject=user.id, email=user.email)
+    from apps.api.config import get_settings
     response.set_cookie(
         key="devaura_token",
         value=token,
         httponly=True,
         samesite="lax",
-        secure=request.url.scheme == "https",
+        secure=get_settings().is_staging_or_production or request.url.scheme == "https",
         max_age=86400,
     )
 

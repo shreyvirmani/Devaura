@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import { API_BASE } from "@/lib/api";
 import { useParams, useRouter } from "next/navigation";
 import {
   ArrowLeft,
@@ -79,8 +80,6 @@ export default function RepositoryDetailPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isDisconnecting, setIsDisconnecting] = useState(false);
-
-  const API_BASE = "http://localhost:8000/api/v1";
 
   const getHeaders = () => {
     const token = typeof window !== "undefined" ? localStorage.getItem("devaura_token") : null;

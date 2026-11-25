@@ -2,10 +2,11 @@ import asyncio
 import time
 import uuid
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, HTTPException, Request, status
+from fastapi import Depends, FastAPI, HTTPException, Request, Response, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from sqlalchemy.ext.asyncio import AsyncSession
 from apps.api.config import get_settings
 from apps.api.logger import logger
 from apps.api.routes import (
@@ -25,7 +26,7 @@ from apps.api.routes import (
     workspaces,
 )
 from core.jobs.worker import DurableJobWorker
-from database.connection import close_db, init_db
+from database.connection import close_db, get_db_session, init_db
 
 
 @asynccontextmanager
@@ -42,9 +43,16 @@ async def lifespan(app: FastAPI):
             "env": settings.APP_ENV,
         },
     )
-    # Initialize database tables
-    await init_db()
-    logger.info("Database initialized successfully", extra={"component": "database", "event": "init_db"})
+    if settings.is_staging_or_production:
+        config_errors = settings.validate_staging_or_production()
+        if config_errors:
+            raise RuntimeError(
+                "Staging/Production fail-closed configuration error(s): " + "; ".join(config_errors)
+            )
+    else:
+        # Development/testing convenience: ensure tables exist
+        await init_db()
+        logger.info("Database initialized successfully", extra={"component": "database", "event": "init_db"})
 
     # Start durable background job worker in non-testing environments when enabled
     worker = None
@@ -145,7 +153,16 @@ async def audit_and_latency_middleware(request: Request, call_next):
     return response
 
 
-# Include API v1 Routers
+# Include Root Health & Readiness Probes + API v1 Routers
+app.include_router(health.router)
+
+
+@app.get("/ready", tags=["Health"])
+async def root_ready(response: Response, session: AsyncSession = Depends(get_db_session)) -> dict:
+    """Root readiness probe delegating to /api/v1/health/ready."""
+    return await health.get_ready(response=response, session=session)
+
+
 api_v1_prefix = "/api/v1"
 app.include_router(auth.router, prefix=api_v1_prefix)
 app.include_router(workspaces.router, prefix=api_v1_prefix)

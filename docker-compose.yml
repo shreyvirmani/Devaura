@@ -25,13 +25,41 @@ services:
     restart: unless-stopped
     environment:
       - DATABASE_URL=postgresql+asyncpg://devaura:devaura_password@postgres:5432/devaura
-      - APP_ENV=production
+      - APP_ENV=${APP_ENV:-staging}
       - LOG_LEVEL=INFO
+      - WORKER_ENABLED=false
+      - SECRET_KEY=${SECRET_KEY:?SECRET_KEY must be set}
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-http://localhost:3000}
       - LLM_PROVIDER=gemini
       - GEMINI_API_KEY=${GEMINI_API_KEY:-}
-      - GITHUB_TOKEN=${GITHUB_TOKEN:-}
+      - GITHUB_APP_ID=${GITHUB_APP_ID:-}
+      - GITHUB_APP_PRIVATE_KEY=${GITHUB_APP_PRIVATE_KEY:-}
+      - GITHUB_WEBHOOK_SECRET=${GITHUB_WEBHOOK_SECRET:-}
     ports:
       - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./storage:/app/storage
+
+  worker:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    container_name: devaura-worker
+    restart: unless-stopped
+    command: ["python", "-m", "apps.worker.main"]
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://devaura:devaura_password@postgres:5432/devaura
+      - APP_ENV=${APP_ENV:-staging}
+      - LOG_LEVEL=INFO
+      - SECRET_KEY=${SECRET_KEY:?SECRET_KEY must be set}
+      - LLM_PROVIDER=gemini
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - GITHUB_APP_ID=${GITHUB_APP_ID:-}
+      - GITHUB_APP_PRIVATE_KEY=${GITHUB_APP_PRIVATE_KEY:-}
+      - GITHUB_WEBHOOK_SECRET=${GITHUB_WEBHOOK_SECRET:-}
     depends_on:
       postgres:
         condition: service_healthy

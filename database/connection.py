@@ -33,13 +33,30 @@ def get_engine() -> AsyncEngine:
     global _engine, _engine_url, _session_maker
     db_url = get_database_url()
     if _engine is None or _engine_url != db_url:
+        from apps.api.config import get_settings
+        settings = get_settings()
         connect_args = {}
+        engine_kwargs: dict = {
+            "echo": os.getenv("LOG_LEVEL", settings.LOG_LEVEL).upper() == "DEBUG",
+        }
         if "sqlite" in db_url:
             connect_args["check_same_thread"] = False
+        else:
+            # PostgreSQL production/staging connection pool configuration
+            engine_kwargs.update(
+                pool_size=int(os.getenv("DB_POOL_SIZE", settings.DB_POOL_SIZE)),
+                max_overflow=int(os.getenv("DB_MAX_OVERFLOW", settings.DB_MAX_OVERFLOW)),
+                pool_timeout=int(os.getenv("DB_POOL_TIMEOUT_SECONDS", settings.DB_POOL_TIMEOUT_SECONDS)),
+                pool_recycle=int(os.getenv("DB_POOL_RECYCLE_SECONDS", settings.DB_POOL_RECYCLE_SECONDS)),
+                pool_pre_ping=True,
+            )
+            stmt_timeout = int(os.getenv("DB_STATEMENT_TIMEOUT_MS", settings.DB_STATEMENT_TIMEOUT_MS))
+            if "asyncpg" in db_url and stmt_timeout > 0:
+                connect_args["server_settings"] = {"statement_timeout": str(stmt_timeout)}
         _engine = create_async_engine(
             db_url,
-            echo=os.getenv("LOG_LEVEL", "INFO").upper() == "DEBUG",
             connect_args=connect_args,
+            **engine_kwargs,
         )
         _engine_url = db_url
         _session_maker = async_sessionmaker(
@@ -164,8 +181,9 @@ async def init_db() -> None:
 
 async def close_db() -> None:
     """Close the database engine."""
-    global _engine, _session_maker
+    global _engine, _engine_url, _session_maker
     if _engine is not None:
         await _engine.dispose()
         _engine = None
+        _engine_url = None
         _session_maker = None

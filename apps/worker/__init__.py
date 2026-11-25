@@ -1,0 +1,1 @@
+"""Devaura standalone worker package."""

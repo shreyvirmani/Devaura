@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import { API_BASE, LIVE_DATA_LABEL } from "@/lib/api";
 import { useParams } from "next/navigation";
 import {
   ArrowLeft,
@@ -187,8 +188,6 @@ export default function IncidentDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  const API_BASE = "http://localhost:8000/api/v1";
-
   const getHeaders = () => {
     const token = typeof window !== "undefined" ? localStorage.getItem("devaura_token") : null;
     return {
@@ -364,7 +363,7 @@ export default function IncidentDetailPage() {
       <div className="bg-[#121518] border border-[#2A3036] rounded-xl p-5 space-y-3">
         <div className="flex items-center justify-between text-xs">
           <span className="font-mono uppercase text-gray-400">Live Repair Execution Pipeline</span>
-          <span className="font-mono text-emerald-400 text-[11px]">LIVE TELEMETRY</span>
+          <span className="font-mono text-emerald-400 text-[11px]">{LIVE_DATA_LABEL}</span>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2">
           {PIPELINE_STAGES.map((label, idx) => {

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import { API_BASE } from "@/lib/api";
 import {
   AlertCircle,
   CheckCircle2,
@@ -77,8 +78,6 @@ export default function IncidentsPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
-
-  const API_BASE = "http://localhost:8000/api/v1";
 
   const getHeaders = () => {
     const token = typeof window !== "undefined" ? localStorage.getItem("devaura_token") : null;

@@ -2804,7 +2804,33 @@ Phase 4 connects the existing Devaura repair, verification, approval, and PR sub
 
 ---
 
-# 70. Final Rule
+# 70. Production Phase 5 — Hosted Staging Hardening & Operational Readiness
+
+**Status:** `IMPLEMENTED` (Fail-Closed Environment Model, PostgreSQL Pooling, Independent Worker Entrypoint, `/ready` & `/health/live` Probes, Sandbox Env Scrubbing, Frontend `NEXT_PUBLIC_API_URL`, & Operations Endpoint); `NOT IMPLEMENTED` (Live Hosted Staging Deployment & Live GitHub Webhook/PR Execution in Current Local Environment)
+
+### 1. Environment Model & Fail-Closed Security (`apps/api/config.py`, `apps/api/routes/auth.py`)
+- Validated `APP_ENV` strictly against `{"testing", "development", "staging", "production"}`.
+- Added `Settings.validate_staging_or_production()` enforced at API and Worker startup: rejects `ALLOW_DEV_USER_FALLBACK=True`, SQLite `DATABASE_URL`, default/short `SECRET_KEY`, wildcard `*` in `ALLOWED_ORIGINS`, or missing `GITHUB_APP_ID` / `GITHUB_APP_PRIVATE_KEY` / `GITHUB_WEBHOOK_SECRET`.
+- Enforced `secure=True` session cookies in `staging` and `production`.
+
+### 2. PostgreSQL Connection Pool & Independent Worker (`database/connection.py`, `apps/worker/main.py`, `docker-compose.yml`)
+- Configured PostgreSQL `AsyncEngine` pooling (`DB_POOL_SIZE`, `DB_MAX_OVERFLOW`, `DB_POOL_TIMEOUT_SECONDS`, `DB_POOL_RECYCLE_SECONDS`, `pool_pre_ping=True`, and `asyncpg` `statement_timeout`).
+- Added standalone worker entrypoint `apps/worker/main.py` (`python -m apps.worker.main`) with `SIGINT`/`SIGTERM` graceful shutdown and `docker-compose.yml` `worker` service (`WORKER_ENABLED=false` on `api`).
+
+### 3. Health, Readiness & Operational Visibility (`apps/api/routes/health.py`, `apps/api/main.py`, `apps/api/routes/incidents.py`)
+- Exposed `/health/live` (lightweight liveness) and `/ready` + `/api/v1/health/ready` (checks DB `SELECT 1`, Alembic `0004_phase4_repair_pipeline`, staging config, and GitHub App config; returns HTTP `503` when unready without leaking secrets).
+- Added workspace-scoped `GET /api/v1/workspaces/{workspace_id}/operations` returning active/queued/retrying/failed/provider-quota job counts, provider failures, and recent incidents/repairs/PRs.
+
+### 4. Sandbox Scrubbing & Frontend Staging Config (`agent/verification/runner.py`, `apps/web/src/lib/api.ts`)
+- Added `VerificationRunner._build_sandbox_env()` so verification subprocesses never inherit `SECRET_KEY`, `DATABASE_URL`, `GEMINI_API_KEY`, `GITHUB_APP_PRIVATE_KEY`, `GITHUB_TOKEN`, or `GITHUB_WEBHOOK_SECRET`.
+- Centralized frontend `API_BASE` in `apps/web/src/lib/api.ts` using `NEXT_PUBLIC_API_URL` and `LIVE_DATA_LABEL` (`LIVE STAGING DATA` in staging).
+
+### 5. Honest Hosted Staging Gap
+- **Current Local Environment:** No hosted PostgreSQL server, Docker daemon, public webhook tunnel, or staging GitHub App credentials are provisioned on the local Windows machine, so live hosted staging deployment and live GitHub App PR creation remain `NOT IMPLEMENTED` / awaiting infrastructure provisioning per `docs/STAGING_DEPLOYMENT.md`.
+
+---
+
+# 71. Final Rule
 
 **Never sacrifice correctness, security, or verifiability merely to make Devaura appear autonomous.**
 

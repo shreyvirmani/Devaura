@@ -34,9 +34,9 @@ interface AuthContextType {
   toggleDataMode: () => void;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+import { API_BASE } from "@/lib/api";
 
-const API_BASE = "http://localhost:8000/api/v1";
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 // Demo fallback workspace for offline or initial evaluation review
 const DEMO_WORKSPACE: Workspace = {

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useTransition } from "react";
 import Link from "next/link";
+import { API_BASE } from "@/lib/api";
 import {
   GitBranch,
   GitCommit,
@@ -141,8 +142,6 @@ export default function RepositoriesPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [actionError, setActionError] = useState<string | null>(null);
   const [connectingRepoId, setConnectingRepoId] = useState<number | null>(null);
-
-  const API_BASE = "http://localhost:8000/api/v1";
 
   const getHeaders = () => {
     const token = typeof window !== "undefined" ? localStorage.getItem("devaura_token") : null;

@@ -659,3 +659,84 @@ async def get_workspace_job(
             "Job not found in this workspace.",
         )
     return _serialize_job(job)
+
+
+@router.get("/operations")
+async def get_workspace_operations(
+    ctx: WorkspaceContext = Depends(require_workspace_member),
+    db: AsyncSession = Depends(get_db),
+):
+    """Operational visibility endpoint: active/queued/retrying/failed jobs, provider failures, recent incidents/repairs/PRs."""
+    jobs_res = await db.execute(
+        select(Job).where(Job.workspace_id == ctx.workspace_id).order_by(desc(Job.created_at)).limit(100)
+    )
+    jobs = list(jobs_res.scalars().all())
+    jobs_summary = {
+        "active": sum(1 for j in jobs if j.status == JobStatus.RUNNING.value),
+        "queued": sum(1 for j in jobs if j.status == JobStatus.QUEUED.value),
+        "retrying": sum(1 for j in jobs if j.status == JobStatus.RETRY_WAIT.value),
+        "failed": sum(1 for j in jobs if j.status in {JobStatus.FAILED.value, JobStatus.DEAD_LETTER.value}),
+        "provider_quota_exhausted": sum(1 for j in jobs if j.status == JobStatus.PROVIDER_QUOTA_EXHAUSTED.value),
+        "succeeded": sum(1 for j in jobs if j.status == JobStatus.SUCCEEDED.value),
+    }
+
+    inc_res = await db.execute(
+        select(Incident).where(Incident.workspace_id == ctx.workspace_id).order_by(desc(Incident.detected_at)).limit(10)
+    )
+    incidents = list(inc_res.scalars().all())
+
+    rep_res = await db.execute(
+        select(RepairRecord).where(RepairRecord.workspace_id == ctx.workspace_id).order_by(desc(RepairRecord.created_at)).limit(10)
+    )
+    repairs = list(rep_res.scalars().all())
+
+    pr_res = await db.execute(
+        select(PullRequestRecord)
+        .join(RepairRecord, PullRequestRecord.repair_id == RepairRecord.id)
+        .where(RepairRecord.workspace_id == ctx.workspace_id)
+        .order_by(desc(PullRequestRecord.created_at))
+        .limit(10)
+    )
+    prs = list(pr_res.scalars().all())
+
+    provider_failures = [
+        {
+            "job_id": j.id,
+            "incident_id": j.incident_id,
+            "job_type": j.job_type,
+            "status": j.status,
+            "failure_classification": j.failure_classification,
+            "updated_at": j.updated_at.isoformat() if j.updated_at else None,
+        }
+        for j in jobs
+        if j.status == JobStatus.PROVIDER_QUOTA_EXHAUSTED.value or j.failure_classification == "PROVIDER_QUOTA_EXHAUSTED"
+    ][:10]
+
+    return {
+        "workspace_id": ctx.workspace_id,
+        "jobs_summary": jobs_summary,
+        "provider_failures": provider_failures,
+        "recent_incidents": [_serialize_incident_summary(i) for i in incidents],
+        "recent_repairs": [
+            {
+                "id": r.id,
+                "status": r.status,
+                "target_branch": r.target_branch,
+                "base_revision": r.base_revision,
+                "created_at": r.created_at.isoformat() if r.created_at else None,
+            }
+            for r in repairs
+        ],
+        "recent_prs": [
+            {
+                "id": p.id,
+                "repair_id": p.repair_id,
+                "pr_number": p.pr_number,
+                "pr_url": p.pr_url,
+                "pr_state": p.pr_state,
+                "repair_branch": p.repair_branch,
+                "created_at": p.created_at.isoformat() if p.created_at else None,
+            }
+            for p in prs
+        ],
+    }

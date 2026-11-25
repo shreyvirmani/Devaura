@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { API_BASE } from "@/lib/api";
 import {
   Search,
   CheckCircle2,
@@ -109,7 +110,7 @@ export default function InvestigationsPage() {
   const fetchInvestigations = async () => {
     setLoading(true);
     try {
-      const res = await fetch("http://localhost:8000/api/v1/investigations");
+      const res = await fetch(`${API_BASE}/investigations`);
       if (res.ok) {
         const data = await res.json();
         setInvestigations(data);
@@ -134,7 +135,7 @@ export default function InvestigationsPage() {
   const handleRunInvestigation = async (invId: string) => {
     setRunning(true);
     try {
-      const res = await fetch(`http://localhost:8000/api/v1/investigations/${invId}/run`, {
+      const res = await fetch(`${API_BASE}/investigations/${invId}/run`, {
         method: "POST",
       });
       if (res.ok) {
@@ -159,7 +160,7 @@ export default function InvestigationsPage() {
         error_message: newErrorMsg || undefined,
         stack_trace: newStackTrace || undefined,
       };
-      const res = await fetch("http://localhost:8000/api/v1/investigations", {
+      const res = await fetch(`${API_BASE}/investigations`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),

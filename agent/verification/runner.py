@@ -81,6 +81,33 @@ class VerificationRunner:
 
         return tokens
 
+    @staticmethod
+    def _build_sandbox_env() -> Dict[str, str]:
+        """Construct a scrubbed environment for sandbox subprocesses.
+
+        Strips all application secrets (DB URLs, JWT keys, LLM keys, GitHub App keys/tokens).
+        """
+        safe_keys = {
+            "PATH",
+            "SYSTEMROOT",
+            "WINDIR",
+            "COMSPEC",
+            "PATHEXT",
+            "HOME",
+            "USERPROFILE",
+            "TMP",
+            "TEMP",
+            "TMPDIR",
+            "LANG",
+            "LC_ALL",
+            "TERM",
+        }
+        scrubbed = {k: v for k, v in os.environ.items() if k.upper() in safe_keys}
+        scrubbed["PYTHONUNBUFFERED"] = "1"
+        scrubbed["PYTHONDONTWRITEBYTECODE"] = "1"
+        scrubbed["DEVAURA_SANDBOX"] = "1"
+        return scrubbed
+
     def run_check(
         self,
         check_type: CheckType,
@@ -109,6 +136,7 @@ class VerificationRunner:
             proc = subprocess.run(
                 tokens,
                 cwd=self.workspace_path,
+                env=self._build_sandbox_env(),
                 capture_output=True,
                 text=True,
                 timeout=timeout,

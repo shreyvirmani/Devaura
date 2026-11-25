@@ -23,6 +23,7 @@ from agent.models import FailureType, InvestigationRequest
 from apps.api.audit import record_audit_event
 from apps.api.config import get_settings
 from apps.api.logger import logger
+from core.incidents.service import enqueue_job
 from core.jobs.retry_policy import (
     FailureClassification,
     NonRetryableJobError,
@@ -30,7 +31,10 @@ from core.jobs.retry_policy import (
     RetryableJobError,
     classify_exception,
     compute_backoff_seconds,
+    is_retryable_classification,
 )
+from core.repairs.eligibility import evaluate_repair_eligibility
+from core.repairs.pipeline import run_pr_stage, run_repair_stage, run_verification_stage
 from database.connection import get_session_maker
 from database.models import (
     Evidence,
@@ -40,6 +44,7 @@ from database.models import (
     InvestigationStep,
     Job,
     JobStatus,
+    JobType,
     Repository,
     RootCauseCandidate,
 )
@@ -55,9 +60,11 @@ class DurableJobWorker:
         self,
         worker_id: Optional[str] = None,
         investigation_runner: Optional[InvestigationRunner] = None,
+        git_provider_factory: Optional[Callable[[], Any]] = None,
     ):
         self.worker_id = worker_id or f"worker-{socket.gethostname()}-{os.getpid()}-{uuid.uuid4().hex[:6]}"
         self.investigation_runner = investigation_runner
+        self.git_provider_factory = git_provider_factory
         self._stop_event = asyncio.Event()
 
     def stop(self) -> None:
@@ -254,21 +261,97 @@ class DurableJobWorker:
         await db.commit()
 
         try:
-            runner = self.investigation_runner or self._default_investigation_runner
-            await asyncio.wait_for(
-                runner(incident, repo, db),
-                timeout=settings.INVESTIGATION_MAX_RUNTIME_SECONDS,
-            )
+            if job.job_type == JobType.INVESTIGATE_INCIDENT.value:
+                runner = self.investigation_runner or self._default_investigation_runner
+                await asyncio.wait_for(
+                    runner(incident, repo, db),
+                    timeout=settings.INVESTIGATION_MAX_RUNTIME_SECONDS,
+                )
 
-            # Mark success
-            done_at = datetime.now(timezone.utc)
-            job.status = JobStatus.SUCCEEDED.value
-            job.completed_at = done_at
-            job.lease_expires_at = None
-            job.last_error = None
+                done_at = datetime.now(timezone.utc)
+                job.status = JobStatus.SUCCEEDED.value
+                job.completed_at = done_at
+                job.lease_expires_at = None
+                job.last_error = None
+                incident.status = IncidentStatus.INVESTIGATED.value
+                incident.updated_at = done_at
 
-            incident.status = IncidentStatus.INVESTIGATED.value
-            incident.updated_at = done_at
+                await record_audit_event(
+                    db=db,
+                    action="incident.investigation_completed",
+                    resource_type="incident",
+                    resource_id=incident.id,
+                    workspace_id=incident.workspace_id,
+                    outcome="SUCCESS",
+                    details={
+                        "investigation_id": incident.investigation_id,
+                        "correlation_id": incident.correlation_id,
+                    },
+                )
+
+                # Explicit Phase 4 Repair Eligibility Gate
+                inv = None
+                if incident.investigation_id:
+                    inv = (
+                        await db.execute(select(Investigation).where(Investigation.id == incident.investigation_id))
+                    ).scalar_one_or_none()
+                decision = evaluate_repair_eligibility(incident, inv, repo)
+                incident.eligibility_status = decision.eligible
+                incident.eligibility_reason = decision.reason
+                if decision.failure_classification:
+                    incident.failure_classification = decision.failure_classification
+
+                await record_audit_event(
+                    db=db,
+                    action="incident.eligibility_checked",
+                    resource_type="incident",
+                    resource_id=incident.id,
+                    workspace_id=incident.workspace_id,
+                    outcome="SUCCESS" if decision.eligible else "DENIED",
+                    details=decision.model_dump(mode="json"),
+                )
+
+                if decision.eligible:
+                    incident.status = IncidentStatus.REPAIR_PENDING.value
+                    await enqueue_job(db, incident, JobType.REPAIR_INCIDENT)
+                else:
+                    incident.status = decision.incident_status.value
+
+            elif job.job_type == JobType.REPAIR_INCIDENT.value:
+                await run_repair_stage(db, incident, repo, job)
+                job.status = JobStatus.SUCCEEDED.value
+                job.completed_at = datetime.now(timezone.utc)
+                job.lease_expires_at = None
+                job.last_error = None
+                incident.status = IncidentStatus.VERIFICATION_QUEUED.value
+                await enqueue_job(
+                    db,
+                    incident,
+                    JobType.VERIFY_REPAIR,
+                    payload={"custom_commands": (job.payload or {}).get("custom_commands")},
+                )
+
+            elif job.job_type == JobType.VERIFY_REPAIR.value:
+                await run_verification_stage(db, incident, repo, job)
+                job.status = JobStatus.SUCCEEDED.value
+                job.completed_at = datetime.now(timezone.utc)
+                job.lease_expires_at = None
+                job.last_error = None
+
+            elif job.job_type == JobType.CREATE_PR.value:
+                await run_pr_stage(
+                    db,
+                    incident,
+                    repo,
+                    job,
+                    git_provider_factory=self.git_provider_factory,
+                )
+                job.status = JobStatus.SUCCEEDED.value
+                job.completed_at = datetime.now(timezone.utc)
+                job.lease_expires_at = None
+                job.last_error = None
+            else:
+                raise NonRetryableJobError(f"Unsupported job_type: {job.job_type}")
 
             await record_audit_event(
                 db=db,
@@ -277,19 +360,7 @@ class DurableJobWorker:
                 resource_id=job.id,
                 workspace_id=job.workspace_id,
                 outcome="SUCCESS",
-                details={"incident_id": incident.id, "correlation_id": job.correlation_id},
-            )
-            await record_audit_event(
-                db=db,
-                action="incident.investigation_completed",
-                resource_type="incident",
-                resource_id=incident.id,
-                workspace_id=incident.workspace_id,
-                outcome="SUCCESS",
-                details={
-                    "investigation_id": incident.investigation_id,
-                    "correlation_id": incident.correlation_id,
-                },
+                details={"incident_id": incident.id, "job_type": job.job_type, "correlation_id": job.correlation_id},
             )
             await db.commit()
             return job
@@ -319,7 +390,8 @@ class DurableJobWorker:
             job.status = JobStatus.PROVIDER_QUOTA_EXHAUSTED.value
             job.completed_at = now
             if incident:
-                incident.status = IncidentStatus.FAILED.value
+                incident.status = IncidentStatus.PROVIDER_QUOTA_EXHAUSTED.value
+                incident.failure_classification = classification.value
             await self._audit_failure(db, job, incident, classification)
             await db.commit()
             return job
@@ -356,7 +428,16 @@ class DurableJobWorker:
         )
         job.completed_at = now
         if incident:
-            incident.status = IncidentStatus.FAILED.value
+            status_map = {
+                FailureClassification.SAFETY_BLOCK: IncidentStatus.SAFETY_BLOCK.value,
+                FailureClassification.GITHUB_FAILURE: IncidentStatus.GITHUB_FAILURE.value,
+                FailureClassification.VERIFICATION_FAILURE: IncidentStatus.VERIFICATION_FAILED.value,
+                FailureClassification.REPAIR_FAILURE: IncidentStatus.REPAIR_FAILED.value,
+                FailureClassification.INFORMATION_LEAKAGE: IncidentStatus.INFORMATION_LEAKAGE.value,
+                FailureClassification.INFRASTRUCTURE_FAILURE: IncidentStatus.INFRASTRUCTURE_FAILURE.value,
+            }
+            incident.status = status_map.get(classification, IncidentStatus.FAILED.value)
+            incident.failure_classification = classification.value
         await self._audit_failure(db, job, incident, classification)
         await db.commit()
         return job

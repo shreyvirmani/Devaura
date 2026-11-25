@@ -122,35 +122,39 @@ async def create_or_get_incident_and_enqueue_job(
     return incident, job, True
 
 
-async def _enqueue_investigation_job(
+async def enqueue_job(
     db: AsyncSession,
     incident: Incident,
-    max_attempts: int,
+    job_type: JobType,
+    payload: Optional[dict] = None,
+    max_attempts: Optional[int] = None,
 ) -> Job:
-    """Create a durable QUEUED investigation job for the incident."""
-    incident.status = IncidentStatus.QUEUED.value
+    """Idempotently create a durable QUEUED job of the given type for an incident."""
+    settings = get_settings()
+    # Prevent duplicate active jobs of the same type for the same incident
+    existing_stmt = select(Job).where(
+        Job.incident_id == incident.id,
+        Job.job_type == job_type.value,
+        Job.status.in_([JobStatus.QUEUED.value, JobStatus.RUNNING.value, JobStatus.RETRY_WAIT.value]),
+    )
+    existing_job = (await db.execute(existing_stmt)).scalars().first()
+    if existing_job:
+        return existing_job
+
     job = Job(
         workspace_id=incident.workspace_id,
         incident_id=incident.id,
-        job_type=JobType.INVESTIGATE_INCIDENT.value,
+        job_type=job_type.value,
         status=JobStatus.QUEUED.value,
         attempt_count=0,
-        max_attempts=max_attempts,
+        max_attempts=max_attempts or settings.JOB_MAX_ATTEMPTS,
         available_at=datetime.now(timezone.utc),
         correlation_id=incident.correlation_id,
+        payload=payload or {},
     )
     db.add(job)
     await db.flush()
 
-    await record_audit_event(
-        db=db,
-        action="incident.queued",
-        resource_type="incident",
-        resource_id=incident.id,
-        workspace_id=incident.workspace_id,
-        outcome="SUCCESS",
-        details={"job_id": job.id, "correlation_id": incident.correlation_id},
-    )
     await record_audit_event(
         db=db,
         action="job.created",
@@ -163,5 +167,25 @@ async def _enqueue_investigation_job(
             "job_type": job.job_type,
             "correlation_id": job.correlation_id,
         },
+    )
+    return job
+
+
+async def _enqueue_investigation_job(
+    db: AsyncSession,
+    incident: Incident,
+    max_attempts: int,
+) -> Job:
+    """Create a durable QUEUED investigation job for the incident."""
+    incident.status = IncidentStatus.QUEUED.value
+    job = await enqueue_job(db, incident, JobType.INVESTIGATE_INCIDENT, max_attempts=max_attempts)
+    await record_audit_event(
+        db=db,
+        action="incident.queued",
+        resource_type="incident",
+        resource_id=incident.id,
+        workspace_id=incident.workspace_id,
+        outcome="SUCCESS",
+        details={"job_id": job.id, "correlation_id": incident.correlation_id},
     )
     return job

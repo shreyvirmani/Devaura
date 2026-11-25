@@ -7,15 +7,12 @@ import {
   ArrowLeft,
   AlertCircle,
   CheckCircle2,
-  Clock,
   ExternalLink,
   GitBranch,
-  GitCommit,
   GitPullRequest,
   RefreshCw,
   Search,
   ShieldCheck,
-  Terminal,
   Wrench,
   XCircle,
 } from "lucide-react";
@@ -32,6 +29,7 @@ interface IncidentDetailData {
   external_check_id?: string;
   type: string;
   status: string;
+  failure_classification?: string;
   title: string;
   summary: string;
   failure_signature?: string;
@@ -43,6 +41,10 @@ interface IncidentDetailData {
   detected_at: string;
   started_at?: string;
   resolved_at?: string;
+  eligibility?: {
+    eligible: boolean;
+    reason: string;
+  } | null;
   jobs: Array<{
     id: string;
     job_type: string;
@@ -87,11 +89,59 @@ interface IncidentDetailData {
   repair?: {
     id: string;
     status: string;
+    base_revision: string;
+    target_branch: string;
+    current_attempt: number;
+    max_attempts: number;
+    plan?: {
+      objective: string;
+      root_cause: string;
+      proposed_changes: Array<Record<string, any>>;
+      tests_to_run: string[];
+      confidence: number;
+    } | null;
+    patch?: {
+      patch_hash: string;
+      unified_diff: string;
+      modified_files: string[];
+      explanation: string;
+    } | null;
+    risk?: {
+      risk_level: string;
+      blast_radius_score: number;
+      protected_paths_touched: boolean;
+      secrets_detected: boolean;
+      findings: string[];
+    } | null;
+  } | null;
+  verification?: {
+    id: string;
+    attempt_number: number;
+    overall_result: string;
+    checks: Array<{
+      id: string;
+      check_type: string;
+      command: string;
+      exit_code: number;
+      status: string;
+      duration_ms: number;
+    }>;
+  } | null;
+  approval?: {
+    status: string;
+    approved_by: string;
+    patch_hash: string;
+    rejection_reason?: string;
+    created_at: string;
   } | null;
   pull_request?: {
     id: string;
     provider_pr_id: string;
+    pr_number?: number;
     url: string;
+    repair_branch?: string;
+    base_branch?: string;
+    commit_sha?: string;
     status: string;
   } | null;
   timeline: Array<{
@@ -104,6 +154,28 @@ interface IncidentDetailData {
   }>;
 }
 
+const PIPELINE_STAGES = [
+  "Incident received",
+  "Investigation",
+  "Root cause identified",
+  "Repair proposed",
+  "Patch generated",
+  "Sandbox verification",
+  "Human approval",
+  "PR created",
+];
+
+function getCompletedStageIndex(data: IncidentDetailData): number {
+  if (data.pull_request || data.status === "PR_CREATED") return 7;
+  if (data.approval?.status === "APPROVED" || data.status === "APPROVED" || data.status === "PR_PREPARATION") return 6;
+  if (data.verification?.overall_result === "PASSED" || data.status === "AWAITING_APPROVAL" || data.status === "VERIFIED") return 5;
+  if (data.repair?.patch || data.status === "PATCH_APPLIED" || data.status === "VERIFICATION_QUEUED" || data.status === "VERIFYING") return 4;
+  if (data.repair?.plan || data.status === "REPAIR_PENDING" || data.status === "REPAIR_PLANNING") return 3;
+  if (data.investigation?.status === "COMPLETED") return 2;
+  if (data.investigation || data.status === "INVESTIGATING") return 1;
+  return 0;
+}
+
 export default function IncidentDetailPage() {
   const params = useParams();
   const incidentId =
@@ -113,6 +185,7 @@ export default function IncidentDetailPage() {
   const [data, setData] = useState<IncidentDetailData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
   const API_BASE = "http://localhost:8000/api/v1";
 
@@ -139,7 +212,7 @@ export default function IncidentDetailPage() {
         setError("Incident not found or access denied in this workspace.");
       }
     } catch {
-      setError("Failed to connect to Devaura API backend.");
+      setError("Backend API unavailable or offline. Live telemetry cannot be loaded.");
     } finally {
       setLoading(false);
     }
@@ -151,6 +224,7 @@ export default function IncidentDetailPage() {
 
   const handleAction = async (action: "retry" | "cancel") => {
     if (!currentWorkspace?.id || !incidentId) return;
+    setSubmitting(true);
     try {
       const res = await fetch(
         `${API_BASE}/workspaces/${currentWorkspace.id}/incidents/${incidentId}/${action}`,
@@ -161,6 +235,59 @@ export default function IncidentDetailPage() {
       }
     } catch {
       setError(`Failed to ${action} incident.`);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleApprove = async () => {
+    if (!currentWorkspace?.id || !incidentId || !data?.repair?.patch) return;
+    setSubmitting(true);
+    setError(null);
+    try {
+      const res = await fetch(
+        `${API_BASE}/workspaces/${currentWorkspace.id}/incidents/${incidentId}/approve`,
+        {
+          method: "POST",
+          headers: getHeaders(),
+          body: JSON.stringify({
+            patch_hash: data.repair.patch.patch_hash,
+            base_revision: data.repair.base_revision,
+          }),
+        }
+      );
+      if (res.ok) {
+        await fetchDetail();
+      } else {
+        const err = await res.json().catch(() => ({}));
+        setError(err.detail?.error?.message || err.detail || "Approval failed.");
+      }
+    } catch {
+      setError("Network error submitting human approval.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleReject = async () => {
+    if (!currentWorkspace?.id || !incidentId) return;
+    setSubmitting(true);
+    try {
+      const res = await fetch(
+        `${API_BASE}/workspaces/${currentWorkspace.id}/incidents/${incidentId}/reject`,
+        {
+          method: "POST",
+          headers: getHeaders(),
+          body: JSON.stringify({ reason: "Rejected by reviewer from Incident UI." }),
+        }
+      );
+      if (res.ok) {
+        await fetchDetail();
+      }
+    } catch {
+      setError("Network error rejecting repair.");
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -173,7 +300,7 @@ export default function IncidentDetailPage() {
     );
   }
 
-  if (error || !data) {
+  if (error && !data) {
     return (
       <div className="max-w-4xl mx-auto py-12 space-y-4">
         <Link href="/incidents" className="inline-flex items-center gap-1.5 text-xs text-gray-400 hover:text-white">
@@ -181,16 +308,20 @@ export default function IncidentDetailPage() {
         </Link>
         <div className="p-6 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-xs flex items-center gap-3">
           <AlertCircle className="w-5 h-5 shrink-0" />
-          <span>{error || "Incident details unavailable."}</span>
+          <span>{error}</span>
         </div>
       </div>
     );
   }
 
+  if (!data) return null;
+
+  const stageIdx = getCompletedStageIndex(data);
+
   return (
     <div className="max-w-6xl mx-auto space-y-8">
       {/* Navigation & Actions */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-3">
         <Link href="/incidents" className="inline-flex items-center gap-1.5 text-xs text-gray-400 hover:text-white">
           <ArrowLeft className="w-3.5 h-3.5" /> Back to Incidents
         </Link>
@@ -207,16 +338,51 @@ export default function IncidentDetailPage() {
           )}
           <button
             onClick={() => handleAction("retry")}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-medium"
+            disabled={submitting}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-xs font-medium"
           >
             <RefreshCw className="w-3.5 h-3.5" /> Re-run Investigation
           </button>
           <button
             onClick={() => handleAction("cancel")}
+            disabled={submitting}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 text-xs font-medium"
           >
             <XCircle className="w-3.5 h-3.5" /> Cancel
           </button>
+        </div>
+      </div>
+
+      {error && (
+        <div className="p-3.5 rounded-lg bg-red-500/10 border border-red-500/20 text-xs text-red-400 flex items-center gap-2">
+          <AlertCircle className="w-4 h-4 shrink-0" />
+          <span>{error}</span>
+        </div>
+      )}
+
+      {/* 8-Stage Lifecycle Pipeline */}
+      <div className="bg-[#121518] border border-[#2A3036] rounded-xl p-5 space-y-3">
+        <div className="flex items-center justify-between text-xs">
+          <span className="font-mono uppercase text-gray-400">Live Repair Execution Pipeline</span>
+          <span className="font-mono text-emerald-400 text-[11px]">LIVE TELEMETRY</span>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2">
+          {PIPELINE_STAGES.map((label, idx) => {
+            const done = idx <= stageIdx;
+            return (
+              <div
+                key={label}
+                className={`p-2.5 rounded-lg border text-[11px] font-mono flex flex-col justify-between gap-1.5 ${
+                  done
+                    ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-300"
+                    : "bg-[#191D21] border-[#2A3036] text-gray-500"
+                }`}
+              >
+                <span className="text-[10px] opacity-70">0{idx + 1}</span>
+                <span className="leading-tight font-medium">{label}</span>
+              </div>
+            );
+          })}
         </div>
       </div>
 
@@ -228,6 +394,11 @@ export default function IncidentDetailPage() {
               <span className="px-2 py-0.5 rounded text-[10px] font-mono uppercase font-semibold bg-blue-500/10 text-blue-400 border border-blue-500/20">
                 {data.status}
               </span>
+              {data.failure_classification && (
+                <span className="px-2 py-0.5 rounded text-[10px] font-mono uppercase bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                  {data.failure_classification}
+                </span>
+              )}
               <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-[#191D21] text-gray-300 border border-[#2A3036]">
                 {data.type}
               </span>
@@ -263,31 +434,72 @@ export default function IncidentDetailPage() {
         </div>
       </div>
 
+      {/* Human Approval Gate Banner */}
+      {data.status === "AWAITING_APPROVAL" && data.repair?.patch && (
+        <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-6 space-y-4">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2 text-amber-300 font-semibold text-sm">
+                <ShieldCheck className="w-4 h-4" /> Human Approval Required Before PR Creation
+              </div>
+              <p className="text-xs text-gray-300">
+                Sandbox verification passed. Review the patch diff, affected files, risk score, and verification checks below.
+                Approval is cryptographically bound to patch hash{" "}
+                <span className="font-mono text-white">{data.repair.patch.patch_hash.slice(0, 12)}</span> and base revision{" "}
+                <span className="font-mono text-white">{data.repair.base_revision}</span>.
+              </p>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                onClick={handleReject}
+                disabled={submitting}
+                className="px-4 py-2 rounded-lg bg-red-500/15 hover:bg-red-500/25 border border-red-500/30 text-red-300 text-xs font-semibold"
+              >
+                Reject Repair
+              </button>
+              <button
+                onClick={handleApprove}
+                disabled={submitting}
+                className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold flex items-center gap-1.5"
+              >
+                <CheckCircle2 className="w-4 h-4" /> Approve &amp; Create PR
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* 2. Investigation, Repair, Verification & PR States */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="bg-[#121518] border border-[#2A3036] rounded-lg p-4 space-y-1.5">
           <div className="text-xs text-gray-400 flex items-center gap-1.5">
-            <Search className="w-3.5 h-3.5 text-blue-400" /> Investigation State
+            <Search className="w-3.5 h-3.5 text-blue-400" /> Investigation &amp; Eligibility
           </div>
           <div className="text-sm font-mono font-semibold text-white">
             {data.investigation ? data.investigation.status : "Awaiting Worker"}
           </div>
           <p className="text-[11px] text-gray-400">
-            {data.investigation
-              ? `Sufficiency: ${data.investigation.evidence_sufficiency}`
-              : "Queued for asynchronous investigation"}
+            {data.eligibility
+              ? `${data.eligibility.eligible ? "Eligible" : "Not Eligible"}: ${data.eligibility.reason}`
+              : "Eligibility not yet evaluated"}
           </p>
         </div>
 
         <div className="bg-[#121518] border border-[#2A3036] rounded-lg p-4 space-y-1.5">
           <div className="text-xs text-gray-400 flex items-center gap-1.5">
-            <Wrench className="w-3.5 h-3.5 text-amber-400" /> Repair & Verification
+            <Wrench className="w-3.5 h-3.5 text-amber-400" /> Repair &amp; Verification
           </div>
           <div className="text-sm font-mono font-semibold text-white">
-            {data.repair ? data.repair.status : "Not Started"}
+            {data.verification
+              ? `Verification: ${data.verification.overall_result}`
+              : data.repair
+              ? data.repair.status
+              : "Not Started"}
           </div>
           <p className="text-[11px] text-gray-400">
-            Human approval required before any PR or merge.
+            {data.repair?.risk
+              ? `Risk: ${data.repair.risk.risk_level} (blast radius ${data.repair.risk.blast_radius_score})`
+              : "Human approval required before any PR or merge."}
           </p>
         </div>
 
@@ -311,7 +523,61 @@ export default function IncidentDetailPage() {
         </div>
       </div>
 
-      {/* 3. Investigation Evidence & Root Cause */}
+      {/* 3. Repair Plan, Patch Diff & Sandbox Verification */}
+      {data.repair && (
+        <div className="bg-[#121518] border border-[#2A3036] rounded-xl p-6 space-y-5">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-white">Proposed Repair &amp; Sandbox Verification</h2>
+            <span className="font-mono text-[11px] text-gray-400">
+              Attempt {data.repair.current_attempt}/{data.repair.max_attempts} &bull; Base: {data.repair.base_revision}
+            </span>
+          </div>
+
+          {data.repair.plan && (
+            <div className="p-3.5 rounded-lg bg-[#191D21] border border-[#2A3036] text-xs space-y-1">
+              <span className="font-semibold text-white block">Repair Objective</span>
+              <p className="text-gray-300">{data.repair.plan.objective}</p>
+            </div>
+          )}
+
+          {data.repair.patch && (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-xs font-mono text-gray-400">
+                <span>Modified Files: {data.repair.patch.modified_files.join(", ")}</span>
+                <span>SHA-256: {data.repair.patch.patch_hash.slice(0, 16)}...</span>
+              </div>
+              <pre className="p-4 rounded-lg bg-[#0C0E10] border border-[#2A3036] text-[11px] font-mono text-emerald-300 overflow-x-auto max-h-80">
+                {data.repair.patch.unified_diff}
+              </pre>
+            </div>
+          )}
+
+          {data.verification && (
+            <div className="space-y-2">
+              <h3 className="text-xs font-mono uppercase text-gray-400">
+                Sandbox Verification Checks ({data.verification.overall_result})
+              </h3>
+              <div className="space-y-1.5">
+                {data.verification.checks.map((chk) => (
+                  <div
+                    key={chk.id}
+                    className="p-2.5 rounded bg-[#191D21] border border-[#2A3036] text-xs font-mono flex items-center justify-between"
+                  >
+                    <span className="text-gray-200">
+                      [{chk.check_type}] {chk.command}
+                    </span>
+                    <span className={chk.status === "PASSED" ? "text-emerald-400" : "text-red-400"}>
+                      {chk.status} (exit {chk.exit_code}, {Math.round(chk.duration_ms)}ms)
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* 4. Investigation Findings & Evidence */}
       {data.investigation && (
         <div className="bg-[#121518] border border-[#2A3036] rounded-xl p-6 space-y-4">
           <h2 className="text-sm font-semibold text-white">Investigation Findings &amp; Evidence</h2>
@@ -343,12 +609,12 @@ export default function IncidentDetailPage() {
         </div>
       )}
 
-      {/* 4. Durable Jobs & Event Timeline */}
+      {/* 5. Durable Jobs & Event Timeline */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-[#121518] border border-[#2A3036] rounded-xl p-6 space-y-3">
           <h2 className="text-sm font-semibold text-white">Durable Job Executions</h2>
           {data.jobs.length === 0 ? (
-            <p className="text-xs text-gray-400">No jobs scheduled (e.g. blocked by workspace quota).</p>
+            <p className="text-xs text-gray-400">No jobs scheduled.</p>
           ) : (
             <div className="space-y-2">
               {data.jobs.map((job) => (

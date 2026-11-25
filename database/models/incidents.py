@@ -34,14 +34,33 @@ class IncidentStatus(str, Enum):
     BLOCKED_QUOTA = "BLOCKED_QUOTA"
     INVESTIGATING = "INVESTIGATING"
     INVESTIGATED = "INVESTIGATED"
+    INVESTIGATION_FAILED = "INVESTIGATION_FAILED"
+    INSUFFICIENT_EVIDENCE = "INSUFFICIENT_EVIDENCE"
+    REPAIR_ELIGIBILITY_CHECK = "REPAIR_ELIGIBILITY_CHECK"
+    REPAIR_NOT_ELIGIBLE = "REPAIR_NOT_ELIGIBLE"
     REPAIR_PENDING = "REPAIR_PENDING"
+    REPAIR_PLANNING = "REPAIR_PLANNING"
+    PATCH_GENERATION = "PATCH_GENERATION"
+    PATCH_APPLIED = "PATCH_APPLIED"
     REPAIRING = "REPAIRING"
+    REPAIR_FAILED = "REPAIR_FAILED"
+    VERIFICATION_QUEUED = "VERIFICATION_QUEUED"
     VERIFYING = "VERIFYING"
+    VERIFIED = "VERIFIED"
+    VERIFICATION_FAILED = "VERIFICATION_FAILED"
     AWAITING_APPROVAL = "AWAITING_APPROVAL"
+    APPROVED = "APPROVED"
+    PR_PREPARATION = "PR_PREPARATION"
     PR_CREATED = "PR_CREATED"
     RESOLVED = "RESOLVED"
     FAILED = "FAILED"
     CANCELLED = "CANCELLED"
+    PROVIDER_QUOTA_EXHAUSTED = "PROVIDER_QUOTA_EXHAUSTED"
+    SAFETY_BLOCK = "SAFETY_BLOCK"
+    INFORMATION_LEAKAGE = "INFORMATION_LEAKAGE"
+    GITHUB_FAILURE = "GITHUB_FAILURE"
+    CI_FAILURE = "CI_FAILURE"
+    INFRASTRUCTURE_FAILURE = "INFRASTRUCTURE_FAILURE"
 
 
 class IncidentSource(str, Enum):
@@ -63,6 +82,9 @@ class IncidentType(str, Enum):
 
 class JobType(str, Enum):
     INVESTIGATE_INCIDENT = "INVESTIGATE_INCIDENT"
+    REPAIR_INCIDENT = "REPAIR_INCIDENT"
+    VERIFY_REPAIR = "VERIFY_REPAIR"
+    CREATE_PR = "CREATE_PR"
 
 
 class JobStatus(str, Enum):
@@ -90,6 +112,12 @@ class Incident(Base):
     investigation_id: Mapped[Optional[str]] = mapped_column(
         String(36), ForeignKey("investigations.id", ondelete="SET NULL"), nullable=True, index=True
     )
+    repair_id: Mapped[Optional[str]] = mapped_column(
+        String(36), ForeignKey("repairs.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    eligibility_status: Mapped[Optional[bool]] = mapped_column(nullable=True)
+    eligibility_reason: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    failure_classification: Mapped[Optional[str]] = mapped_column(String(60), nullable=True)
 
     source: Mapped[str] = mapped_column(String(50), default=IncidentSource.GITHUB_WORKFLOW_RUN.value, nullable=False)
     external_event_id: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
@@ -154,6 +182,7 @@ class Job(Base):
     failure_classification: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
 
     correlation_id: Mapped[str] = mapped_column(String(64), default=lambda: str(uuid.uuid4()), nullable=False, index=True)
+    payload: Mapped[Dict[str, Any]] = mapped_column(JSON, default=dict, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now, nullable=False)
 

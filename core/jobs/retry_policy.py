@@ -1,9 +1,7 @@
 """Devaura Durable Job Failure Classification & Retry Policy.
 
-Explicitly classifies failures into:
-- RETRYABLE: transient network/API/infra errors (eligible for bounded backoff)
-- NON_RETRYABLE: invalid repo, auth failure, malformed input, policy violation
-- PROVIDER_QUOTA_EXHAUSTED: explicit LLM/API quota exhaustion (never retried blindly)
+Explicitly classifies failures into retryable vs non-retryable while preserving
+domain-specific failure classifications (quota exhaustion, GitHub, safety, etc.).
 """
 
 from enum import Enum
@@ -14,6 +12,13 @@ class FailureClassification(str, Enum):
     RETRYABLE = "RETRYABLE"
     NON_RETRYABLE = "NON_RETRYABLE"
     PROVIDER_QUOTA_EXHAUSTED = "PROVIDER_QUOTA_EXHAUSTED"
+    REPAIR_FAILURE = "REPAIR_FAILURE"
+    VERIFICATION_FAILURE = "VERIFICATION_FAILURE"
+    CI_FAILURE = "CI_FAILURE"
+    GITHUB_FAILURE = "GITHUB_FAILURE"
+    SAFETY_BLOCK = "SAFETY_BLOCK"
+    INFORMATION_LEAKAGE = "INFORMATION_LEAKAGE"
+    INFRASTRUCTURE_FAILURE = "INFRASTRUCTURE_FAILURE"
 
 
 class RetryableJobError(Exception):
@@ -23,12 +28,36 @@ class RetryableJobError(Exception):
 
 class NonRetryableJobError(Exception):
     """Permanent error that must not be retried."""
-    pass
+    def __init__(self, message: str, classification: FailureClassification = FailureClassification.NON_RETRYABLE):
+        super().__init__(message)
+        self.classification = classification
 
 
 class ProviderQuotaExhaustedError(Exception):
     """Explicit provider quota or rate-limit exhaustion."""
     pass
+
+
+class SafetyBlockError(NonRetryableJobError):
+    """Raised when a safety policy or protected-branch rule blocks execution."""
+    def __init__(self, message: str):
+        super().__init__(message, FailureClassification.SAFETY_BLOCK)
+
+
+class GitHubFailureError(NonRetryableJobError):
+    """Raised when GitHub API/git operations fail non-transiently."""
+    def __init__(self, message: str):
+        super().__init__(message, FailureClassification.GITHUB_FAILURE)
+
+
+class VerificationFailureError(NonRetryableJobError):
+    """Raised when sandbox verification fails."""
+    def __init__(self, message: str):
+        super().__init__(message, FailureClassification.VERIFICATION_FAILURE)
+
+
+def is_retryable_classification(classification: FailureClassification) -> bool:
+    return classification == FailureClassification.RETRYABLE
 
 
 def classify_exception(exc: Exception) -> FailureClassification:
@@ -37,7 +66,7 @@ def classify_exception(exc: Exception) -> FailureClassification:
         return FailureClassification.PROVIDER_QUOTA_EXHAUSTED
 
     if isinstance(exc, NonRetryableJobError):
-        return FailureClassification.NON_RETRYABLE
+        return exc.classification
 
     if isinstance(exc, RetryableJobError):
         return FailureClassification.RETRYABLE
@@ -57,6 +86,12 @@ def classify_exception(exc: Exception) -> FailureClassification:
     if any(term in msg for term in quota_terms):
         return FailureClassification.PROVIDER_QUOTA_EXHAUSTED
 
+    # Safety / leakage signatures
+    if any(term in msg for term in ("safety policy", "protected branch", "self-approval", "path traversal")):
+        return FailureClassification.SAFETY_BLOCK
+    if "information boundary" in msg or "secret leakage" in msg:
+        return FailureClassification.INFORMATION_LEAKAGE
+
     # Non-retryable domain/security errors
     if isinstance(exc, (ValueError, KeyError, PermissionError, TypeError)):
         return FailureClassification.NON_RETRYABLE
@@ -67,10 +102,10 @@ def classify_exception(exc: Exception) -> FailureClassification:
         "unauthorized",
         "forbidden",
         "malformed",
-        "safety policy",
-        "information boundary",
         "not found in this workspace",
         "access_revoked",
+        "base revision",
+        "hash mismatch",
     )
     if any(term in msg for term in non_retryable_terms):
         return FailureClassification.NON_RETRYABLE

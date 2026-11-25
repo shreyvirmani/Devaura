@@ -534,7 +534,9 @@ async def test_full_deterministic_webhook_to_investigated_incident_e2e(client: A
     detail_res = await client.get(f"/api/v1/workspaces/{ws_id}/incidents/{inc_id}", headers=headers)
     assert detail_res.status_code == 200
     detail = detail_res.json()
-    assert detail["status"] == IncidentStatus.INVESTIGATED.value
+    # Stub has no evidence items so Phase 4 eligibility gate marks INSUFFICIENT_EVIDENCE
+    assert detail["status"] == IncidentStatus.INSUFFICIENT_EVIDENCE.value
+    assert detail["eligibility"]["eligible"] is False
     assert detail["investigation"] is not None
     assert detail["investigation"]["status"] == InvestigationState.COMPLETED.value
     assert "zero-division guard" in detail["investigation"]["root_cause"]

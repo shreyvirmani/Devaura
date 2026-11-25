@@ -2768,7 +2768,43 @@ Phase 3 implements the asynchronous production event-to-incident pipeline:
 
 ---
 
-# 69. Final Rule
+# 69. Production Phase 4 — Production Repair Execution Pipeline
+
+**Status:** `IMPLEMENTED` (End-to-End Controlled Repair Pipeline, Eligibility Gate, Sandbox Verification, HMAC Human Approval Gate, & GitHub PR Creation; `MOCKED` GitHub PR creation in unit tests via `MockGitProvider`)
+
+Phase 4 connects the existing Devaura repair, verification, approval, and PR subsystems into the production asynchronous incident lifecycle:
+`GitHub/CI failure -> Incident -> Investigation Job -> Investigation Result -> Repair Eligibility Gate -> Repair Planning -> Patch Generation/Application (sandbox only) -> Sandbox Verification -> AWAITING_APPROVAL -> Human Approval (HMAC-bound) -> Base Revision Validation -> Git Branch -> Commit -> GitHub PR (idempotent, GitHub App token)`.
+
+### 1. Extended Incident & Job Lifecycle (`database/models/incidents.py`, `database/migrations/versions/0004_phase4_repair_pipeline.py`)
+- **`Incident` Extensions:** Added `repair_id` (FK to `repairs.id`), `eligibility_status`, `eligibility_reason`, and `failure_classification`.
+- **Extended `IncidentStatus`:** Added granular states including `INVESTIGATION_FAILED`, `INSUFFICIENT_EVIDENCE`, `REPAIR_ELIGIBILITY_CHECK`, `REPAIR_NOT_ELIGIBLE`, `REPAIR_PLANNING`, `PATCH_GENERATION`, `PATCH_APPLIED`, `REPAIR_FAILED`, `VERIFICATION_QUEUED`, `VERIFIED`, `VERIFICATION_FAILED`, `APPROVED`, `PR_PREPARATION`, `PROVIDER_QUOTA_EXHAUSTED`, `SAFETY_BLOCK`, `INFORMATION_LEAKAGE`, `GITHUB_FAILURE`, `CI_FAILURE`, and `INFRASTRUCTURE_FAILURE`.
+- **Extended `JobType` & `Job.payload`:** Added `REPAIR_INCIDENT`, `VERIFY_REPAIR`, and `CREATE_PR` job types alongside JSON `payload` column for stage-specific context.
+- **Alembic Migration:** `0004_phase4_repair_pipeline` (revising `0003_incidents_and_jobs`).
+
+### 2. Repair Eligibility Gate (`core/repairs/eligibility.py`)
+- **`evaluate_repair_eligibility`:** Mandatory deterministic gate between `INVESTIGATED` and `REPAIR_INCIDENT` enqueueing.
+- **Checks:** Repository must be `CONNECTED`; investigation must be `COMPLETED` with `evidence_sufficiency != "INSUFFICIENT"`; rejects unsupported/non-code metadata; enforces sensitive path safety policy (`agent/repair/patch_validator.py`) before any repair planning or patch generation occurs.
+
+### 3. Production Repair, Verification & PR Pipeline (`core/repairs/pipeline.py`, `core/jobs/worker.py`)
+- **`run_repair_stage`:** Idempotently creates/reuses `RepairRecord`, `RepairContextRecord`, `RepairPlanRecord`, `PatchRecord`, `PatchRiskRecord`, and `RepairWorkspaceRecord`, applies the patch **only** inside `IsolatedWorkspace`, and blocks `HIGH`/`CRITICAL` risk or sensitive/traversal patches via `SafetyBlockError`.
+- **`run_verification_stage`:** Runs `VerificationRunner` inside the isolated sandbox, persists `VerificationRunRecord` and `VerificationCheckRecord`, and transitions the incident to `AWAITING_APPROVAL` on pass or `VERIFICATION_FAILED` on failure.
+- **`run_pr_stage`:** Revalidates repository `CONNECTED` state, protected-branch rules, `base_revision` and `patch_hash` integrity, and HMAC-signed `HumanPRApprovalGate` authorization before calling `PROrchestrator.execute_pull_request_creation` with a workspace-scoped GitHub App installation token (`GitHubAppService.get_installation_access_token`). Persists `PullRequestRecord` idempotently and transitions incident to `PR_CREATED`.
+- **Failure Classification (`core/jobs/retry_policy.py`):** Maps failures to explicit non-retryable/retryable states (`SAFETY_BLOCK`, `VERIFICATION_FAILURE`, `GITHUB_FAILURE`, `CI_FAILURE`, `PROVIDER_QUOTA_EXHAUSTED`, `INFRASTRUCTURE_FAILURE`).
+
+### 4. Human Approval API & Frontend Controls (`apps/api/routes/incidents.py`, `apps/web/src/app/incidents/[id]/page.tsx`)
+- **Approval Endpoints:**
+  - `POST /api/v1/workspaces/{workspace_id}/incidents/{incident_id}/approve` (requires `OWNER`/`ADMIN`, `AWAITING_APPROVAL` state, generates HMAC approval token bound to `repair_id`, `patch_hash`, `base_revision`, `repair_branch`, `repository`, and enqueues `CREATE_PR`).
+  - `POST /api/v1/workspaces/{workspace_id}/incidents/{incident_id}/reject` (requires `OWNER`/`ADMIN`, persists `REJECTED` approval record and transitions incident to `CANCELLED`).
+- **Frontend `/incidents/[id]`:** Displays 8-stage pipeline progress, eligibility & failure classification badges, patch unified diff viewer, sandbox verification checks table, and Approve & Create PR / Reject controls when `AWAITING_APPROVAL`.
+
+### 5. Honest Production Boundaries
+- **Autonomous Merge:** `NOT IMPLEMENTED` (human approval gate at `AWAITING_APPROVAL` is mandatory; Devaura never merges PRs).
+- **Autonomous Deployment:** `NOT IMPLEMENTED`.
+- **Live PR Creation in Tests:** Tested end-to-end against `MockGitProvider` in `tests/test_phase4_repair_pipeline.py`; live GitHub PR creation uses `GitHubClient` with `GitHubAppService` installation tokens.
+
+---
+
+# 70. Final Rule
 
 **Never sacrifice correctness, security, or verifiability merely to make Devaura appear autonomous.**
 

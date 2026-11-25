@@ -96,10 +96,25 @@ async def init_db() -> None:
                         ("commit_sha", "VARCHAR(64)"),
                         ("branch", "VARCHAR(100) DEFAULT 'main'"),
                         ("evidence_sufficiency", "VARCHAR(50) DEFAULT 'INSUFFICIENT'"),
+                        ("workspace_id", "VARCHAR(36)"),
                     ]
                     for col_name, col_type in new_cols:
                         if col_name not in existing_cols:
                             cursor.execute(f"ALTER TABLE investigations ADD COLUMN {col_name} {col_type}")
+
+                    cursor.execute("PRAGMA table_info(repositories)")
+                    repo_cols = {row[1] for row in cursor.fetchall()}
+                    if "workspace_id" not in repo_cols:
+                        cursor.execute("ALTER TABLE repositories ADD COLUMN workspace_id VARCHAR(36)")
+
+                    cursor.execute("PRAGMA table_info(users)")
+                    user_cols = {row[1] for row in cursor.fetchall()}
+                    if "hashed_password" not in user_cols:
+                        cursor.execute("ALTER TABLE users ADD COLUMN hashed_password VARCHAR(255)")
+                    if "is_active" not in user_cols:
+                        cursor.execute("ALTER TABLE users ADD COLUMN is_active BOOLEAN DEFAULT 1")
+                    if "is_superuser" not in user_cols:
+                        cursor.execute("ALTER TABLE users ADD COLUMN is_superuser BOOLEAN DEFAULT 0")
 
                     cursor.execute("PRAGMA table_info(evidence)")
                     ev_cols = {row[1] for row in cursor.fetchall()}
@@ -122,6 +137,7 @@ async def init_db() -> None:
                         ("current_attempt", "INTEGER DEFAULT 1"),
                         ("max_attempts", "INTEGER DEFAULT 3"),
                         ("latest_verification_id", "VARCHAR(36)"),
+                        ("workspace_id", "VARCHAR(36)"),
                     ]
                     for col_name, col_type in new_rep_cols:
                         if col_name not in rep_cols:

@@ -1,4 +1,10 @@
 from database.connection import Base
+from database.models.tenancy import (
+    AuditEventRecord,
+    Workspace,
+    WorkspaceMember,
+    WorkspaceRole,
+)
 from database.models.models import (
     AgentState,
     CheckStatus,
@@ -86,6 +92,10 @@ __all__ = [
     "RootCauseCandidate",
     "ToolExecution",
     "User",
+    "Workspace",
+    "WorkspaceMember",
+    "WorkspaceRole",
+    "AuditEventRecord",
     "VerificationRun",
     "CodeFile",
     "CodeSymbol",

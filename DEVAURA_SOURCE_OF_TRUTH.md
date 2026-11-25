@@ -2565,7 +2565,58 @@ Phase 9.3 establishes held-out repository generalization as Devaura's primary ca
 
 ---
 
-# 66. Final Rule
+# 66. Production Phase 1: SaaS Foundation — Multi-Tenancy, Authentication, Production Data Model & Security Boundary
+
+- **Status:** IMPLEMENTED
+- **Core Security Boundary:** Strict multi-tenant hierarchy: `USER → WORKSPACE → RESOURCES`.
+- **Autonomous Merge:** NOT IMPLEMENTED (permanently prohibited without explicit human review).
+- **Autonomous Deployment:** NOT IMPLEMENTED (permanently prohibited).
+- **Production Reliability:** NOT ESTABLISHED (evaluated under controlled benchmark and real disposable repository boundaries).
+
+### Architecture & System Invariants
+
+1. **Identity & Authentication Engine (`apps/api/security.py`, `apps/api/auth.py`):**
+   - **Password Hashing:** NIST SP 800-63B compliant PBKDF2-HMAC-SHA256 with 600,000 iterations and unique 32-byte salts (`pbkdf2:sha256:600000$<salt>$<hash>`). Plaintext credentials are never persisted or logged.
+   - **Token Management:** PyJWT with HMAC-SHA256 signature, 24-hour TTL, explicit subject (`sub`) and email claims. Tampered or expired tokens fail with HTTP 401 (`INVALID_TOKEN`).
+   - **Dual Auth Extraction:** Authenticates requests via `Authorization: Bearer <token>` header or `devaura_token` HTTP-only, SameSite=Lax session cookie.
+   - **Registration & Onboarding (`POST /api/v1/auth/signup`):** Registers user, generates a default isolated workspace, binds the user as `OWNER`, and returns credentials and workspace context in a single atomic transaction.
+
+2. **Workspace & Tenancy Hierarchy (`database/models/tenancy.py`):**
+   - **`User` Entity:** Global identity with `hashed_password`, `is_active`, `is_superuser`, and workspace memberships.
+   - **`Workspace` Entity:** Primary organizational and security boundary with `id`, `name`, `slug`, `owner_id`, `settings` JSON, and active state flag.
+   - **`WorkspaceMember` Entity:** M:N junction table with unique constraint `(workspace_id, user_id)` and RBAC roles:
+     * `OWNER`: Full administrative control, workspace settings, role delegation, and soft-deletion/deactivation.
+     * `ADMIN`: Member invitation/removal (cannot remove owner), repository connection, incident orchestration.
+     * `MEMBER`: Read-only resource access, execution of investigation and repair flows within workspace scope. Cannot modify workspace settings or invite users.
+
+3. **Server-Side Authorization & IDOR Defense (`apps/api/authorization.py`):**
+   - **Central Middleware Dependency:** Every `/api/v1/workspaces/{workspace_id}/*` route resolves workspace context through `get_workspace_context`.
+   - **Strict Membership Validation:** Client-supplied workspace IDs are verified against the database session for the authenticated user. Foreign workspace requests return HTTP 403 (`WORKSPACE_ACCESS_DENIED`).
+   - **Resource Isolation (IDOR Prevention):** Helpers `verify_repository_in_workspace`, `verify_investigation_in_workspace`, and `verify_repair_in_workspace` enforce that child resources belong to the active workspace. Cross-tenant access returns HTTP 404 (`REPOSITORY_NOT_FOUND`, `INVESTIGATION_NOT_FOUND`) without leaking resource existence.
+
+4. **Database Model & Alembic Migration Suite (`database/migrations/`):**
+   - **Async Database Connection (`database/connection.py`):** Dynamic engine supporting `postgresql+asyncpg` in production and `sqlite+aiosqlite` for tests/local development.
+   - **Versioned Migration Architecture:** Initialized Alembic async migration suite (`alembic.ini`, `database/migrations/env.py`).
+   - **Revision `0001_saas_foundation`:** Deterministically creates `workspaces`, `workspace_members`, and `audit_events` tables; adds `workspace_id` foreign keys to `repositories`, `investigations`, and `repairs`.
+
+5. **Structured Append-Only Audit Logging (`apps/api/audit.py`, `database/models/tenancy.py`):**
+   - **Immutable Audit Trail:** Critical operations (`user.signup`, `user.login`, `workspace.create`, `workspace.update`, `workspace.member_add`, `repository.connect`) append immutable records to `audit_events`.
+   - **Recursive Secret Redaction:** `sanitize_audit_metadata` inspects and redacts passwords, tokens, API keys, authorization headers, and secrets before DB write or stdout logging.
+
+6. **Frontend Authenticated Shell & Workspace Context (`apps/web/src/context/AuthContext.tsx`):**
+   - **Global Client State:** React context managing user profile, active workspaces, active workspace switching, and authentication tokens.
+   - **Dynamic Workspace Switcher:** Built into navigation sidebar with live workspace listing, active checkmark, and "+ Create Workspace" creation modal.
+   - **Live Telemetry vs Evaluation Split:** Explicit UI toggle (`LIVE TELEMETRY` vs `EVALUATION DATA`). In Live mode, empty workspaces display clean zero-incident states ("No active incidents in this workspace. Zero CI failures detected") without fabricating mock numbers. Evaluation benchmarks are clearly badged with dataset provenance (`Dataset v1.0.0`).
+   - **Dedicated Auth Views:** Next.js `/login` and `/signup` pages matching the dark engineering design system with full error handling and automatic redirection.
+
+7. **Verification & Regression Test Suite:**
+   - 9/9 SaaS tenancy and authentication tests passed (`tests/test_saas_auth_and_tenancy.py`).
+   - 40/40 unified regression suite passed (`tests/test_foundation.py`, `tests/test_security_regressions.py`, `tests/e2e/test_github_pr.py`, `tests/test_saas_auth_and_tenancy.py`).
+   - All 13 Next.js frontend pages compiled and validated via static build.
+
+---
+
+# 67. Final Rule
 
 **Never sacrifice correctness, security, or verifiability merely to make Devaura appear autonomous.**
 

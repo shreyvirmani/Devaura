@@ -1,7 +1,9 @@
 "use client";
 
 import React from "react";
-import { Terminal, Shield, Github, Search, Command, CheckCircle2, Lock, Menu } from "lucide-react";
+import Link from "next/link";
+import { useAuth } from "@/context/AuthContext";
+import { Terminal, Shield, Github, Search, Command, CheckCircle2, Lock, Menu, Activity, ToggleLeft, ToggleRight } from "lucide-react";
 
 interface NavbarProps {
   onOpenCommandPalette?: () => void;
@@ -9,6 +11,8 @@ interface NavbarProps {
 }
 
 export function Navbar({ onOpenCommandPalette, onOpenMobileSidebar }: NavbarProps) {
+  const { user, isAuthenticated, isLiveMode, toggleDataMode, currentWorkspace } = useAuth();
+
   return (
     <header className="h-14 border-b border-[#2A3036] bg-[#0C0E10]/90 backdrop-blur-md px-4 sm:px-6 flex items-center justify-between sticky top-0 z-30">
       {/* Left: Mobile Menu Toggle & System Status Pills */}
@@ -22,15 +26,25 @@ export function Navbar({ onOpenCommandPalette, onOpenMobileSidebar }: NavbarProp
           <Menu className="w-4 h-4" />
         </button>
 
-        <div className="flex items-center gap-1.5 px-2 py-1 rounded-[4px] bg-[#121518] border border-[#2A3036] text-[11px] font-mono text-[#EDF0F2] whitespace-nowrap">
-          <Terminal className="w-3.5 h-3.5 text-[#9CE8CE]" />
-          <span>FSM: IDLE</span>
-        </div>
+        {/* Live vs Evaluation Data Mode Toggle */}
+        <button
+          type="button"
+          onClick={toggleDataMode}
+          title="Toggle between Live Workspace Data and Evaluation Dataset"
+          className={`flex items-center gap-1.5 px-2 py-1 rounded-[4px] border text-[11px] font-mono transition-colors duration-120 whitespace-nowrap ${
+            isLiveMode
+              ? "bg-[#9CE8CE]/10 text-[#9CE8CE] border-[#9CE8CE]/30 hover:bg-[#9CE8CE]/20"
+              : "bg-[#E5BD7D]/10 text-[#E5BD7D] border-[#E5BD7D]/30 hover:bg-[#E5BD7D]/20"
+          }`}
+        >
+          <Activity className="w-3.5 h-3.5" />
+          <span>{isLiveMode ? "LIVE TELEMETRY" : "EVALUATION DATA"}</span>
+        </button>
 
         <div className="hidden xs:flex items-center gap-1.5 px-2 py-1 rounded-[4px] bg-[#121518] border border-[#2A3036] text-[11px] font-mono text-[#85D9AE] whitespace-nowrap">
           <Shield className="w-3.5 h-3.5" />
-          <span className="hidden sm:inline">SANDBOX: BOUNDED</span>
-          <span className="sm:hidden">BOUNDED</span>
+          <span className="hidden sm:inline">TENANT: ISOLATED</span>
+          <span className="sm:hidden">ISOLATED</span>
         </div>
 
         <div className="hidden lg:flex items-center gap-1.5 px-2 py-1 rounded-[4px] bg-[#121518] border border-[#2A3036] text-[11px] font-mono text-[#E5BD7D] whitespace-nowrap">
@@ -39,7 +53,7 @@ export function Navbar({ onOpenCommandPalette, onOpenMobileSidebar }: NavbarProp
         </div>
       </div>
 
-      {/* Right: Quick actions and GitHub Repo */}
+      {/* Right: Quick actions and Auth Profile */}
       <div className="flex items-center gap-2 sm:gap-3 shrink-0">
         <button
           onClick={onOpenCommandPalette}
@@ -64,11 +78,31 @@ export function Navbar({ onOpenCommandPalette, onOpenMobileSidebar }: NavbarProp
 
         <div className="hidden sm:block w-px h-4 bg-[#2A3036]" />
 
-        <div className="flex items-center gap-2">
-          <div className="w-6 h-6 rounded-full bg-[#191D21] border border-[#2A3036] flex items-center justify-center text-[10px] font-mono text-[#9CE8CE]">
-            SV
+        {isAuthenticated && user ? (
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 rounded-full bg-[#191D21] border border-[#2A3036] flex items-center justify-center text-[10px] font-mono text-[#9CE8CE]">
+              {user.name.slice(0, 2).toUpperCase()}
+            </div>
+            <span className="hidden lg:inline text-xs font-mono text-[#EDF0F2] truncate max-w-[120px]">
+              {user.name}
+            </span>
           </div>
-        </div>
+        ) : (
+          <div className="flex items-center gap-2">
+            <Link
+              href="/login"
+              className="text-xs font-mono text-[#9AA4AC] hover:text-white px-2 py-1"
+            >
+              Log In
+            </Link>
+            <Link
+              href="/signup"
+              className="text-xs font-mono px-2.5 py-1 rounded-[4px] bg-[#9CE8CE] hover:bg-[#8CD8BE] text-[#0C0E10] font-semibold transition-colors"
+            >
+              Sign Up
+            </Link>
+          </div>
+        )}
       </div>
     </header>
   );

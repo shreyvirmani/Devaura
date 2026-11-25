@@ -1,11 +1,25 @@
 import time
 import uuid
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, HTTPException, Request, status
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from apps.api.config import get_settings
 from apps.api.logger import logger
-from apps.api.routes import code_intelligence, evaluation, health, investigations, mcp_servers, metrics, repositories, repairs, pull_requests
+from apps.api.routes import (
+    auth,
+    code_intelligence,
+    evaluation,
+    health,
+    investigations,
+    mcp_servers,
+    metrics,
+    pull_requests,
+    repairs,
+    repositories,
+    workspaces,
+)
 from database.connection import close_db, init_db
 
 
@@ -53,6 +67,37 @@ app.add_middleware(
 )
 
 
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException):
+    """Ensure standard JSON error payload for all HTTPExceptions while preserving backward-compatible detail."""
+    if isinstance(exc.detail, dict) and "error" in exc.detail:
+        content = {
+            "detail": exc.detail["error"].get("message", "Error"),
+            "error": exc.detail["error"],
+        }
+    else:
+        content = {
+            "detail": str(exc.detail),
+            "error": {"code": "HTTP_ERROR", "message": str(exc.detail)},
+        }
+    return JSONResponse(status_code=exc.status_code, content=content)
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    """Standardized JSON error for schema/validation errors."""
+    return JSONResponse(
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        content={
+            "error": {
+                "code": "VALIDATION_ERROR",
+                "message": "Request validation failed.",
+                "details": exc.errors(),
+            }
+        },
+    )
+
+
 @app.middleware("http")
 async def audit_and_latency_middleware(request: Request, call_next):
     """Logs every HTTP request with request ID, latency, and status code."""
@@ -80,6 +125,8 @@ async def audit_and_latency_middleware(request: Request, call_next):
 
 # Include API v1 Routers
 api_v1_prefix = "/api/v1"
+app.include_router(auth.router, prefix=api_v1_prefix)
+app.include_router(workspaces.router, prefix=api_v1_prefix)
 app.include_router(health.router, prefix=api_v1_prefix)
 app.include_router(repositories.router, prefix=api_v1_prefix)
 app.include_router(investigations.router, prefix=api_v1_prefix)

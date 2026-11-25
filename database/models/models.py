@@ -111,8 +111,15 @@ class User(Base):
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     email: Mapped[str] = mapped_column(String(255), unique=True, index=True, nullable=False)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
+    hashed_password: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    is_superuser: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
+
+    memberships: Mapped[List["WorkspaceMember"]] = relationship(
+        "WorkspaceMember", back_populates="user", cascade="all, delete-orphan", lazy="selectin"
+    )
 
 
 # 2. Repository Model
@@ -120,6 +127,7 @@ class Repository(Base):
     __tablename__ = "repositories"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    workspace_id: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=True, index=True)
     owner: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
     name: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
     provider: Mapped[str] = mapped_column(String(50), default="github", nullable=False)
@@ -128,6 +136,7 @@ class Repository(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
 
+    workspace: Mapped[Optional["Workspace"]] = relationship("Workspace", back_populates="repositories", lazy="selectin")
     investigations: Mapped[List["Investigation"]] = relationship(
         "Investigation", back_populates="repository", cascade="all, delete-orphan", lazy="selectin"
     )
@@ -174,6 +183,7 @@ class Investigation(Base):
     __tablename__ = "investigations"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    workspace_id: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=True, index=True)
     repository_id: Mapped[str] = mapped_column(String(36), ForeignKey("repositories.id", ondelete="CASCADE"), nullable=False)
     source_type: Mapped[str] = mapped_column(String(50), default="issue", nullable=False)  # issue, pr, ci_failure, test_failure
     source_id: Mapped[str] = mapped_column(String(100), default="1", nullable=False)

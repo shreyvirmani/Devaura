@@ -2,6 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
+import { useAuth } from "@/context/AuthContext";
 import { BlurText } from "@/components/motion/BlurText";
 import { TechnicalGridBackground } from "@/components/motion/TechnicalGridBackground";
 import { PipelineVisualization } from "@/components/hero/PipelineVisualization";
@@ -15,9 +16,12 @@ import {
   Wrench,
   GitPullRequest,
   Check,
+  Activity,
 } from "lucide-react";
 
 export function HeroSection() {
+  const { isLiveMode, currentWorkspace } = useAuth();
+
   return (
     <TechnicalGridBackground className="py-6 sm:py-12 px-4 sm:px-8 border-b border-[#2A3036] w-full max-w-full overflow-hidden">
       <div className="max-w-6xl mx-auto space-y-8 sm:space-y-10">
@@ -25,7 +29,11 @@ export function HeroSection() {
         <div className="space-y-3 sm:space-y-4 max-w-3xl">
           <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-[4px] bg-[#121518] border border-[#2A3036] text-[10px] sm:text-[11px] font-mono text-[#9CE8CE]">
             <span className="w-1.5 h-1.5 rounded-full bg-[#9CE8CE] animate-pulse" />
-            DEVAURA / INTERFACE SYSTEM
+            {isLiveMode ? (
+              <span>WORKSPACE TELEMETRY &bull; {currentWorkspace?.name || "Live"}</span>
+            ) : (
+              <span>EVALUATION DATASET &bull; 13 HELD-OUT REPOSITORIES</span>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -60,62 +68,116 @@ export function HeroSection() {
           </div>
         </div>
 
-        {/* Live Empirical Metrics Strip */}
+        {/* Dynamic Live vs Evaluation Metrics Strip */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3 pt-2">
-          <div className="p-3 sm:p-3.5 rounded-[4px] bg-[#121518] border border-[#2A3036] min-w-0">
-            <div className="text-[10px] font-mono uppercase text-[#9AA4AC] truncate">
-              HELD-OUT SUITE
-            </div>
-            <div className="text-base sm:text-xl md:text-2xl font-bold text-[#EDF0F2] mt-0.5 truncate">
-              13 / 13
-            </div>
-            <div className="text-[10px] sm:text-[11px] text-[#85D9AE] font-mono mt-0.5 truncate">
-              100% Repos Disjoint
-            </div>
-          </div>
+          {isLiveMode ? (
+            <>
+              <div className="p-3 sm:p-3.5 rounded-[4px] bg-[#121518] border border-[#2A3036] min-w-0">
+                <div className="text-[10px] font-mono uppercase text-[#9AA4AC] truncate">
+                  ACTIVE INCIDENTS
+                </div>
+                <div className="text-base sm:text-xl md:text-2xl font-bold text-[#EDF0F2] mt-0.5 truncate">
+                  0
+                </div>
+                <div className="text-[10px] sm:text-[11px] text-[#85D9AE] font-mono mt-0.5 truncate">
+                  No active failures
+                </div>
+              </div>
 
-          <div className="p-3 sm:p-3.5 rounded-[4px] bg-[#121518] border border-[#2A3036] min-w-0">
-            <div className="text-[10px] font-mono uppercase text-[#9AA4AC] truncate">
-              FALSE REPAIRS
-            </div>
-            <div className="text-base sm:text-xl md:text-2xl font-bold text-[#EDF0F2] mt-0.5 truncate">
-              0 / 39
-            </div>
-            <div className="text-[10px] sm:text-[11px] text-[#85D9AE] font-mono mt-0.5 truncate">
-              Hidden Tests Passed
-            </div>
-          </div>
+              <div className="p-3 sm:p-3.5 rounded-[4px] bg-[#121518] border border-[#2A3036] min-w-0">
+                <div className="text-[10px] font-mono uppercase text-[#9AA4AC] truncate">
+                  VERIFIED REPAIRS
+                </div>
+                <div className="text-base sm:text-xl md:text-2xl font-bold text-[#EDF0F2] mt-0.5 truncate">
+                  0
+                </div>
+                <div className="text-[10px] sm:text-[11px] text-[#9AA4AC] font-mono mt-0.5 truncate">
+                  Workspace clean
+                </div>
+              </div>
 
-          <div className="p-3 sm:p-3.5 rounded-[4px] bg-[#121518] border border-[#2A3036] min-w-0">
-            <div className="text-[10px] font-mono uppercase text-[#9AA4AC] truncate">
-              SANDBOX ISOLATION
-            </div>
-            <div className="text-base sm:text-xl md:text-2xl font-bold text-[#EDF0F2] mt-0.5 truncate">
-              100%
-            </div>
-            <div className="text-[10px] sm:text-[11px] text-[#9CE8CE] font-mono mt-0.5 truncate">
-              Ephemeral Container
-            </div>
-          </div>
+              <div className="p-3 sm:p-3.5 rounded-[4px] bg-[#121518] border border-[#2A3036] min-w-0">
+                <div className="text-[10px] font-mono uppercase text-[#9AA4AC] truncate">
+                  SANDBOX ISOLATION
+                </div>
+                <div className="text-base sm:text-xl md:text-2xl font-bold text-[#EDF0F2] mt-0.5 truncate">
+                  100%
+                </div>
+                <div className="text-[10px] sm:text-[11px] text-[#9CE8CE] font-mono mt-0.5 truncate">
+                  Ephemeral Container
+                </div>
+              </div>
 
-          <div className="p-3 sm:p-3.5 rounded-[4px] bg-[#121518] border border-[#2A3036] min-w-0">
-            <div className="text-[10px] font-mono uppercase text-[#9AA4AC] truncate">
-              MERGE &amp; DEPLOY
-            </div>
-            <div className="text-base sm:text-xl md:text-2xl font-bold text-[#EDF0F2] mt-0.5 truncate">
-              MANUAL
-            </div>
-            <div className="text-[10px] sm:text-[11px] text-[#E5BD7D] font-mono mt-0.5 truncate">
-              Strict Gate Enforced
-            </div>
-          </div>
+              <div className="p-3 sm:p-3.5 rounded-[4px] bg-[#121518] border border-[#2A3036] min-w-0">
+                <div className="text-[10px] font-mono uppercase text-[#9AA4AC] truncate">
+                  MERGE &amp; DEPLOY
+                </div>
+                <div className="text-base sm:text-xl md:text-2xl font-bold text-[#EDF0F2] mt-0.5 truncate">
+                  MANUAL
+                </div>
+                <div className="text-[10px] sm:text-[11px] text-[#E5BD7D] font-mono mt-0.5 truncate">
+                  Strict Gate Enforced
+                </div>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="p-3 sm:p-3.5 rounded-[4px] bg-[#121518] border border-[#2A3036] min-w-0">
+                <div className="text-[10px] font-mono uppercase text-[#9AA4AC] truncate">
+                  HELD-OUT SUITE
+                </div>
+                <div className="text-base sm:text-xl md:text-2xl font-bold text-[#EDF0F2] mt-0.5 truncate">
+                  13 / 13
+                </div>
+                <div className="text-[10px] sm:text-[11px] text-[#85D9AE] font-mono mt-0.5 truncate">
+                  100% Repos Disjoint
+                </div>
+              </div>
+
+              <div className="p-3 sm:p-3.5 rounded-[4px] bg-[#121518] border border-[#2A3036] min-w-0">
+                <div className="text-[10px] font-mono uppercase text-[#9AA4AC] truncate">
+                  FALSE REPAIRS
+                </div>
+                <div className="text-base sm:text-xl md:text-2xl font-bold text-[#EDF0F2] mt-0.5 truncate">
+                  0 / 39
+                </div>
+                <div className="text-[10px] sm:text-[11px] text-[#85D9AE] font-mono mt-0.5 truncate">
+                  Hidden Tests Passed
+                </div>
+              </div>
+
+              <div className="p-3 sm:p-3.5 rounded-[4px] bg-[#121518] border border-[#2A3036] min-w-0">
+                <div className="text-[10px] font-mono uppercase text-[#9AA4AC] truncate">
+                  SANDBOX ISOLATION
+                </div>
+                <div className="text-base sm:text-xl md:text-2xl font-bold text-[#EDF0F2] mt-0.5 truncate">
+                  100%
+                </div>
+                <div className="text-[10px] sm:text-[11px] text-[#9CE8CE] font-mono mt-0.5 truncate">
+                  Ephemeral Container
+                </div>
+              </div>
+
+              <div className="p-3 sm:p-3.5 rounded-[4px] bg-[#121518] border border-[#2A3036] min-w-0">
+                <div className="text-[10px] font-mono uppercase text-[#9AA4AC] truncate">
+                  MERGE &amp; DEPLOY
+                </div>
+                <div className="text-base sm:text-xl md:text-2xl font-bold text-[#EDF0F2] mt-0.5 truncate">
+                  MANUAL
+                </div>
+                <div className="text-[10px] sm:text-[11px] text-[#E5BD7D] font-mono mt-0.5 truncate">
+                  Strict Gate Enforced
+                </div>
+              </div>
+            </>
+          )}
         </div>
 
         {/* Visual Engine: The Interactive Pipeline */}
         <div className="w-full overflow-hidden">
           <div className="flex items-center justify-between mb-2">
             <span className="text-[10px] sm:text-[11px] font-mono uppercase tracking-wider text-[#9AA4AC]">
-              Live Engine Visualization
+              {isLiveMode ? "Active Workspace Pipeline" : "Live Engine Visualization (Evaluation Dataset)"}
             </span>
             <span className="text-[10px] sm:text-[11px] font-mono text-[#9AA4AC] hidden sm:inline">
               Click any stage to inspect execution state

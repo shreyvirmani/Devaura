@@ -277,3 +277,46 @@ def test_free_staging_startup_no_create_all_and_blueprint_valid():
     assert "FREE_STAGING_HTTP_HEALTH" in render_yaml
 
 
+def test_alembic_url_encoded_credentials_no_interpolation_error(monkeypatch, tmp_path):
+    """Ensure URL-encoded %XX credentials and trailing newlines in DATABASE_URL do not break Alembic."""
+    import sqlalchemy.ext.asyncio as sa_asyncio
+    from alembic import command
+    from alembic.config import Config
+    from sqlalchemy.engine import make_url
+
+    encoded_url = "postgresql+asyncpg://postgres:Devaura%401928@db.example.supabase.co:5432/postgres\n"
+    expected_url = "postgresql+asyncpg://postgres:Devaura%401928@db.example.supabase.co:5432/postgres"
+    monkeypatch.setenv("DATABASE_URL", encoded_url)
+
+    resolved = get_database_url()
+    assert resolved == expected_url
+    parsed = make_url(resolved)
+    assert parsed.password == "Devaura@1928"
+
+    # Exercise database/migrations/env.py online path and capture the exact URL passed to async_engine_from_config
+    captured: dict = {}
+
+    class _SentinelStop(RuntimeError):
+        pass
+
+    def _capture_engine(configuration, **kwargs):
+        captured["url"] = configuration.get("sqlalchemy.url")
+        raise _SentinelStop("captured")
+
+    monkeypatch.setattr(sa_asyncio, "async_engine_from_config", _capture_engine)
+    cfg = Config("alembic.ini")
+    with pytest.raises(_SentinelStop):
+        command.upgrade(cfg, "head")
+
+    assert captured["url"] == expected_url
+
+    # Restore and verify real online Alembic upgrade (0001 -> 0004) against a clean SQLite file
+    monkeypatch.undo()
+    clean_sqlite = tmp_path / "alembic_clean.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite+aiosqlite:///{clean_sqlite}")
+    cfg_online = Config("alembic.ini")
+    command.upgrade(cfg_online, "head")
+    assert clean_sqlite.exists()
+
+
+

@@ -19,7 +19,7 @@ _session_maker: async_sessionmaker[AsyncSession] | None = None
 
 def get_database_url() -> str:
     """Retrieve the database URL from environment or fallback to SQLite."""
-    url = os.getenv("DATABASE_URL", "sqlite+aiosqlite:///./devaura.db")
+    url = os.getenv("DATABASE_URL", "sqlite+aiosqlite:///./devaura.db").strip()
     # Handle standard postgresql:// prefix if provided
     if url.startswith("postgresql://"):
         url = url.replace("postgresql://", "postgresql+asyncpg://", 1)

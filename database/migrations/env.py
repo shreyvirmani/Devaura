@@ -21,8 +21,9 @@ if config.config_file_name is not None:
 # target metadata for 'autogenerate' support
 target_metadata = Base.metadata
 
-# Override sqlalchemy.url with dynamic connection string
-config.set_main_option("sqlalchemy.url", get_database_url())
+# Note: Do NOT pass get_database_url() through config.set_main_option("sqlalchemy.url", ...),
+# because ConfigParser treats '%' in URL-encoded credentials (e.g. %40) as interpolation syntax.
+# Instead, pass get_database_url() directly to context.configure / async_engine_from_config.
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
@@ -42,7 +43,7 @@ def run_migrations_offline() -> None:
     script output.
 
     """
-    url = config.get_main_option("sqlalchemy.url")
+    url = get_database_url()
     context.configure(
         url=url,
         target_metadata=target_metadata,
@@ -67,8 +68,10 @@ async def run_async_migrations() -> None:
 
     """
 
+    configuration = config.get_section(config.config_ini_section, {}) or {}
+    configuration["sqlalchemy.url"] = get_database_url()
     connectable = async_engine_from_config(
-        config.get_section(config.config_ini_section, {}),
+        configuration,
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
     )

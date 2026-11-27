@@ -433,6 +433,16 @@ def test_start_free_staging_api_imports_apps_when_invoked_as_script(tmp_path):
     assert "IMPORTED_OK" in proc.stdout
 
 
+def test_runtime_jwt_dependency_declared_and_importable():
+    reqs = Path("apps/api/requirements.txt").read_text(encoding="utf-8")
+    assert "PyJWT" in reqs
+    import jwt
+
+    assert hasattr(jwt, "encode") and hasattr(jwt, "decode")
+    import apps.api.main  # noqa: F401
+
+
+
 
 
 

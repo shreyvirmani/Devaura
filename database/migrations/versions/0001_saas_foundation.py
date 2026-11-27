@@ -1,7 +1,7 @@
 """0001_saas_foundation: Multi-tenancy, workspace memberships, and audit events.
 
 Revision ID: 0001_saas_foundation
-Revises: 
+Revises: 0000_initial_core_schema
 Create Date: 2026-11-25 13:25:00
 """
 from typing import Sequence, Union
@@ -9,7 +9,7 @@ from alembic import op
 import sqlalchemy as sa
 
 revision: str = '0001_saas_foundation'
-down_revision: Union[str, Sequence[str], None] = None
+down_revision: Union[str, Sequence[str], None] = '0000_initial_core_schema'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

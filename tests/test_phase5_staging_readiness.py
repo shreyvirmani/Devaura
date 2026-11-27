@@ -315,13 +315,51 @@ def test_alembic_url_encoded_credentials_no_interpolation_error(monkeypatch, tmp
         "prepared_statement_cache_size": 0,
     }
 
-    # Restore and verify real online Alembic upgrade (0001 -> 0004) against a clean SQLite file
+    # Restore and verify real online Alembic upgrade (0000 -> 0004) against a clean SQLite file
     monkeypatch.undo()
     clean_sqlite = tmp_path / "alembic_clean.db"
     monkeypatch.setenv("DATABASE_URL", f"sqlite+aiosqlite:///{clean_sqlite}")
     cfg_online = Config("alembic.ini")
     command.upgrade(cfg_online, "head")
     assert clean_sqlite.exists()
+
+    import sqlalchemy as sa
+    from database.models import Base
+    sync_engine = sa.create_engine(f"sqlite:///{clean_sqlite}")
+    try:
+        inspector = sa.inspect(sync_engine)
+        tables = set(inspector.get_table_names())
+        assert set(Base.metadata.tables.keys()).issubset(tables)
+        assert "users" in tables
+        assert "workspaces" in tables
+        fks = inspector.get_foreign_keys("workspaces")
+        assert any(
+            fk["referred_table"] == "users"
+            and fk["constrained_columns"] == ["owner_id"]
+            and fk["referred_columns"] == ["id"]
+            for fk in fks
+        )
+    finally:
+        sync_engine.dispose()
+
+
+def test_alembic_chain_orders_users_before_workspaces():
+    from alembic.config import Config
+    from alembic.script import ScriptDirectory
+
+    script = ScriptDirectory.from_config(Config("alembic.ini"))
+    revs = list(script.walk_revisions(base="base", head="head"))
+    # walk_revisions yields head -> base; reverse to chronological order
+    ordered_ids = [r.revision for r in reversed(revs)]
+    assert ordered_ids == [
+        "0000_initial_core_schema",
+        "0001_saas_foundation",
+        "0002_github_app_integration",
+        "0003_incidents_and_jobs",
+        "0004_phase4_repair_pipeline",
+    ]
+    assert "0000_initial_core_schema" in Path("database/migrations/versions/0000_initial_core_schema.py").read_text(encoding="utf-8")
+
 
 
 @pytest.mark.asyncio

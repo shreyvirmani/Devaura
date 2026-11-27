@@ -403,5 +403,36 @@ async def test_supabase_transaction_pooler_disables_prepared_statements(monkeypa
         await db_conn.close_db()
 
 
+def test_start_free_staging_api_imports_apps_when_invoked_as_script(tmp_path):
+    """Simulate `python scripts/start_free_staging_api.py` from outside repo root without PYTHONPATH."""
+    import subprocess
+    import sys
+
+    script_path = Path("scripts/start_free_staging_api.py").resolve()
+    env = {k: v for k, v in os.environ.items() if k.upper() != "PYTHONPATH"}
+    proc = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            (
+                "import importlib.util, sys; "
+                f"spec = importlib.util.spec_from_file_location('start_free_staging_api', {str(script_path)!r}); "
+                "mod = importlib.util.module_from_spec(spec); "
+                "spec.loader.exec_module(mod); "
+                "import apps.api.main; "
+                "print('IMPORTED_OK')"
+            ),
+        ],
+        cwd=str(tmp_path),
+        env=env,
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+    assert proc.returncode == 0, proc.stderr
+    assert "IMPORTED_OK" in proc.stdout
+
+
+
 
 

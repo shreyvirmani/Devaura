@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from alembic import context
 from database.models import Base
-from database.connection import get_database_url
+from database.connection import build_asyncpg_connect_args, get_database_url
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -68,12 +68,15 @@ async def run_async_migrations() -> None:
 
     """
 
+    db_url = get_database_url()
     configuration = config.get_section(config.config_ini_section, {}) or {}
-    configuration["sqlalchemy.url"] = get_database_url()
+    configuration["sqlalchemy.url"] = db_url
+    connect_args = build_asyncpg_connect_args(db_url)
     connectable = async_engine_from_config(
         configuration,
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
+        connect_args=connect_args,
     )
 
     async with connectable.connect() as connection:

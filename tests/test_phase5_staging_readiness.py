@@ -301,6 +301,7 @@ def test_alembic_url_encoded_credentials_no_interpolation_error(monkeypatch, tmp
 
     def _capture_engine(configuration, **kwargs):
         captured["url"] = configuration.get("sqlalchemy.url")
+        captured["connect_args"] = kwargs.get("connect_args")
         raise _SentinelStop("captured")
 
     monkeypatch.setattr(sa_asyncio, "async_engine_from_config", _capture_engine)
@@ -309,6 +310,10 @@ def test_alembic_url_encoded_credentials_no_interpolation_error(monkeypatch, tmp
         command.upgrade(cfg, "head")
 
     assert captured["url"] == expected_url
+    assert captured["connect_args"] == {
+        "statement_cache_size": 0,
+        "prepared_statement_cache_size": 0,
+    }
 
     # Restore and verify real online Alembic upgrade (0001 -> 0004) against a clean SQLite file
     monkeypatch.undo()
@@ -317,6 +322,48 @@ def test_alembic_url_encoded_credentials_no_interpolation_error(monkeypatch, tmp
     cfg_online = Config("alembic.ini")
     command.upgrade(cfg_online, "head")
     assert clean_sqlite.exists()
+
+
+@pytest.mark.asyncio
+async def test_supabase_transaction_pooler_disables_prepared_statements(monkeypatch):
+    from sqlalchemy.pool import AsyncAdaptedQueuePool, NullPool
+    from database import connection as db_conn
+
+    # 1. Supabase pooler URL: disables prepared statements and uses NullPool
+    monkeypatch.setenv(
+        "DATABASE_URL",
+        "postgresql+asyncpg://postgres:Devaura%401928@aws-0-ap-south-1.pooler.supabase.com:6543/postgres",
+    )
+    await db_conn.close_db()
+    captured_kwargs: dict = {}
+    orig_create = db_conn.create_async_engine
+
+    def _spy_create(url, **kwargs):
+        captured_kwargs.clear()
+        captured_kwargs.update(kwargs)
+        return orig_create(url, **kwargs)
+
+    monkeypatch.setattr(db_conn, "create_async_engine", _spy_create)
+    engine = db_conn.get_engine()
+    try:
+        assert captured_kwargs["connect_args"]["statement_cache_size"] == 0
+        assert captured_kwargs["connect_args"]["prepared_statement_cache_size"] == 0
+        assert captured_kwargs["poolclass"] is NullPool
+        assert isinstance(engine.pool, NullPool)
+    finally:
+        await db_conn.close_db()
+
+    # 2. Direct non-pooler PostgreSQL URL: keeps normal pooling and does not force statement_cache_size=0
+    monkeypatch.setenv("DATABASE_URL", "postgresql+asyncpg://user:pass@pg.internal:5432/devaura")
+    engine_direct = db_conn.get_engine()
+    try:
+        assert "statement_cache_size" not in captured_kwargs["connect_args"]
+        assert "prepared_statement_cache_size" not in captured_kwargs["connect_args"]
+        assert "poolclass" not in captured_kwargs
+        assert isinstance(engine_direct.pool, AsyncAdaptedQueuePool)
+    finally:
+        await db_conn.close_db()
+
 
 
 

@@ -1,5 +1,6 @@
 import os
 from typing import AsyncGenerator
+from urllib.parse import urlsplit
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
@@ -7,6 +8,7 @@ from sqlalchemy.ext.asyncio import (
     create_async_engine,
 )
 from sqlalchemy.orm import DeclarativeBase
+from sqlalchemy.pool import NullPool
 
 class Base(DeclarativeBase):
     """Base class for all SQLAlchemy ORM models."""
@@ -28,6 +30,36 @@ def get_database_url() -> str:
     return url
 
 
+def is_transaction_pooler_url(db_url: str) -> bool:
+    """Return True when the asyncpg URL targets Supabase or a PgBouncer transaction pooler."""
+    if "asyncpg" not in (db_url or "").lower():
+        return False
+    if os.getenv("DB_DISABLE_PREPARED_STATEMENTS", "").strip().lower() in {"1", "true", "yes"}:
+        return True
+    parsed = urlsplit(db_url)
+    host = (parsed.hostname or "").lower()
+    query = (parsed.query or "").lower()
+    return (
+        parsed.port == 6543
+        or "supabase.com" in host
+        or "supabase.co" in host
+        or "pgbouncer=true" in query
+    )
+
+
+def build_asyncpg_connect_args(db_url: str, statement_timeout_ms: int = 0) -> dict:
+    """Build asyncpg connect_args, disabling prepared statement caches for transaction poolers."""
+    connect_args: dict = {}
+    if "asyncpg" not in (db_url or "").lower():
+        return connect_args
+    if statement_timeout_ms > 0:
+        connect_args["server_settings"] = {"statement_timeout": str(statement_timeout_ms)}
+    if is_transaction_pooler_url(db_url):
+        connect_args["statement_cache_size"] = 0
+        connect_args["prepared_statement_cache_size"] = 0
+    return connect_args
+
+
 def get_engine() -> AsyncEngine:
     """Lazy initialize and return the async engine."""
     global _engine, _engine_url, _session_maker
@@ -35,24 +67,27 @@ def get_engine() -> AsyncEngine:
     if _engine is None or _engine_url != db_url:
         from apps.api.config import get_settings
         settings = get_settings()
-        connect_args = {}
+        connect_args: dict = {}
         engine_kwargs: dict = {
             "echo": os.getenv("LOG_LEVEL", settings.LOG_LEVEL).upper() == "DEBUG",
         }
         if "sqlite" in db_url:
             connect_args["check_same_thread"] = False
         else:
-            # PostgreSQL production/staging connection pool configuration
-            engine_kwargs.update(
-                pool_size=int(os.getenv("DB_POOL_SIZE", settings.DB_POOL_SIZE)),
-                max_overflow=int(os.getenv("DB_MAX_OVERFLOW", settings.DB_MAX_OVERFLOW)),
-                pool_timeout=int(os.getenv("DB_POOL_TIMEOUT_SECONDS", settings.DB_POOL_TIMEOUT_SECONDS)),
-                pool_recycle=int(os.getenv("DB_POOL_RECYCLE_SECONDS", settings.DB_POOL_RECYCLE_SECONDS)),
-                pool_pre_ping=True,
-            )
             stmt_timeout = int(os.getenv("DB_STATEMENT_TIMEOUT_MS", settings.DB_STATEMENT_TIMEOUT_MS))
-            if "asyncpg" in db_url and stmt_timeout > 0:
-                connect_args["server_settings"] = {"statement_timeout": str(stmt_timeout)}
+            connect_args = build_asyncpg_connect_args(db_url, statement_timeout_ms=stmt_timeout)
+            if is_transaction_pooler_url(db_url):
+                # Transaction poolers (e.g. Supabase PgBouncer) must use NullPool
+                engine_kwargs["poolclass"] = NullPool
+            else:
+                # Direct PostgreSQL production/staging connection pool configuration
+                engine_kwargs.update(
+                    pool_size=int(os.getenv("DB_POOL_SIZE", settings.DB_POOL_SIZE)),
+                    max_overflow=int(os.getenv("DB_MAX_OVERFLOW", settings.DB_MAX_OVERFLOW)),
+                    pool_timeout=int(os.getenv("DB_POOL_TIMEOUT_SECONDS", settings.DB_POOL_TIMEOUT_SECONDS)),
+                    pool_recycle=int(os.getenv("DB_POOL_RECYCLE_SECONDS", settings.DB_POOL_RECYCLE_SECONDS)),
+                    pool_pre_ping=True,
+                )
         _engine = create_async_engine(
             db_url,
             connect_args=connect_args,

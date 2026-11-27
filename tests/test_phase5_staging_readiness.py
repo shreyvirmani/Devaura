@@ -442,6 +442,17 @@ def test_runtime_jwt_dependency_declared_and_importable():
     import apps.api.main  # noqa: F401
 
 
+def test_runtime_mcp_sdk_dependency_declared_and_importable():
+    reqs = Path("apps/api/requirements.txt").read_text(encoding="utf-8")
+    assert "mcp>=" in reqs
+    from mcp.server.mcpserver import MCPServer
+    from mcp.server.devaura_server import get_native_mcp_server
+
+    assert MCPServer is not None
+    assert callable(get_native_mcp_server)
+
+
+
 
 
 

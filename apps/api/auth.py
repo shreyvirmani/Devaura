@@ -161,17 +161,17 @@ async def get_current_user(
 
     settings = get_settings()
 
-    # Fail closed: DEV_USER fallback is strictly prohibited in production and staging
+    # Fail closed: DEV_USER fallback is strictly prohibited in production, local_production, and staging
     normalized_env = (settings.APP_ENV or "").lower().strip()
-    if normalized_env in ("production", "staging", "prod", "stage"):
+    if normalized_env in ("production", "staging", "prod", "stage", "local_production"):
         raise create_auth_error(
             status.HTTP_401_UNAUTHORIZED,
             "UNAUTHORIZED",
             "Authentication required. Identity fallback is strictly disabled in production/staging environments.",
         )
 
-    # In development/testing, fallback is only allowed if explicitly enabled in configuration
-    if normalized_env in ("development", "testing") and getattr(settings, "ALLOW_DEV_USER_FALLBACK", False):
+    # In development/local_development/testing, fallback is only allowed if explicitly enabled in configuration
+    if normalized_env in ("development", "local_development", "testing") and getattr(settings, "ALLOW_DEV_USER_FALLBACK", False):
         return DEV_USER
 
     raise create_auth_error(

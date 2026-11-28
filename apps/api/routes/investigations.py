@@ -11,7 +11,8 @@ from agent.models import (
     InvestigationRequest,
     InvestigationState as AgentInvState,
 )
-from apps.api.auth import CurrentUser, get_current_user
+from apps.api.auth import DEV_USER, CurrentUser, get_current_user
+from apps.api.authorization import get_user_workspace_ids, require_resource_workspace_access
 from database.connection import get_db_session
 from database.models import (
     AgentState,
@@ -138,8 +139,13 @@ async def list_investigations(
     session: AsyncSession = Depends(get_db_session),
     user: CurrentUser = Depends(get_current_user),
 ) -> List[InvestigationResponse]:
-    """Retrieve all investigations, optionally filtered by repository."""
+    """Retrieve investigations scoped to the user's workspaces."""
     query = select(Investigation).order_by(Investigation.created_at.desc())
+    if not user.is_superuser and user.id != DEV_USER.id:
+        ws_ids = await get_user_workspace_ids(user, session)
+        if not ws_ids:
+            return []
+        query = query.where(Investigation.workspace_id.in_(ws_ids))
     if repository_id:
         query = query.where(Investigation.repository_id == repository_id)
     result = await session.execute(query)
@@ -161,12 +167,14 @@ async def create_investigation(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Repository {payload.repository_id} not found.",
         )
+    await require_resource_workspace_access(repo.workspace_id, user, session)
 
     # For Phase 1 backward compatibility, if failure_type is None, use INVESTIGATING
     initial_status = AgentState.INVESTIGATING.value if payload.failure_type is None else AgentInvState.CREATED.value
     fail_type = payload.failure_type or FailureType.UNKNOWN.value
 
     investigation = Investigation(
+        workspace_id=repo.workspace_id,
         repository_id=payload.repository_id,
         source_type=payload.source_type or "issue",
         source_id=payload.issue_id or payload.source_id or "1",
@@ -202,6 +210,7 @@ async def get_investigation(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Investigation {inv_id} not found.",
         )
+    await require_resource_workspace_access(investigation.workspace_id, user, session)
     return investigation
 
 
@@ -220,6 +229,7 @@ async def run_investigation(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Investigation {inv_id} not found.",
         )
+    await require_resource_workspace_access(inv.workspace_id, user, session)
 
     # Determine workspace root
     ws_path = workspace or "."
@@ -332,6 +342,10 @@ async def get_investigation_evidence(
     user: CurrentUser = Depends(get_current_user),
 ) -> List[EvidenceResponse]:
     """Retrieve ranked evidence items collected for an investigation."""
+    inv = (await session.execute(select(Investigation).where(Investigation.id == inv_id))).scalar_one_or_none()
+    if not inv:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Investigation {inv_id} not found.")
+    await require_resource_workspace_access(inv.workspace_id, user, session)
     query = select(Evidence).where(Evidence.investigation_id == inv_id).order_by(
         Evidence.relevance.desc(), Evidence.confidence.desc()
     )
@@ -351,6 +365,10 @@ async def get_investigation_candidates(
     user: CurrentUser = Depends(get_current_user),
 ) -> List[CandidateResponse]:
     """Retrieve synthesized root-cause hypotheses with confidence ratings."""
+    inv = (await session.execute(select(Investigation).where(Investigation.id == inv_id))).scalar_one_or_none()
+    if not inv:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Investigation {inv_id} not found.")
+    await require_resource_workspace_access(inv.workspace_id, user, session)
     query = select(RootCauseCandidate).where(
         RootCauseCandidate.investigation_id == inv_id
     ).order_by(RootCauseCandidate.confidence.desc())
@@ -366,6 +384,10 @@ async def get_investigation_timeline(
     user: CurrentUser = Depends(get_current_user),
 ) -> List[StepResponse]:
     """Retrieve the step-by-step investigation timeline and tool audit trail."""
+    inv = (await session.execute(select(Investigation).where(Investigation.id == inv_id))).scalar_one_or_none()
+    if not inv:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Investigation {inv_id} not found.")
+    await require_resource_workspace_access(inv.workspace_id, user, session)
     query = select(InvestigationStep).where(
         InvestigationStep.investigation_id == inv_id
     ).order_by(InvestigationStep.step_number.asc())

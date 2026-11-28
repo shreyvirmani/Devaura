@@ -229,3 +229,64 @@ async def verify_repair_in_workspace(
             "Repair not found in this workspace.",
         )
     return repair
+
+
+async def get_user_workspace_ids(user: CurrentUser, db: AsyncSession) -> list[str]:
+    """Return all workspace IDs the authenticated user belongs to."""
+    res = await db.execute(
+        select(WorkspaceMember.workspace_id).where(WorkspaceMember.user_id == user.id)
+    )
+    return list(res.scalars().all())
+
+
+async def resolve_user_workspace_id(
+    requested_workspace_id: Optional[str],
+    user: CurrentUser,
+    db: AsyncSession,
+) -> Optional[str]:
+    """Resolve and authorize a target workspace_id for a real user."""
+    from apps.api.auth import DEV_USER
+
+    if user.id == DEV_USER.id and not requested_workspace_id:
+        return None
+    ws_ids = await get_user_workspace_ids(user, db)
+    if requested_workspace_id:
+        if requested_workspace_id not in ws_ids and not user.is_superuser:
+            raise create_auth_error(
+                status.HTTP_403_FORBIDDEN,
+                "FORBIDDEN",
+                "You do not have access to this workspace.",
+            )
+        return requested_workspace_id
+    if not ws_ids:
+        raise create_auth_error(
+            status.HTTP_403_FORBIDDEN,
+            "FORBIDDEN",
+            "User does not belong to any workspace.",
+        )
+    return ws_ids[0]
+
+
+async def require_resource_workspace_access(
+    workspace_id: Optional[str],
+    user: CurrentUser,
+    db: AsyncSession,
+) -> None:
+    """Enforce server-side workspace isolation for top-level resource endpoints."""
+    from apps.api.auth import DEV_USER
+
+    if user.is_superuser or user.id == DEV_USER.id:
+        return
+    if not workspace_id:
+        raise create_auth_error(
+            status.HTTP_403_FORBIDDEN,
+            "FORBIDDEN",
+            "Resource is not scoped to an accessible workspace.",
+        )
+    ws_ids = await get_user_workspace_ids(user, db)
+    if workspace_id not in ws_ids:
+        raise create_auth_error(
+            status.HTTP_403_FORBIDDEN,
+            "FORBIDDEN",
+            "Cross-workspace access denied.",
+        )

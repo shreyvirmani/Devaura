@@ -4,6 +4,7 @@ from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import desc, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from apps.api.auth import get_current_user
 from code_intelligence.git import GitIntelligence
 from code_intelligence.graph import GraphQueryEngine, RelationshipBuilder
 from code_intelligence.indexer import FileIndexer, RepositoryIndexer
@@ -29,7 +30,11 @@ from database.models.code_intelligence import (
 )
 from database.models.models import Repository
 
-router = APIRouter(prefix="/code-intelligence", tags=["Code Intelligence"])
+router = APIRouter(
+    prefix="/code-intelligence",
+    tags=["Code Intelligence"],
+    dependencies=[Depends(get_current_user)],
+)
 
 
 # 1. Trigger Indexing

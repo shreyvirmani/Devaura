@@ -4,7 +4,14 @@ from typing import List
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-VALID_ENVIRONMENTS = {"testing", "development", "staging", "production"}
+VALID_ENVIRONMENTS = {
+    "testing",
+    "development",
+    "local_development",
+    "staging",
+    "production",
+    "local_production",
+}
 DEFAULT_DEV_SECRET_KEY = "devaura-secret-key-at-least-32-chars-long-for-security"
 
 
@@ -91,7 +98,7 @@ class Settings(BaseSettings):
 
     @property
     def is_staging_or_production(self) -> bool:
-        return self.APP_ENV in {"staging", "production"}
+        return self.APP_ENV in {"staging", "production", "local_production"}
 
     def validate_staging_or_production(self) -> List[str]:
         """Validate fail-closed requirements for staging and production.
